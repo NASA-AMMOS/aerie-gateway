@@ -8,6 +8,33 @@ export default (app: Express) => {
   } = process.env;
   const camOptions = { apiUrl, enabled: enabled === 'true' };
 
+  /**
+   * @swagger
+   * /cam/login:
+   *   post:
+   *     consumes:
+   *       - application/json
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       description: User's credentials
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               username:
+   *                 type: string
+   *               password:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: LoginResponse
+   *     summary: Login to CAM to initiate a session
+   *     tags:
+   *       - CAM
+   */
   app.post('/cam/login', async (req, res) => {
     const { body } = req;
     const { username, password } = body;
@@ -16,6 +43,26 @@ export default (app: Express) => {
     res.json(response);
   });
 
+  /**
+   * @swagger
+   * /cam/logout:
+   *   post:
+   *     parameters:
+   *       - description: Authorization header with CAM SSO token
+   *         in: header
+   *         name: x-cam-authorization
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       200:
+   *         description: LogoutResponse
+   *     summary: Logout of CAM to destroy a session
+   *     tags:
+   *       - CAM
+   */
   app.post('/cam/logout', async (req, res) => {
     const { headers } = req;
     const { authorization: ssoToken = '' } = headers;
