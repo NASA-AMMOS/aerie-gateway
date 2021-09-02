@@ -4,21 +4,21 @@ import pg from 'pg';
 const { Pool: DbPool } = pg;
 
 const {
-  POSTGRES_DATABASE: database = 'aerie',
-  POSTGRES_HOST: host = 'postgres',
-  POSTGRES_PASSWORD: password = 'aerie',
-  POSTGRES_PORT: port = '5432',
-  POSTGRES_USER: user = 'aerie',
+  POSTGRES_DATABASE_MERLIN: database = 'merlin',
+  POSTGRES_HOST_MERLIN: host = 'postgres',
+  POSTGRES_PASSWORD_MERLIN: password = 'aerie',
+  POSTGRES_PORT_MERLIN: port = '5432',
+  POSTGRES_USER_MERLIN: user = 'aerie',
 } = process.env;
 
-export class Db {
+export class DbMerlin {
   private static pool: Pool | null = null;
 
-  static getDb(): Pool | null {
-    if (!Db.pool) {
-      Db.init();
+  static getDb(): Pool {
+    if (!DbMerlin.pool) {
+      DbMerlin.init();
     }
-    return Db.pool;
+    return DbMerlin.pool as Pool;
   }
 
   static init(): void {
@@ -30,7 +30,8 @@ export class Db {
         port: parseInt(port, 10),
         user,
       };
-      Db.pool = new DbPool(poolConfig);
+
+      DbMerlin.pool = new DbPool(poolConfig);
     } catch (error) {
       console.error(error);
     }
