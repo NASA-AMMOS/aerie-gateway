@@ -6,7 +6,7 @@ const options: swaggerJsDoc.Options = {
   apis: ['./dist/packages/**/*.js'],
   definition: {
     info: {
-      title: 'Aerie API',
+      title: 'Aerie Gateway',
       version: '0.10.0',
     },
     openapi: '3.0.0',
@@ -27,5 +27,12 @@ const options: swaggerJsDoc.Options = {
 
 export default async (app: Express) => {
   const spec = await swaggerJsDoc(options);
-  app.use('/', swagger.serve, swagger.setup(spec));
+  app.use(
+    '/',
+    swagger.serve,
+    swagger.setup(spec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Aerie Gateway',
+    }),
+  );
 };
