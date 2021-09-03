@@ -95,7 +95,7 @@ pipeline {
         }
         stage('Deploy to AWS') {
           when {
-            expression { GIT_BRANCH ==~ /(develop|staging|release-.*)/ }
+            expression { GIT_BRANCH ==~ /(develop|staging)/ }
           }
           steps {
             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'mpsa-aws-test-account']]) {
