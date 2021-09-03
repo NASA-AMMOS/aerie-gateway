@@ -50,6 +50,24 @@ export default (app: Express) => {
     }
   });
 
+  /**
+   * @swagger
+   * /file/{path}:
+   *   get:
+   *     parameters:
+   *       - description: Name or path of the file to fetch
+   *         in: path
+   *         name: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: File
+   *     summary: Fetch a file from the filesystem
+   *     tags:
+   *       - Files
+   */
   app.get('/file/:path([^/]*)', (req, res) => {
     const { params } = req;
     const { path } = params;
