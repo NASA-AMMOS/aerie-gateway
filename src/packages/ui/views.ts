@@ -62,7 +62,7 @@ export default async (app: Express) => {
     res.json(views);
   });
 
-  app.get('/views/latest', async (req, res) => {
+  app.get('/ui/views/latest', async (req, res) => {
     const user = req.get('x-user');
     const view = await latestView(db, user);
 
