@@ -114,7 +114,7 @@ export default (app: Express) => {
    *     responses:
    *       200:
    *         description: A list of all absolute file paths under the FILE_STORE_PATH environment variable
-   *     summary: Returns a list of absolute paths for all files stored in the filesystem
+   *     summary: Returns a list of absolute paths for all files stored on the filesystem
    *     tags:
    *       - Files
    */
