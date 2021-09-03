@@ -54,7 +54,6 @@ pipeline {
                 usernameVariable: 'NPM_EMAIL'
               )
             ]) {
-              script { setBuildStatus("build", "pending", "jenkins/branch-check"); }
               sh '''
                 # Setup NPM to fetch from Artifactory
                 npm config set @gov.nasa.jpl.aerie:registry=https://artifactory.jpl.nasa.gov/artifactory/api/npm/npm-release-virtual/
@@ -109,7 +108,6 @@ pipeline {
           sh "docker rmi ${DOCKER_TAG_AWS} || true"
           sh "docker image prune -f || true"
           sh "docker logout || true"
-          setBuildStatus("post", "${currentBuild.currentResult}", "jenkins/branch-check")
         }
         cleanup {
           cleanWs()
