@@ -106,9 +106,8 @@ pipeline {
                   docker push ${DOCKER_TAG_AWS}
                 '''
 
-                sleep 5
-                echo "Restarting the task in ECS cluster"
                 try {
+                  sleep 5
                   sh '''
                     aws ecs stop-task --cluster "${AWS_CLUSTER}" --task $(aws ecs list-tasks --cluster "${AWS_CLUSTER}" --output text --query taskArns[0])
                   '''
