@@ -38,46 +38,31 @@ pipeline {
         docker {
           alwaysPull true
           args '-u root --mount type=bind,source=${WORKSPACE},target=/home --workdir=/home -v /var/run/docker.sock:/var/run/docker.sock'
-          image 'gov/nasa/jpl/ammos/mpsa/aerie/jenkins/aerie-ui:latest'
+          image 'gov/nasa/jpl/aerie/jenkins/aerie-node:latest'
           registryCredentialsId 'Artifactory-credential'
           registryUrl 'https://artifactory.jpl.nasa.gov:16001'
           reuseNode true
         }
       }
       stages {
-        stage ('build') {
+        stage ('Build') {
           steps {
             withCredentials([
               usernamePassword(
                 credentialsId: '34c6de8f-197d-46e5-aeb3-2153697dcb9c',
-                passwordVariable: 'PASS',
-                usernameVariable: 'EMAIL'
+                passwordVariable: 'NPM_PASSWORD',
+                usernameVariable: 'NPM_EMAIL'
               )
             ]) {
               script { setBuildStatus("build", "pending", "jenkins/branch-check"); }
               sh '''
-                # Don't echo commands by default
-                set +x
-
-                # Setup ENV
-                export PATH=/usr/local/bin:/usr/bin
-                export LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib64:/usr/lib
-
-                # Setup NVM/Node.js
-                export NVM_DIR="\$HOME/.nvm"
-                if [ ! -d \$NVM_DIR ]; then
-                  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
-                fi
-                [ -s "\$NVM_DIR/nvm.sh" ] && . "\$NVM_DIR/nvm.sh"
-                nvm install v14.17.0
-
                 # Setup NPM to fetch from Artifactory
                 npm config set @gov.nasa.jpl.aerie:registry=https://artifactory.jpl.nasa.gov/artifactory/api/npm/npm-release-virtual/
-                npm config set email=$EMAIL
+                npm config set email=$NPM_EMAIL
                 npm config set always-auth=true
-                npm config set _auth=$PASS
+                npm config set _auth=$NPM_PASSWORD
 
-                # Install dependencies, and build
+                # Install dependencies and build
                 npm install --silent
                 npm run build
                 rm -rf node_modules
@@ -89,37 +74,29 @@ pipeline {
             }
           }
         }
-        stage('deploy') {
+        stage('Deploy') {
           when {
             expression { GIT_BRANCH ==~ /(develop|staging|release-.*)/ }
           }
           steps {
             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'mpsa-aws-test-account']]) {
               script{
-                echo 'Logging out docker'
-                sh 'docker logout || true'
-
-                echo 'Logging into ECR using aws cli version 2'
-                sh ('aws ecr get-login-password | docker login --username AWS --password-stdin https://$AWS_ECR')
-
-                docker.withRegistry(AWS_ECR) {
-                  echo "Tagging docker image to point to AWS ECR"
-                  sh '''
+                sh '''
+                  docker logout || true
+                  aws ecr get-login-password | docker login --username AWS --password-stdin https://$AWS_ECR
                   docker tag ${DOCKER_TAG_ARTIFACTORY} ${DOCKER_TAG_AWS}
-                  '''
-                  echo 'Pushing image to ECR'
-                  sh "docker push ${DOCKER_TAG_AWS}"
+                  docker push ${DOCKER_TAG_AWS}
+                '''
 
-                  sleep 5
-                  echo "Restarting the task in ECS cluster"
-                  try {
-                    sh '''
+                sleep 5
+                echo "Restarting the task in ECS cluster"
+                try {
+                  sh '''
                     aws ecs stop-task --cluster "${AWS_CLUSTER}" --task $(aws ecs list-tasks --cluster "${AWS_CLUSTER}" --output text --query taskArns[0])
-                    '''
-                  } catch (Exception e) {
-                    echo "Restarting the task failed"
-                    echo e.getMessage()
-                  }
+                  '''
+                } catch (Exception e) {
+                  echo "Restarting the task failed"
+                  echo e.getMessage()
                 }
               }
             }
