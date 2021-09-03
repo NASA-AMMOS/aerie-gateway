@@ -98,23 +98,21 @@ pipeline {
             expression { GIT_BRANCH ==~ /(develop|staging)/ }
           }
           steps {
-            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'mpsa-aws-test-account']]) {
-              script{
-                sh '''
-                  aws ecr get-login-password | docker login --username AWS --password-stdin https://$AWS_ECR
-                  docker tag ${DOCKER_TAG_ARTIFACTORY} ${DOCKER_TAG_AWS}
-                  docker push ${DOCKER_TAG_AWS}
-                '''
+            script{
+              sh '''
+                aws ecr get-login-password | docker login --username AWS --password-stdin https://$AWS_ECR
+                docker tag ${DOCKER_TAG_ARTIFACTORY} ${DOCKER_TAG_AWS}
+                docker push ${DOCKER_TAG_AWS}
+              '''
 
-                try {
-                  sleep 5
-                  sh '''
-                    aws ecs stop-task --cluster "${AWS_CLUSTER}" --task $(aws ecs list-tasks --cluster "${AWS_CLUSTER}" --output text --query taskArns[0])
-                  '''
-                } catch (Exception e) {
-                  echo "Restarting the task failed"
-                  echo e.getMessage()
-                }
+              try {
+                sleep 5
+                sh '''
+                  aws ecs stop-task --cluster "${AWS_CLUSTER}" --task $(aws ecs list-tasks --cluster "${AWS_CLUSTER}" --output text --query taskArns[0])
+                '''
+              } catch (Exception e) {
+                echo "Restarting the task failed"
+                echo e.getMessage()
               }
             }
           }
