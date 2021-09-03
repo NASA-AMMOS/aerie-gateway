@@ -17,6 +17,11 @@ const options: swaggerJsDoc.Options = {
           'Endpoints for authentication using the Common Access Manager (CAM)',
       },
       {
+        name: 'Files',
+        description:
+          'Endpoints for file management (e.g. adding, updating, viewing, or deleting files)',
+      },
+      {
         name: 'Health',
         description:
           'Endpoints for health information (e.g. uptime) about this server',
