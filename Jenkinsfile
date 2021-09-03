@@ -73,7 +73,27 @@ pipeline {
             }
           }
         }
-        stage('Deploy') {
+        stage ('Publish to Artifactory') {
+          when {
+            expression { GIT_BRANCH ==~ /(develop|staging|release-.*)/ }
+          }
+          steps {
+            withCredentials([
+              usernamePassword(
+                credentialsId: '9db65bd3-f8f0-4de0-b344-449ae2782b86',
+                passwordVariable: 'DOCKER_LOGIN_PASSWORD',
+                usernameVariable: 'DOCKER_LOGIN_USERNAME'
+              )
+            ]) {
+              sh '''
+                echo "${DOCKER_LOGIN_PASSWORD}" | docker login -u "${DOCKER_LOGIN_USERNAME}" ${ARTIFACTORY_URL} --password-stdin
+                docker push "${DOCKER_TAG_ARTIFACTORY}"
+                docker logout ${ARTIFACTORY_URL}
+              '''
+            }
+          }
+        }
+        stage('Deploy to AWS') {
           when {
             expression { GIT_BRANCH ==~ /(develop|staging|release-.*)/ }
           }
@@ -81,7 +101,6 @@ pipeline {
             withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'mpsa-aws-test-account']]) {
               script{
                 sh '''
-                  docker logout || true
                   aws ecr get-login-password | docker login --username AWS --password-stdin https://$AWS_ECR
                   docker tag ${DOCKER_TAG_ARTIFACTORY} ${DOCKER_TAG_AWS}
                   docker push ${DOCKER_TAG_AWS}
