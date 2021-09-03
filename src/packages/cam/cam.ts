@@ -59,7 +59,7 @@ export default (app: Express) => {
    *     responses:
    *       200:
    *         description: LogoutResponse
-   *     summary: Logout of CAM to destroy a session
+   *     summary: Logout of CAM to terminate a session
    *     tags:
    *       - CAM
    */
