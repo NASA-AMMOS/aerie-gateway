@@ -6,4 +6,6 @@ actions:
   kind:
 endpoint:
 metadata_directory:
+migrations_directory:
+seeds_directory:
 version:

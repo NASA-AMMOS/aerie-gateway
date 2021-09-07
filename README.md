@@ -9,3 +9,12 @@ npm install
 npm run build
 npm run start:local
 ```
+
+## Hasura
+
+To apply metadata to Hasura use one of the following commands:
+
+```sh
+npm run hasura:metadata # Develop
+npm run hasura:metadata:local # Local
+```
