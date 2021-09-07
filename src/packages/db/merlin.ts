@@ -34,6 +34,11 @@ async function createTables(pool: Pool): Promise<void> {
     ).toString();
     await pool.query(missionModelSql);
 
+    const activityTypeSql = readFileSync(
+      `${tablesPath}/activity_type.sql`,
+    ).toString();
+    await pool.query(activityTypeSql);
+
     const planSql = readFileSync(`${tablesPath}/plan.sql`).toString();
     await pool.query(planSql);
 

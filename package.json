@@ -11,6 +11,8 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rm -rf dist",
+    "hasura:metadata": "hasura metadata apply",
+    "hasura:metadata:local": "hasura metadata apply --envfile .env.local",
     "start": "node -r dotenv/config dist/main.js",
     "start:local": "node -r dotenv/config dist/main.js dotenv_config_path=./.env.local"
   },
@@ -37,6 +39,7 @@
     "@types/swagger-jsdoc": "^6.0.1",
     "@types/swagger-ui-express": "^4.1.3",
     "prettier": "^2.3.2",
+    "hasura-cli": "^2.0.8",
     "typescript": "^4.4.2"
   }
 }
