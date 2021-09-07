@@ -1,15 +1,15 @@
 import type { Express } from 'express';
 import { customAlphabet } from 'nanoid';
 import type { Pool } from 'pg';
-import { DbUi } from '../db/ui.js';
+import { Db } from '../db/db.js';
 
 async function latestView(db: Pool, user: string = '') {
   const { rows } = await db.query(`
-    SELECT view
-    FROM ui.views
-    WHERE view->'meta'->>'owner' = '${user}'
-    OR view->'meta'->>'owner' = 'system'
-    ORDER BY view->'meta'->>'timeUpdated' DESC;
+    select view
+    from ui.view
+    where view->'meta'->>'owner' = '${user}'
+    or view->'meta'->>'owner' = 'system'
+    order by view->'meta'->>'timeUpdated' desc;
   `);
 
   const userViews = [];
@@ -45,13 +45,13 @@ function uniqueId(): string {
 }
 
 export default async (app: Express) => {
-  const db = await DbUi.getDb();
+  const db = await Db.getDb();
 
   app.get('/ui/views', async (_, res) => {
     const { rows } = await db.query(`
-      SELECT view
-      FROM ui.views
-      ORDER BY view->'meta'->>'timeUpdated' DESC;
+      select view
+      from ui.view
+      order BY view->'meta'->>'timeUpdated' desc;
     `);
     const views = rows.map(({ view }) => ({
       id: view.id,
@@ -86,8 +86,8 @@ export default async (app: Express) => {
     const viewStr = JSON.stringify({ ...body, id, meta });
 
     const { rowCount } = await db.query(`
-      INSERT INTO ui.views (id, view)
-      VALUES ('${id}', '${viewStr}');
+      insert into ui.view (id, view)
+      values ('${id}', '${viewStr}');
     `);
 
     if (rowCount > 0) {
@@ -108,10 +108,10 @@ export default async (app: Express) => {
     const owner = req.get('x-user');
 
     const { rows } = await db.query(`
-      SELECT view
-      FROM ui.views
-      WHERE id='${id}'
-      AND view->'meta'->>'owner' = '${owner}';
+      select view
+      from ui.view
+      where id='${id}'
+      and view->'meta'->>'owner' = '${owner}';
     `);
 
     const [{ view: currentView }] = rows;
@@ -125,10 +125,10 @@ export default async (app: Express) => {
     });
 
     const { rowCount } = await db.query(`
-      UPDATE ui.views
-      SET view='${view}'
-      WHERE id='${id}'
-      AND view->'meta'->>'owner' = '${owner}';
+      update ui.view
+      set view='${view}'
+      where id='${id}'
+      and view->'meta'->>'owner' = '${owner}';
     `);
 
     if (rowCount > 0) {
@@ -147,9 +147,9 @@ export default async (app: Express) => {
     const { id = '' } = params;
 
     const { rows = [], rowCount } = await db.query(`
-      SELECT view
-      FROM ui.views
-      WHERE id = '${id}';
+      select view
+      from ui.view
+      where id = '${id}';
     `);
 
     if (rowCount > 0) {
@@ -168,9 +168,9 @@ export default async (app: Express) => {
     const owner = req.get('x-user');
 
     const { rowCount } = await db.query(`
-      DELETE FROM ui.views
-      WHERE id = '${id}'
-      AND view->'meta'->>'owner' = '${owner}';
+      delete from ui.view
+      where id = '${id}'
+      and view->'meta'->>'owner' = '${owner}';
     `);
 
     if (rowCount > 0) {
