@@ -19,7 +19,9 @@ comment on table uploaded_file is e''
 comment on column uploaded_file.id is e''
   'An opaque internal reference to this file.';
 comment on column uploaded_file.path is e''
-  'An opaque external reference to this file in an external filesystem.';
+  'An opaque external reference to this file in an external filesystem.'
+'\n'
+  'This is of type bytea since OS paths do not have a set encoding.';
 comment on column uploaded_file.name is e''
   'A human-readable identifier for this file.';
 comment on column uploaded_file.created_date is e''

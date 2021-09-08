@@ -1,10 +1,11 @@
 import type { Express } from 'express';
 import fastGlob from 'fast-glob';
-import { unlinkSync } from 'fs';
 import multer from 'multer';
+import { Db } from '../db/db.js';
 
-export default (app: Express) => {
-  const { FILE_STORE_PATH = '/usr/src/app/merlin_file_store' } = process.env;
+export default async (app: Express) => {
+  const db = await Db.getDb();
+  const { FILE_STORE_PATH = '/app/files' } = process.env;
 
   const storage = multer.diskStorage({
     destination(_, __, cb) {
@@ -36,13 +37,32 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.delete('/file/:path([^/]*)', (req, res) => {
+  app.delete('/file/:path([^/]*)', async (req, res) => {
     const { params } = req;
     const { path } = params;
     const absolutePath = `${FILE_STORE_PATH}/${path}`;
 
     try {
-      unlinkSync(absolutePath);
+      const deleted_date = new Date();
+      const { rowCount } = await db.query(
+        `
+        update merlin.uploaded_file
+        set deleted_date = $1
+        where name='${absolutePath}';
+      `,
+        [deleted_date],
+      );
+
+      if (rowCount > 0) {
+        console.log(
+          `DELETE /file: Marked file as deleted in the database: ${absolutePath}`,
+        );
+      } else {
+        console.log(
+          `DELETE /file: No file was marked as deleted in the database`,
+        );
+      }
+
       res.json({ path: absolutePath, success: true });
     } catch (error: any) {
       console.error(error);
@@ -100,8 +120,29 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.post('/file', upload.any(), (req, res) => {
-    const { files } = req;
+  app.post('/file', upload.any(), async (req, res) => {
+    const files = req.files as Express.Multer.File[];
+
+    for (const file of files) {
+      const { path } = file;
+      const modified_date = new Date();
+      const { rowCount } = await db.query(
+        `
+        insert into merlin.uploaded_file (name, path)
+        values ('${path}', '${path}')
+        on conflict (name) do update
+        set path = '${path}', modified_date = $1, deleted_date = null;
+      `,
+        [modified_date],
+      );
+
+      if (rowCount > 0) {
+        console.log(`POST /file: Updated file in the database: ${path}`);
+      } else {
+        console.log(`POST /file: No file was updated in the database`);
+      }
+    }
+
     res.json({ files, success: true });
   });
 
@@ -113,7 +154,7 @@ export default (app: Express) => {
    *       - application/json
    *     responses:
    *       200:
-   *         description: A list of all absolute file paths under the FILE_STORE_PATH environment variable
+   *         description: A list of absolute file paths
    *     summary: Returns a list of absolute paths for all files stored on the filesystem
    *     tags:
    *       - Files

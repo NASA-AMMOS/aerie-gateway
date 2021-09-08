@@ -8,7 +8,7 @@ import initPlaygroundRoutes from './packages/playground/playground.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import initUiViewRoutes from './packages/ui/views.js';
 
-function main(): void {
+async function main(): Promise<void> {
   const { PORT = '9000' } = process.env;
   const app = express();
 
@@ -17,11 +17,11 @@ function main(): void {
   app.use(express.json());
 
   initCamRoutes(app);
-  initFileRoutes(app);
+  await initFileRoutes(app);
   initHealthRoutes(app);
   initPlaygroundRoutes(app);
   initSwaggerRoutes(app);
-  initUiViewRoutes(app);
+  await initUiViewRoutes(app);
 
   app.listen(PORT, () => {
     console.log(`🚀 AERIE-GATEWAY listening on ${PORT}`);
