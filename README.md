@@ -10,7 +10,7 @@
 1. Full environment-based config to make deployment easy (see [.env](./.env))
 1. Serves the GraphQL Playground for Hasura
 1. Serves auto-generated REST API documentation
-1. Automatic Artifactory and AWS deployment
+1. Automatic Artifactory and AWS deployment (via [Jenkins](./Jenkinsfile) and [Docker](./Dockerfile))
 
 ## Develop
 
