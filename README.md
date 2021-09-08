@@ -7,7 +7,7 @@
 1. UI View API (not currently public, but it probably should be)
 1. Automatic Postgres database provisioning (see [sql](./sql))
 1. Automatic Hasura provisioning (see [hasura](./hasura))
-1. Full environment-based config to make deployment easy (see [.env](./env))
+1. Full environment-based config to make deployment easy (see [.env](./.env))
 1. Serves the GraphQL Playground for Hasura
 1. Serves auto-generated REST API documentation
 1. Automatic AWS deployment
