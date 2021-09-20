@@ -4,7 +4,6 @@
 
 1. Filesystem API
 1. CAM API proxy for login and logout (for CAM servers without CORS)
-1. UI View API (not currently public, but it probably should be)
 1. Automatic Postgres database provisioning (see [sql](./sql))
 1. Automatic Hasura provisioning (see [hasura](./hasura))
 1. Full environment-based config to make deployment easy (see [.env](./.env))
