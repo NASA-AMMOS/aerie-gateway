@@ -35,11 +35,11 @@ comment on column activity.arguments is e''
   'The set of arguments to this activity, corresponding to the parameters of the associated activity type.';
 
 
-create or replace function increment_revision_on_insert_activity()
+create or replace function merlin.increment_revision_on_insert_activity()
 returns trigger
 security definer
 language plpgsql as $$begin
-  update plan
+  update merlin.plan
   set revision = revision + 1
   where id = new.plan_id;
 
@@ -50,16 +50,16 @@ do $$ begin
   create trigger increment_revision_on_insert_activity_trigger
   after insert on activity
   for each row
-  execute function increment_revision_on_insert_activity();
+  execute function merlin.increment_revision_on_insert_activity();
 exception
   when duplicate_object then null;
 end $$;
 
-create or replace function increment_revision_on_update_activity()
+create or replace function merlin.increment_revision_on_update_activity()
 returns trigger
 security definer
 language plpgsql as $$begin
-  update plan
+  update merlin.plan
   set revision = revision + 1
   where id = new.plan_id
     or id = old.plan_id;
@@ -71,16 +71,16 @@ do $$ begin
   create trigger increment_revision_on_update_activity_trigger
   after update on activity
   for each row
-  execute function increment_revision_on_update_activity();
+  execute function merlin.increment_revision_on_update_activity();
 exception
   when duplicate_object then null;
 end $$;
 
-create or replace function increment_revision_on_delete_activity()
+create or replace function merlin.increment_revision_on_delete_activity()
 returns trigger
 security definer
 language plpgsql as $$begin
-  update plan
+  update merlin.plan
   set revision = revision + 1
   where id = old.plan_id;
 
@@ -91,7 +91,7 @@ do $$ begin
   create trigger increment_revision_on_delete_activity_trigger
   after delete on activity
   for each row
-  execute function increment_revision_on_delete_activity();
+  execute function merlin.increment_revision_on_delete_activity();
 exception
   when duplicate_object then null;
 end $$;
