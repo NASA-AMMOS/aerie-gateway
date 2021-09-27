@@ -16,10 +16,11 @@ const {
 export class Db {
   private static pool: Pool | null = null;
 
-  static async getDb(): Promise<Pool> {
-    if (!Db.pool) {
-      await Db.init();
-    }
+  /**
+   * @note Assumes init() has already been called and completed.
+   * This is so we do not need to make this function async.
+   */
+  static getDb(): Pool {
     return Db.pool as Pool;
   }
 

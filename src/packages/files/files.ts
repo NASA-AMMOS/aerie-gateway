@@ -3,8 +3,8 @@ import fastGlob from 'fast-glob';
 import multer from 'multer';
 import { Db } from '../db/db.js';
 
-export default async (app: Express) => {
-  const db = await Db.getDb();
+export default (app: Express) => {
+  const db = Db.getDb();
   const { FILE_STORE_PATH = '/app/files' } = process.env;
 
   const storage = multer.diskStorage({
