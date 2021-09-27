@@ -2,6 +2,7 @@ import type { Express } from 'express';
 import fastGlob from 'fast-glob';
 import multer from 'multer';
 import { Db } from '../db/db.js';
+import { auth } from '../middleware/auth.js';
 
 export default (app: Express) => {
   const db = Db.getDb();
@@ -12,8 +13,8 @@ export default (app: Express) => {
       cb(null, FILE_STORE_PATH);
     },
     filename(_, file, cb) {
-      const { fieldname, originalname } = file;
-      cb(null, `${fieldname}${originalname}`);
+      const { originalname } = file;
+      cb(null, originalname);
     },
   });
 
@@ -24,6 +25,12 @@ export default (app: Express) => {
    * /file/{path}:
    *   delete:
    *     parameters:
+   *       - description: Session token returned when authenticating via CAM
+   *         in: header
+   *         name: x-cam-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
    *       - description: Name or path of the file to delete
    *         in: path
    *         name: path
@@ -37,7 +44,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.delete('/file/:path([^/]*)', async (req, res) => {
+  app.delete('/file/:path([^/]*)', auth, async (req, res) => {
     const { params } = req;
     const { path } = params;
     const absolutePath = `${FILE_STORE_PATH}/${path}`;
@@ -75,6 +82,12 @@ export default (app: Express) => {
    * /file/{path}:
    *   get:
    *     parameters:
+   *       - description: Session token returned when authenticating via CAM
+   *         in: header
+   *         name: x-cam-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
    *       - description: Name or path of the file to fetch
    *         in: path
    *         name: path
@@ -88,7 +101,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.get('/file/:path([^/]*)', (req, res) => {
+  app.get('/file/:path([^/]*)', auth, (req, res) => {
     const { params } = req;
     const { path } = params;
     const absolutePath = `${FILE_STORE_PATH}/${path}`;
@@ -102,6 +115,13 @@ export default (app: Express) => {
    *     consumes:
    *       - multipart/form-data
    *     description: If a file of the same name and location already exists, the new file overwrites the old
+   *     parameters:
+   *       - description: Session token returned when authenticating via CAM
+   *         in: header
+   *         name: x-cam-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
    *     produces:
    *       - application/json
    *     requestBody:
@@ -120,7 +140,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.post('/file', upload.any(), async (req, res) => {
+  app.post('/file', auth, upload.any(), async (req, res) => {
     const files = req.files as Express.Multer.File[];
 
     for (const file of files) {
@@ -150,6 +170,13 @@ export default (app: Express) => {
    * @swagger
    * /files:
    *   get:
+   *     parameters:
+   *       - description: Session token returned when authenticating via CAM
+   *         in: header
+   *         name: x-cam-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
    *     produces:
    *       - application/json
    *     responses:
@@ -159,7 +186,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.get('/files', async (_, res) => {
+  app.get('/files', auth, async (_, res) => {
     const files = await fastGlob(`${FILE_STORE_PATH}/**/*`);
     res.json(files);
   });
