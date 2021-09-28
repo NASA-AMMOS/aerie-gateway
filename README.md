@@ -15,6 +15,13 @@ npm run start:local
 To apply metadata to Hasura use one of the following commands:
 
 ```sh
-npm run hasura:metadata # Develop
-npm run hasura:metadata:local # Local
+npm run hasura:metadata:apply # Develop
+npm run hasura:metadata:apply:local # Local
+```
+
+To export metadata from Hasura use one of the following commands:
+
+```sh
+npm run hasura:metadata:export # Develop
+npm run hasura:metadata:export:local # Local
 ```
