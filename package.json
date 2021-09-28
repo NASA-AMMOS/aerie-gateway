@@ -11,8 +11,10 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rm -rf dist",
-    "hasura:metadata": "hasura metadata apply",
-    "hasura:metadata:local": "hasura metadata apply --envfile .env.local",
+    "hasura:metadata:apply": "hasura metadata apply",
+    "hasura:metadata:apply:local": "hasura metadata apply --envfile .env.local",
+    "hasura:metadata:export": "hasura metadata export",
+    "hasura:metadata:export:local": "hasura metadata export --envfile .env.local",
     "start": "node -r dotenv/config dist/main.js",
     "start:local": "node -r dotenv/config dist/main.js dotenv_config_path=./.env.local"
   },
