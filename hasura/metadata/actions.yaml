@@ -1,6 +1,12 @@
-actions: []
+actions:
+- name: resourceTypes
+  definition:
+    kind: ""
+    handler: http://merlin:27183/resourceTypes
 custom_types:
   enums: []
   input_objects: []
-  objects: []
-  scalars: []
+  objects:
+  - name: ResourceType
+  scalars:
+  - name: ResourceSchema

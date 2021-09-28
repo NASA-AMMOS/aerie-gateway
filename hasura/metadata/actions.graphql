@@ -1,0 +1,13 @@
+type Query {
+  resourceTypes(
+    adaptationId: ID!
+  ): [ResourceType!]!
+}
+
+type ResourceType {
+  name: String!
+  schema: ResourceSchema!
+}
+
+scalar ResourceSchema
+
