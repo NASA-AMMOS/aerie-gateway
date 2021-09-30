@@ -59,7 +59,7 @@ exception
   when duplicate_object then null;
 end $$;
 
-create function merlin.increment_revision_on_update_mission_model_jar()
+create or replace function merlin.increment_revision_on_update_mission_model_jar()
 returns trigger
 security definer
 language plpgsql as $$begin
