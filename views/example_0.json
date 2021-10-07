@@ -9,9 +9,6 @@
   "sections": [
     {
       "id": "section0",
-      "menu": [
-        { "action": "restore", "icon": "restore", "title": "Restore Time" }
-      ],
       "size": 30,
       "timeline": {
         "id": "timeline0",
@@ -55,10 +52,6 @@
     },
     {
       "id": "section1",
-      "menu": [
-        { "action": "restore", "icon": "restore", "title": "Restore Time" },
-        { "action": "simulate", "icon": "timeline", "title": "Run Simulation" }
-      ],
       "size": 50,
       "timeline": {
         "id": "timeline1",
