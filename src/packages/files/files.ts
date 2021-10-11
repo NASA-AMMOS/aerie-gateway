@@ -22,7 +22,7 @@ export default (app: Express) => {
 
   /**
    * @swagger
-   * /file/{path}:
+   * /file/{id}:
    *   delete:
    *     parameters:
    *       - description: Session token returned when authenticating via CAM
@@ -31,12 +31,12 @@ export default (app: Express) => {
    *         required: true
    *         schema:
    *           type: string
-   *       - description: Name or path of the file to delete
+   *       - description: ID of the file to delete
    *         in: path
-   *         name: path
+   *         name: id
    *         required: true
    *         schema:
-   *           type: string
+   *           type: number
    *     responses:
    *       200:
    *         description: DeleteFileResponse
@@ -44,10 +44,9 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.delete('/file/:path([^/]*)', auth, async (req, res) => {
+  app.delete('/file/:id', auth, async (req, res) => {
     const { params } = req;
-    const { path } = params;
-    const absolutePath = `${FILE_STORE_PATH}/${path}`;
+    const { id } = params;
 
     try {
       const deleted_date = new Date();
@@ -55,14 +54,14 @@ export default (app: Express) => {
         `
         update merlin.uploaded_file
         set deleted_date = $1
-        where name='${absolutePath}';
+        where id='${id}';
       `,
         [deleted_date],
       );
 
       if (rowCount > 0) {
         console.log(
-          `DELETE /file: Marked file as deleted in the database: ${absolutePath}`,
+          `DELETE /file: Marked file as deleted in the database: ${id}`,
         );
       } else {
         console.log(
@@ -70,42 +69,11 @@ export default (app: Express) => {
         );
       }
 
-      res.json({ path: absolutePath, success: true });
+      res.json({ id, success: true });
     } catch (error: any) {
       console.error(error);
       res.status(404).json({ message: error.message, success: false });
     }
-  });
-
-  /**
-   * @swagger
-   * /file/{path}:
-   *   get:
-   *     parameters:
-   *       - description: Session token returned when authenticating via CAM
-   *         in: header
-   *         name: x-cam-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
-   *       - description: Name or path of the file to fetch
-   *         in: path
-   *         name: path
-   *         required: true
-   *         schema:
-   *           type: string
-   *     responses:
-   *       200:
-   *         description: File
-   *     summary: Fetch a file from the filesystem
-   *     tags:
-   *       - Files
-   */
-  app.get('/file/:path([^/]*)', auth, (req, res) => {
-    const { params } = req;
-    const { path } = params;
-    const absolutePath = `${FILE_STORE_PATH}/${path}`;
-    res.download(absolutePath);
   });
 
   /**
@@ -141,29 +109,29 @@ export default (app: Express) => {
    *       - Files
    */
   app.post('/file', auth, upload.any(), async (req, res) => {
-    const files = req.files as Express.Multer.File[];
+    const [file] = req.files as Express.Multer.File[];
+    const { filename, path } = file;
+    const modified_date = new Date();
+    const { rowCount, rows } = await db.query(
+      `
+      insert into merlin.uploaded_file (name, path)
+      values ('${filename}', '${path}')
+      on conflict (name) do update
+      set path = '${path}', modified_date = $1, deleted_date = null
+      returning id;
+    `,
+      [modified_date],
+    );
+    const [row] = rows;
+    const id = row ? row.id : null;
 
-    for (const file of files) {
-      const { path } = file;
-      const modified_date = new Date();
-      const { rowCount } = await db.query(
-        `
-        insert into merlin.uploaded_file (name, path)
-        values ('${path}', '${path}')
-        on conflict (name) do update
-        set path = '${path}', modified_date = $1, deleted_date = null;
-      `,
-        [modified_date],
-      );
-
-      if (rowCount > 0) {
-        console.log(`POST /file: Updated file in the database: ${path}`);
-      } else {
-        console.log(`POST /file: No file was updated in the database`);
-      }
+    if (rowCount > 0) {
+      console.log(`POST /file: Updated file in the database: ${id}`);
+    } else {
+      console.log(`POST /file: No file was updated in the database`);
     }
 
-    res.json({ files, success: true });
+    res.json({ file, id });
   });
 
   /**
