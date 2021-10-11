@@ -3,10 +3,20 @@ actions:
   definition:
     kind: ""
     handler: http://merlin:27183/resourceTypes
+- name: activityType
+  definition:
+    kind: ""
+    handler: http://merlin:27183/activityTypeAction
+- name: activityTypes
+  definition:
+    kind: ""
+    handler: http://merlin:27183/activityTypesAction
 custom_types:
   enums: []
   input_objects: []
   objects:
   - name: ResourceType
+  - name: ActivityType
   scalars:
   - name: ResourceSchema
+  - name: ActivityTypeParameter

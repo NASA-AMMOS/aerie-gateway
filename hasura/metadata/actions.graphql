@@ -2,6 +2,13 @@ type Query {
   resourceTypes(
     adaptationId: ID!
   ): [ResourceType!]!
+  activityType(
+    adaptationId: String!
+    activityTypeId: String!
+  ): ActivityType!
+  activityTypes(
+    adaptationId: String!
+  ): [ActivityType]!
 }
 
 type ResourceType {
@@ -11,3 +18,9 @@ type ResourceType {
 
 scalar ResourceSchema
 
+type ActivityType {
+  name: String!
+  parameters: [ActivityTypeParameter]!
+}
+
+scalar ActivityTypeParameter
