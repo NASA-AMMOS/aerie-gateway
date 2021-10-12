@@ -34,3 +34,23 @@ array_relationships:
       table:
         name: plan
         schema: merlin
+event_triggers:
+- definition:
+    enable_manual: false
+    insert:
+      columns: "*"
+    update:
+      columns:
+      - id
+      - revision
+      - jar_id
+      - mission
+      - name
+      - version
+      - owner
+  name: modelUpdate
+  retry_conf:
+    interval_sec: 10
+    num_retries: 0
+    timeout_sec: 60
+  webhook: http://merlin:27183/modelUpdate
