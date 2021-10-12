@@ -110,14 +110,14 @@ export default (app: Express) => {
    */
   app.post('/file', auth, upload.any(), async (req, res) => {
     const [file] = req.files as Express.Multer.File[];
-    const { filename, path } = file;
+    const { filename } = file;
     const modified_date = new Date();
     const { rowCount, rows } = await db.query(
       `
       insert into merlin.uploaded_file (name, path)
-      values ('${filename}', '${path}')
+      values ('${filename}', '${filename}')
       on conflict (name) do update
-      set path = '${path}', modified_date = $1, deleted_date = null
+      set path = '${filename}', modified_date = $1, deleted_date = null
       returning id;
     `,
       [modified_date],
