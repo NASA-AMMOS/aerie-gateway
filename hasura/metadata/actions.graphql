@@ -3,12 +3,15 @@ type Query {
     adaptationId: ID!
   ): [ResourceType!]!
   activityType(
-    adaptationId: String!
+    adaptationId: Int!
     activityTypeId: String!
   ): ActivityType!
   activityTypes(
-    adaptationId: String!
+    adaptationId: Int!
   ): [ActivityType]!
+  simulate(
+    planId: Int!
+  ): MerlinSimulationResponse
 }
 
 type ResourceType {
@@ -24,3 +27,19 @@ type ActivityType {
 }
 
 scalar ActivityTypeParameter
+
+type MerlinSimulationResponse {
+  status: MerlinSimulationStatus!
+  results: MerlinSimulationResults
+  reason: MerlinSimulationFailureReason
+}
+
+enum MerlinSimulationStatus {
+  complete
+  failed
+  incomplete
+}
+
+scalar MerlinSimulationResults
+
+scalar MerlinSimulationFailureReason

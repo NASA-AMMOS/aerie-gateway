@@ -11,10 +11,15 @@ actions:
   definition:
     kind: ""
     handler: http://merlin:27183/activityTypesAction
+  name: simulate
+  definition:
+    kind: ""
+    handler: http://merlin:27183/getSimulationResults
 custom_types:
   enums: []
   input_objects: []
   objects:
+  - name: MerlinSimulationResponse
   - name: ResourceType
   - name: ActivityType
   scalars:
