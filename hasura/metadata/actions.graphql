@@ -2,13 +2,6 @@ type Query {
   resourceTypes(
     adaptationId: ID!
   ): [ResourceType!]!
-  activityType(
-    adaptationId: Int!
-    activityTypeId: String!
-  ): ActivityType!
-  activityTypes(
-    adaptationId: Int!
-  ): [ActivityType]!
   simulate(
     planId: Int!
   ): MerlinSimulationResponse
@@ -20,13 +13,6 @@ type ResourceType {
 }
 
 scalar ResourceSchema
-
-type ActivityType {
-  name: String!
-  parameters: [ActivityTypeParameter]!
-}
-
-scalar ActivityTypeParameter
 
 type MerlinSimulationResponse {
   status: MerlinSimulationStatus!
