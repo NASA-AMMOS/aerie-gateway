@@ -15,7 +15,7 @@
     "hasura:metadata:apply:local": "hasura metadata apply --envfile .env.local",
     "hasura:metadata:export": "hasura metadata export",
     "hasura:metadata:export:local": "hasura metadata export --envfile .env.local",
-    "start": "node -r dotenv/config dist/main.js",
+    "start": "node -r dotenv/config dist/main.js dotenv_config_path=./.env",
     "start:local": "node -r dotenv/config dist/main.js dotenv_config_path=./.env.local"
   },
   "dependencies": {
