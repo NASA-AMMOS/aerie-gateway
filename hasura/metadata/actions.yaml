@@ -13,8 +13,7 @@ actions:
     handler: http://merlin:27183/validateActivityArguments
 custom_types:
   enums: []
-  input_objects:
-  - name: ActivityArguments
+  input_objects: []
   objects:
   - name: MerlinSimulationResponse
   - name: ResourceType
