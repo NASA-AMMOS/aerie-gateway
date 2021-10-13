@@ -5,6 +5,11 @@ type Query {
   simulate(
     planId: Int!
   ): MerlinSimulationResponse
+  validateActivityArguments(
+    activityTypeName: String!
+    missionModelId: ID!
+    activityArguments: ActivityArguments!
+  ): ValidationResponse
 }
 
 type ResourceType {
@@ -29,3 +34,10 @@ enum MerlinSimulationStatus {
 scalar MerlinSimulationResults
 
 scalar MerlinSimulationFailureReason
+
+scalar ActivityArguments
+
+type ValidationResponse {
+  errors: [String!]
+  success: Boolean!
+}
