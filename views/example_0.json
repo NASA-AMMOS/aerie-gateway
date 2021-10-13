@@ -196,7 +196,7 @@
       "id": "section2",
       "size": 20,
       "table": {
-        "columns": ["select", "type", "startTimestamp"],
+        "columns": ["select", "type", "startTime"],
         "type": "activity"
       },
       "title": "Activity Instances",
