@@ -21,12 +21,7 @@
             "layers": [
               {
                 "id": "layer0",
-                "type": "activity",
-                "filter": {
-                  "activity": {
-                    "type": ".*"
-                  }
-                },
+                "filter": { "activity": { "type": ".*" } },
                 "chartType": "activity"
               }
             ],
@@ -61,12 +56,7 @@
             "layers": [
               {
                 "id": "layer1",
-                "type": "resource",
-                "filter": {
-                  "resource": {
-                    "name": "/seis/power_on"
-                  }
-                },
+                "filter": { "resource": { "name": "/seis/power_on" } },
                 "opacity": 0.8,
                 "yAxisId": "yAxis1",
                 "chartType": "x-range",
@@ -89,12 +79,7 @@
             "layers": [
               {
                 "id": "layer2",
-                "type": "resource",
-                "filter": {
-                  "resource": {
-                    "name": "/data/VC05/volume"
-                  }
-                },
+                "filter": { "resource": { "name": "/data/VC05/volume" } },
                 "yAxisId": "yAxis2",
                 "chartType": "line"
               }
@@ -115,12 +100,7 @@
             "layers": [
               {
                 "id": "layer3",
-                "type": "resource",
-                "filter": {
-                  "resource": {
-                    "name": "/power/genericPowerUsed"
-                  }
-                },
+                "filter": { "resource": { "name": "/power/genericPowerUsed" } },
                 "yAxisId": "yAxis3",
                 "chartType": "line"
               }
