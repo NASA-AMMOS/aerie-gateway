@@ -12,8 +12,6 @@ create table if not exists simulation_dataset (
 
   constraint simulation_dataset_primary_key
     primary key (dataset_id),
-  constraint simulation_dataset_unique_to_simulation
-    unique (simulation_id),
   constraint simulation_dataset_references_simulation
     foreign key (simulation_id)
     references simulation
