@@ -3,9 +3,10 @@
   "meta": {
     "owner": "system",
     "timeCreated": 1615235211527,
-    "timeUpdated": 1615235211527
+    "timeUpdated": 1615235211527,
+    "version": "0.10.0"
   },
-  "name": "Banananation",
+  "name": "Example 0",
   "sections": [
     {
       "id": "section0",
@@ -18,14 +19,19 @@
           {
             "autoAdjustHeight": true,
             "height": 200,
+            "horizontalGuides": [],
             "id": "row0",
             "layers": [
               {
+                "activityColor": "#283593",
+                "activityHeight": 20,
                 "chartType": "activity",
                 "filter": { "activity": { "type": ".*" } },
-                "id": "layer0"
+                "id": "layer0",
+                "yAxisId": null
               }
-            ]
+            ],
+            "yAxes": []
           }
         ],
         "verticalGuides": [
@@ -38,15 +44,9 @@
             "id": "guide1",
             "label": { "text": "Guide 1" },
             "timestamp": "2020-025T00:00:00"
-          },
-          {
-            "id": "guide2",
-            "label": { "text": "Guide 2" },
-            "timestamp": "2020-045T00:00:00"
           }
         ]
       },
-      "title": "Schedule",
       "type": "timeline"
     },
     {
@@ -58,38 +58,54 @@
         "marginRight": 30,
         "rows": [
           {
+            "autoAdjustHeight": false,
             "height": 100,
+            "horizontalGuides": [
+              {
+                "id": "guide0",
+                "label": { "text": "Guide 0" },
+                "y": 2,
+                "yAxisId": "yAxis1"
+              }
+            ],
             "id": "row1",
             "layers": [
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "peel" } },
                 "id": "layer1",
+                "lineColor": "#283593",
                 "yAxisId": "yAxis1"
               },
               {
                 "chartType": "line",
-                "color": "#ffcd69",
                 "filter": { "resource": { "name": "fruit" } },
                 "id": "layer2",
+                "lineColor": "#ffcd69",
                 "yAxisId": "yAxis2"
               }
             ],
             "yAxes": [
               {
+                "color": "#000000",
                 "id": "yAxis1",
                 "label": { "text": "peel" },
-                "scaleDomain": [0, 4]
+                "scaleDomain": [0, 4],
+                "tickCount": 5
               },
               {
+                "color": "#000000",
                 "id": "yAxis2",
                 "label": { "text": "fruit" },
-                "scaleDomain": [-10, 4]
+                "scaleDomain": [-10, 4],
+                "tickCount": 5
               }
             ]
           },
           {
+            "autoAdjustHeight": false,
             "height": 100,
+            "horizontalGuides": [],
             "id": "row3",
             "layers": [
               {
@@ -101,10 +117,20 @@
                 "yAxisId": "yAxis3"
               }
             ],
-            "yAxes": [{ "id": "yAxis3", "label": { "text": "flag" } }]
+            "yAxes": [
+              {
+                "color": "#000000",
+                "id": "yAxis3",
+                "label": { "text": "flag" },
+                "scaleDomain": [],
+                "tickCount": 0
+              }
+            ]
           },
           {
+            "autoAdjustHeight": false,
             "height": 100,
+            "horizontalGuides": [],
             "id": "row4",
             "layers": [
               {
@@ -116,61 +142,63 @@
                 "yAxisId": "yAxis4"
               }
             ],
-            "yAxes": [{ "id": "yAxis4", "label": { "text": "conflicted" } }]
+            "yAxes": [
+              {
+                "color": "#000000",
+                "id": "yAxis4",
+                "label": { "text": "conflicted" },
+                "scaleDomain": [],
+                "tickCount": 0
+              }
+            ]
           },
           {
+            "autoAdjustHeight": false,
             "height": 100,
+            "horizontalGuides": [],
             "id": "row5",
             "layers": [
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "conflicted" } },
                 "id": "layer5",
+                "lineColor": "#283593",
                 "yAxisId": "yAxis5"
               }
             ],
             "yAxes": [
               {
+                "color": "#000000",
                 "id": "yAxis5",
                 "label": { "text": "conflicted" },
-                "tickCount": 1,
-                "scaleDomain": [0, 1]
+                "scaleDomain": [0, 1],
+                "tickCount": 1
               }
             ]
           },
           {
+            "autoAdjustHeight": false,
             "height": 100,
+            "horizontalGuides": [],
             "id": "row6",
             "layers": [
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "plant" } },
                 "id": "layer6",
+                "lineColor": "#283593",
                 "yAxisId": "yAxis6"
               }
             ],
             "yAxes": [
               {
+                "color": "#000000",
                 "id": "yAxis6",
                 "label": { "text": "plant" },
-                "scaleDomain": [0, 200]
+                "scaleDomain": [0, 200],
+                "tickCount": 5
               }
             ]
-          },
-          {
-            "height": 100,
-            "id": "row7",
-            "layers": [
-              {
-                "chartType": "x-range",
-                "colorScheme": "schemeSet3",
-                "filter": { "resource": { "name": "producer" } },
-                "id": "layer7",
-                "opacity": 0.8,
-                "yAxisId": "yAxis7"
-              }
-            ],
-            "yAxes": [{ "id": "yAxis7", "label": { "text": "producer" } }]
           }
         ],
         "verticalGuides": [
@@ -181,7 +209,6 @@
           }
         ]
       },
-      "title": "Simulation",
       "type": "timeline"
     },
     {
@@ -191,7 +218,6 @@
         "columns": ["select", "type", "startTime"],
         "type": "activity"
       },
-      "title": "Activity Instances",
       "type": "table"
     }
   ]
