@@ -75,6 +75,8 @@
                 "filter": { "resource": { "name": "peel" } },
                 "id": "layer1",
                 "lineColor": "#283593",
+                "lineWidth": 1,
+                "pointRadius": 2,
                 "yAxisId": "yAxis1"
               },
               {
@@ -82,6 +84,8 @@
                 "filter": { "resource": { "name": "fruit" } },
                 "id": "layer2",
                 "lineColor": "#ffcd69",
+                "lineWidth": 1,
+                "pointRadius": 2,
                 "yAxisId": "yAxis2"
               }
             ],
@@ -163,6 +167,8 @@
                 "filter": { "resource": { "name": "conflicted" } },
                 "id": "layer5",
                 "lineColor": "#283593",
+                "lineWidth": 1,
+                "pointRadius": 2,
                 "yAxisId": "yAxis5"
               }
             ],
@@ -187,6 +193,8 @@
                 "filter": { "resource": { "name": "plant" } },
                 "id": "layer6",
                 "lineColor": "#283593",
+                "lineWidth": 1,
+                "pointRadius": 2,
                 "yAxisId": "yAxis6"
               }
             ],
