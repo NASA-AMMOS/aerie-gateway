@@ -6,13 +6,13 @@
     "timeUpdated": 1615235211527,
     "version": "0.10.0"
   },
-  "name": "Example 0",
+  "name": "Banananation",
   "sections": [
     {
-      "id": "section0",
+      "id": 0,
       "size": 30,
       "timeline": {
-        "id": "timeline0",
+        "id": 0,
         "marginLeft": 110,
         "marginRight": 30,
         "rows": [
@@ -20,14 +20,14 @@
             "autoAdjustHeight": true,
             "height": 200,
             "horizontalGuides": [],
-            "id": "row0",
+            "id": 0,
             "layers": [
               {
                 "activityColor": "#283593",
                 "activityHeight": 20,
                 "chartType": "activity",
                 "filter": { "activity": { "type": ".*" } },
-                "id": "layer0",
+                "id": 0,
                 "yAxisId": null
               }
             ],
@@ -36,12 +36,12 @@
         ],
         "verticalGuides": [
           {
-            "id": "guide0",
+            "id": 0,
             "label": { "text": "Guide 0" },
             "timestamp": "2020-005T00:00:00"
           },
           {
-            "id": "guide1",
+            "id": 1,
             "label": { "text": "Guide 1" },
             "timestamp": "2020-025T00:00:00"
           }
@@ -50,10 +50,10 @@
       "type": "timeline"
     },
     {
-      "id": "section1",
+      "id": 1,
       "size": 50,
       "timeline": {
-        "id": "timeline1",
+        "id": 1,
         "marginLeft": 110,
         "marginRight": 30,
         "rows": [
@@ -62,44 +62,44 @@
             "height": 100,
             "horizontalGuides": [
               {
-                "id": "guide0",
+                "id": 0,
                 "label": { "text": "Guide 0" },
                 "y": 2,
-                "yAxisId": "yAxis1"
+                "yAxisId": 1
               }
             ],
-            "id": "row1",
+            "id": 1,
             "layers": [
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "peel" } },
-                "id": "layer1",
+                "id": 1,
                 "lineColor": "#283593",
                 "lineWidth": 1,
                 "pointRadius": 2,
-                "yAxisId": "yAxis1"
+                "yAxisId": 1
               },
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "fruit" } },
-                "id": "layer2",
+                "id": 2,
                 "lineColor": "#ffcd69",
                 "lineWidth": 1,
                 "pointRadius": 2,
-                "yAxisId": "yAxis2"
+                "yAxisId": 2
               }
             ],
             "yAxes": [
               {
                 "color": "#000000",
-                "id": "yAxis1",
+                "id": 1,
                 "label": { "text": "peel" },
                 "scaleDomain": [0, 4],
                 "tickCount": 5
               },
               {
                 "color": "#000000",
-                "id": "yAxis2",
+                "id": 2,
                 "label": { "text": "fruit" },
                 "scaleDomain": [-10, 4],
                 "tickCount": 5
@@ -110,21 +110,21 @@
             "autoAdjustHeight": false,
             "height": 100,
             "horizontalGuides": [],
-            "id": "row3",
+            "id": 3,
             "layers": [
               {
                 "chartType": "x-range",
                 "colorScheme": "schemeTableau10",
                 "filter": { "resource": { "name": "flag$" } },
-                "id": "layer3",
+                "id": 3,
                 "opacity": 0.8,
-                "yAxisId": "yAxis3"
+                "yAxisId": 3
               }
             ],
             "yAxes": [
               {
                 "color": "#000000",
-                "id": "yAxis3",
+                "id": 3,
                 "label": { "text": "flag" },
                 "scaleDomain": [],
                 "tickCount": 0
@@ -135,21 +135,21 @@
             "autoAdjustHeight": false,
             "height": 100,
             "horizontalGuides": [],
-            "id": "row4",
+            "id": 4,
             "layers": [
               {
                 "chartType": "x-range",
                 "colorScheme": "schemePastel2",
                 "filter": { "resource": { "name": "conflicted" } },
-                "id": "layer4",
+                "id": 4,
                 "opacity": 0.8,
-                "yAxisId": "yAxis4"
+                "yAxisId": 4
               }
             ],
             "yAxes": [
               {
                 "color": "#000000",
-                "id": "yAxis4",
+                "id": 4,
                 "label": { "text": "conflicted" },
                 "scaleDomain": [],
                 "tickCount": 0
@@ -160,22 +160,22 @@
             "autoAdjustHeight": false,
             "height": 100,
             "horizontalGuides": [],
-            "id": "row5",
+            "id": 5,
             "layers": [
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "conflicted" } },
-                "id": "layer5",
+                "id": 5,
                 "lineColor": "#283593",
                 "lineWidth": 1,
                 "pointRadius": 2,
-                "yAxisId": "yAxis5"
+                "yAxisId": 5
               }
             ],
             "yAxes": [
               {
                 "color": "#000000",
-                "id": "yAxis5",
+                "id": 5,
                 "label": { "text": "conflicted" },
                 "scaleDomain": [0, 1],
                 "tickCount": 1
@@ -186,22 +186,22 @@
             "autoAdjustHeight": false,
             "height": 100,
             "horizontalGuides": [],
-            "id": "row6",
+            "id": 6,
             "layers": [
               {
                 "chartType": "line",
                 "filter": { "resource": { "name": "plant" } },
-                "id": "layer6",
+                "id": 6,
                 "lineColor": "#283593",
                 "lineWidth": 1,
                 "pointRadius": 2,
-                "yAxisId": "yAxis6"
+                "yAxisId": 6
               }
             ],
             "yAxes": [
               {
                 "color": "#000000",
-                "id": "yAxis6",
+                "id": 6,
                 "label": { "text": "plant" },
                 "scaleDomain": [0, 200],
                 "tickCount": 5
@@ -211,7 +211,7 @@
         ],
         "verticalGuides": [
           {
-            "id": "guide3",
+            "id": 3,
             "label": { "text": "Guide 3" },
             "timestamp": "2020-100T00:00:00"
           }
@@ -220,7 +220,7 @@
       "type": "timeline"
     },
     {
-      "id": "section2",
+      "id": 2,
       "size": 20,
       "table": {
         "columns": ["select", "type", "startTime"],
