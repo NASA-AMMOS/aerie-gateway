@@ -19,7 +19,6 @@
     "start:local": "node -r dotenv/config dist/main.js dotenv_config_path=./.env.local"
   },
   "dependencies": {
-    "@gov.nasa.jpl.aerie/cam": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
@@ -27,7 +26,8 @@
     "graphql-playground-middleware-express": "^1.7.22",
     "helmet": "^4.6.0",
     "multer": "^1.4.3",
-    "nanoid": "^3.1.28",
+    "nanoid": "^3.1.30",
+    "node-fetch": "^3.0.0",
     "pg": "^8.7.1",
     "swagger-jsdoc": "^7.0.0-rc.6",
     "swagger-ui-express": "^4.1.6"
@@ -36,12 +36,11 @@
     "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
     "@types/multer": "^1.4.7",
-    "@types/nanoid": "^3.0.0",
     "@types/pg": "^8.6.1",
     "@types/swagger-jsdoc": "^6.0.1",
     "@types/swagger-ui-express": "^4.1.3",
     "prettier": "^2.4.1",
     "hasura-cli": "^2.0.9",
-    "typescript": "^4.4.3"
+    "typescript": "^4.4.4"
   }
 }

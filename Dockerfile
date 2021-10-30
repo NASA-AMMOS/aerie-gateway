@@ -1,4 +1,4 @@
-FROM artifactory.jpl.nasa.gov:17001/node:14-alpine
+FROM artifactory.jpl.nasa.gov:17001/node:lts-alpine
 COPY . /app
 WORKDIR /app
 CMD [ "npm", "run", "start" ]
