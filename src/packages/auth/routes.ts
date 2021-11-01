@@ -1,5 +1,5 @@
 import type { Express } from 'express';
-import { login, logout, session } from './functions.js';
+import { login, logout, session, user } from './functions.js';
 
 export default (app: Express) => {
   /**
@@ -41,7 +41,7 @@ export default (app: Express) => {
    * /auth/logout:
    *   delete:
    *     parameters:
-   *       - description: Authorization header with SSO token
+   *       - description: Session token used for authorization
    *         in: header
    *         name: x-auth-sso-token
    *         required: true
@@ -68,7 +68,7 @@ export default (app: Express) => {
    * /auth/session:
    *   get:
    *     parameters:
-   *       - description: Authorization header with SSO token
+   *       - description: Session token used for authorization
    *         in: header
    *         name: x-auth-sso-token
    *         required: true
@@ -87,6 +87,33 @@ export default (app: Express) => {
     const { headers } = req;
     const { 'x-auth-sso-token': ssoToken = '' } = headers;
     const response = await session(ssoToken as string);
+    res.json(response);
+  });
+
+  /**
+   * @swagger
+   * /auth/user:
+   *   get:
+   *     parameters:
+   *       - description: Session token used for authorization
+   *         in: header
+   *         name: x-auth-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       200:
+   *         description: UserResponse
+   *     summary: Returns a session's user information
+   *     tags:
+   *       - Auth
+   */
+  app.get('/auth/user', async (req, res) => {
+    const { headers } = req;
+    const { 'x-auth-sso-token': ssoToken = '' } = headers;
+    const response = await user(ssoToken as string);
     res.json(response);
   });
 };

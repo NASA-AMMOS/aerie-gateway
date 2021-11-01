@@ -26,7 +26,7 @@ export default (app: Express) => {
    * /file/{id}:
    *   delete:
    *     parameters:
-   *       - description: Session token used for authentication
+   *       - description: Session token used for authorization
    *         in: header
    *         name: x-auth-sso-token
    *         required: true
@@ -85,7 +85,7 @@ export default (app: Express) => {
    *       - multipart/form-data
    *     description: If a file of the same name and location already exists, the new file overwrites the old
    *     parameters:
-   *       - description: Session token used for authentication
+   *       - description: Session token used for authorization
    *         in: header
    *         name: x-auth-sso-token
    *         required: true
@@ -140,7 +140,7 @@ export default (app: Express) => {
    * /files:
    *   get:
    *     parameters:
-   *       - description: Session token used for authentication
+   *       - description: Session token used for authorization
    *         in: header
    *         name: x-auth-sso-token
    *         required: true

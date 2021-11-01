@@ -14,3 +14,16 @@ export type SessionResponse = {
   message: string;
   success: boolean;
 };
+
+export type UserResponse = {
+  message: string;
+  success: boolean;
+  user: User | null;
+};
+
+export type User = {
+  filteredGroupList: string[];
+  fullName: string;
+  groupList: string[];
+  userId: string;
+};

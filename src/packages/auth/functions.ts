@@ -6,6 +6,7 @@ import type {
   LoginResponse,
   LogoutResponse,
   SessionResponse,
+  UserResponse,
 } from './types.js';
 
 const agent = new https.Agent({ rejectUnauthorized: false });
@@ -127,5 +128,54 @@ export async function session(ssoToken: string): Promise<SessionResponse> {
     }
   } else {
     return { message: `Authentication is disabled`, success: true };
+  }
+}
+
+export async function user(ssoToken: string): Promise<UserResponse> {
+  const { AUTH_TYPE, AUTH_URL } = getEnv();
+
+  if (AUTH_TYPE === 'cam') {
+    let response: Response | undefined;
+    let json: any;
+
+    try {
+      const body = JSON.stringify({ ssoToken });
+      const url = `${AUTH_URL}/userProfile`;
+      response = await fetch(url, { agent, body, method: 'POST' });
+      json = await response.json();
+      const { errorCode = false } = json;
+
+      if (errorCode) {
+        const { errorMessage } = json;
+        return { message: errorMessage, success: false, user: null };
+      } else {
+        const { filteredGroupList, fullName, groupList, userId } = json;
+        return {
+          message: 'User found',
+          success: true,
+          user: {
+            filteredGroupList,
+            fullName,
+            groupList,
+            userId,
+          },
+        };
+      }
+    } catch (error) {
+      console.log(error);
+      console.log(response);
+      console.log(json);
+      return {
+        message: 'An unexpected error occurred',
+        success: false,
+        user: null,
+      };
+    }
+  } else {
+    return {
+      message: `Authentication is disabled`,
+      success: true,
+      user: null,
+    };
   }
 }
