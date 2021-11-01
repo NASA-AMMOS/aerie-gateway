@@ -1,14 +1,15 @@
 import type { NextFunction, Request, Response } from 'express';
-import { session } from '../cam/cam.js';
+import { getEnv } from '../../env.js';
+import { session } from './functions.js';
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
-  const { CAM_ENABLED } = process.env;
+  const { AUTH_TYPE } = getEnv();
 
-  if (CAM_ENABLED === 'false') {
+  if (AUTH_TYPE === 'none') {
     next();
   } else {
     const { headers } = req;
-    const { 'x-cam-sso-token': ssoToken = '' } = headers;
+    const { 'x-auth-sso-token': ssoToken = '' } = headers;
     const response = await session(ssoToken as string);
 
     if (response.success) {

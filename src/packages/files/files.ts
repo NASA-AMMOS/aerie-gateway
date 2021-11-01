@@ -1,12 +1,13 @@
 import type { Express } from 'express';
 import fastGlob from 'fast-glob';
 import multer from 'multer';
+import { getEnv } from '../../env.js';
+import { auth } from '../auth/middleware.js';
 import { Db } from '../db/db.js';
-import { auth } from '../middleware/auth.js';
 
 export default (app: Express) => {
   const db = Db.getDb();
-  const { FILE_STORE_PATH = '/app/files' } = process.env;
+  const { FILE_STORE_PATH } = getEnv();
 
   const storage = multer.diskStorage({
     destination(_, __, cb) {
@@ -25,9 +26,9 @@ export default (app: Express) => {
    * /file/{id}:
    *   delete:
    *     parameters:
-   *       - description: Session token returned when authenticating via CAM
+   *       - description: Session token used for authentication
    *         in: header
-   *         name: x-cam-sso-token
+   *         name: x-auth-sso-token
    *         required: true
    *         schema:
    *           type: string
@@ -84,9 +85,9 @@ export default (app: Express) => {
    *       - multipart/form-data
    *     description: If a file of the same name and location already exists, the new file overwrites the old
    *     parameters:
-   *       - description: Session token returned when authenticating via CAM
+   *       - description: Session token used for authentication
    *         in: header
-   *         name: x-cam-sso-token
+   *         name: x-auth-sso-token
    *         required: true
    *         schema:
    *           type: string
@@ -139,9 +140,9 @@ export default (app: Express) => {
    * /files:
    *   get:
    *     parameters:
-   *       - description: Session token returned when authenticating via CAM
+   *       - description: Session token used for authentication
    *         in: header
-   *         name: x-cam-sso-token
+   *         name: x-auth-sso-token
    *         required: true
    *         schema:
    *           type: string

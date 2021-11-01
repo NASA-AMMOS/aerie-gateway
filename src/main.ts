@@ -1,7 +1,8 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import initCamRoutes from './packages/cam/cam.js';
+import { getEnv } from './env.js';
+import initAuthRoutes from './packages/auth/routes.js';
 import { Db } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHealthRoutes from './packages/health/health.js';
@@ -9,7 +10,7 @@ import initPlaygroundRoutes from './packages/playground/playground.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 
 async function main(): Promise<void> {
-  const { PORT = '9000' } = process.env;
+  const { PORT } = getEnv();
   const app = express();
 
   app.use(helmet({ contentSecurityPolicy: false }));
@@ -18,7 +19,7 @@ async function main(): Promise<void> {
 
   await Db.init();
 
-  initCamRoutes(app);
+  initAuthRoutes(app);
   initFileRoutes(app);
   initHealthRoutes(app);
   initPlaygroundRoutes(app);

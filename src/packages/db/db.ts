@@ -1,17 +1,18 @@
 import type { Pool, PoolConfig } from 'pg';
 import pg from 'pg';
+import { getEnv } from '../../env.js';
 import { initMerlin } from './merlin.js';
 import { initUi } from './ui.js';
 
 const { Pool: DbPool } = pg;
 
 const {
-  POSTGRES_DATABASE: database = 'aerie',
-  POSTGRES_HOST: host = 'postgres',
-  POSTGRES_PASSWORD: password = 'aerie',
-  POSTGRES_PORT: port = '5432',
-  POSTGRES_USER: user = 'aerie',
-} = process.env;
+  POSTGRES_DB: database,
+  POSTGRES_HOST: host,
+  POSTGRES_PASSWORD: password,
+  POSTGRES_PORT: port,
+  POSTGRES_USER: user,
+} = getEnv();
 
 export class Db {
   private static pool: Pool | null = null;

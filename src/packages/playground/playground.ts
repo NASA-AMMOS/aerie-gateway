@@ -1,8 +1,9 @@
 import type { Express } from 'express';
 import expressPlayground from 'graphql-playground-middleware-express';
+import { getEnv } from '../../env.js';
 
 export default (app: Express) => {
-  const { GQL_PLAYGROUND_ENDPOINT = '' } = process.env;
+  const { GQL_API_URL: endpoint } = getEnv();
   const initPlayground = (expressPlayground as any).default;
-  app.get('/playground', initPlayground({ endpoint: GQL_PLAYGROUND_ENDPOINT }));
+  app.get('/playground', initPlayground({ endpoint }));
 };

@@ -12,9 +12,8 @@ const options: swaggerJsDoc.Options = {
     openapi: '3.0.0',
     tags: [
       {
-        name: 'CAM',
-        description:
-          'Endpoints for authentication using the Common Access Manager (CAM)',
+        name: 'Auth',
+        description: 'Endpoints for authentication and session management',
       },
       {
         name: 'Files',
