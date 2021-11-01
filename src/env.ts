@@ -9,6 +9,7 @@ export type Env = {
   POSTGRES_PASSWORD: string;
   POSTGRES_PORT: string;
   POSTGRES_USER: string;
+  VERSION: string;
 };
 
 export function getEnv(): Env {
@@ -24,6 +25,7 @@ export function getEnv(): Env {
   const POSTGRES_PASSWORD = env['POSTGRES_PASSWORD'] ?? '';
   const POSTGRES_PORT = env['POSTGRES_PORT'] ?? '';
   const POSTGRES_USER = env['POSTGRES_USER'] ?? '';
+  const VERSION = env['npm_package_version'] ?? '';
 
   return {
     AUTH_TYPE,
@@ -36,5 +38,6 @@ export function getEnv(): Env {
     POSTGRES_PASSWORD,
     POSTGRES_PORT,
     POSTGRES_USER,
+    VERSION,
   };
 }

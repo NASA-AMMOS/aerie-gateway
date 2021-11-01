@@ -1,13 +1,16 @@
 import type { Express } from 'express';
 import swaggerJsDoc from 'swagger-jsdoc';
 import swagger from 'swagger-ui-express';
+import { getEnv } from '../../env.js';
+
+const { VERSION } = getEnv();
 
 const options: swaggerJsDoc.Options = {
   apis: ['./dist/packages/**/*.js'],
   definition: {
     info: {
       title: 'Aerie Gateway',
-      version: '0.10.0',
+      version: VERSION,
     },
     openapi: '3.0.0',
     tags: [
