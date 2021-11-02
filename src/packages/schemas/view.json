@@ -1,0 +1,439 @@
+{
+  "$id": "https://github.jpl.nasa.gov/Aerie/aerie-gateway/schemas/view.json",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$version": "0.10.0",
+  "additionalProperties": false,
+  "definitions": {
+    "color": {
+      "description": "RGB color in hex format",
+      "pattern": "^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$",
+      "type": "string"
+    },
+    "filterResource": {
+      "additionalProperties": false,
+      "properties": {
+        "resource": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "description": "A JavaScript regular expression to filter resource names to display in this layer",
+              "type": "string"
+            }
+          },
+          "required": ["name"],
+          "type": "object"
+        }
+      },
+      "required": ["resource"],
+      "type": "object"
+    },
+    "id": {
+      "description": "Numeric unique id >= 0",
+      "minimum": 0,
+      "type": "number"
+    },
+    "label": {
+      "additionalProperties": false,
+      "description": "Generic label object",
+      "properties": {
+        "text": {
+          "description": "Label text content",
+          "type": "string"
+        }
+      },
+      "required": ["text"],
+      "type": "object"
+    },
+    "yAxisId": {
+      "description": "Id of the associated y-axis. Can be null for no association.",
+      "type": ["number", "null"]
+    }
+  },
+  "description": "JSON schema used for configuring the Aerie UI",
+  "properties": {
+    "id": {
+      "description": "Unique UUID of the view",
+      "type": "string"
+    },
+    "meta": {
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "description": "Username of the view's owner",
+          "type": "string"
+        },
+        "timeCreated": {
+          "description": "Time view was created in number of milliseconds elapsed since January 1, 1970 00:00:00 UTC",
+          "type": "number"
+        },
+        "timeUpdated": {
+          "description": "Time view was last updated in number of milliseconds elapsed since January 1, 1970 00:00:00 UTC",
+          "type": "number"
+        },
+        "version": {
+          "description": "The version of the schema the view adheres to",
+          "type": "string"
+        }
+      },
+      "required": ["owner", "timeCreated", "timeUpdated", "version"],
+      "type": "object"
+    },
+    "name": {
+      "description": "Name of the view",
+      "type": "string"
+    },
+    "plan": {
+      "additionalProperties": false,
+      "description": "View configuration for a plan",
+      "properties": {
+        "sections": {
+          "description": "Visualization sections for a plan",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/id"
+              },
+              "iframe": {
+                "additionalProperties": false,
+                "description": "Embeds and displays an external web-application in the section",
+                "properties": {
+                  "src": {
+                    "description": "Full URL of external web-application to embed",
+                    "type": "string"
+                  }
+                },
+                "required": ["src"],
+                "type": "object"
+              },
+              "size": {
+                "description": "Size of the section in overall percentage of screen size",
+                "minimum": 0,
+                "type": "number"
+              },
+              "table": {
+                "additionalProperties": false,
+                "description": "Displays a table in the section",
+                "properties": {
+                  "columns": {
+                    "description": "List of object properties to display as columns in the table",
+                    "items": {
+                      "description": "Should correspond to an object property in the type you are displaying",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "type": {
+                    "description": "Type of data the table is displaying",
+                    "enum": ["activity"],
+                    "type": "string"
+                  }
+                },
+                "required": ["columns", "type"],
+                "type": "object"
+              },
+              "timeline": {
+                "additionalProperties": false,
+                "description": "Displays a timeline in the section",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/id"
+                  },
+                  "marginLeft": {
+                    "description": "Left margin of the timeline in pixels",
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "marginRight": {
+                    "description": "Right margin of the timeline in pixels",
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "rows": {
+                    "description": "Timeline row definitions",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "autoAdjustHeight": {
+                          "description": "If true the row height is set automatically to fit the row content",
+                          "type": "boolean"
+                        },
+                        "height": {
+                          "description": "Height of the row in pixels",
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "horizontalGuides": {
+                          "description": "Row horizontal guide definitions",
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "id": {
+                                "$ref": "#/definitions/id"
+                              },
+                              "label": {
+                                "$ref": "#/definitions/label"
+                              },
+                              "y": {
+                                "description": "Y value the horizontal guide anchors to",
+                                "type": "number"
+                              },
+                              "yAxisId": {
+                                "$ref": "#/definitions/id"
+                              }
+                            },
+                            "required": ["id", "label", "y", "yAxisId"],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "id": {
+                          "$ref": "#/definitions/id"
+                        },
+                        "layers": {
+                          "description": "Row layer definitions",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "additionalProperties": false,
+                                "description": "Activity layer",
+                                "properties": {
+                                  "activityColor": {
+                                    "$ref": "#/definitions/color"
+                                  },
+                                  "activityHeight": {
+                                    "description": "Height of each activity",
+                                    "type": "number"
+                                  },
+                                  "chartType": {
+                                    "const": "activity",
+                                    "description": "Layer that visualizes activities"
+                                  },
+                                  "filter": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "activity": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "type": {
+                                            "description": "A JavaScript regular expression to filter activity types to display in this layer",
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": ["type"],
+                                        "type": "object"
+                                      }
+                                    },
+                                    "required": ["activity"],
+                                    "type": "object"
+                                  },
+                                  "id": {
+                                    "$ref": "#/definitions/id"
+                                  },
+                                  "yAxisId": {
+                                    "$ref": "#/definitions/yAxisId"
+                                  }
+                                },
+                                "required": [
+                                  "activityColor",
+                                  "activityHeight",
+                                  "chartType",
+                                  "filter",
+                                  "id",
+                                  "yAxisId"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "Line layer",
+                                "properties": {
+                                  "chartType": {
+                                    "const": "line",
+                                    "description": "Layer that visualizes points and a line"
+                                  },
+                                  "filter": {
+                                    "$ref": "#/definitions/filterResource"
+                                  },
+                                  "id": {
+                                    "$ref": "#/definitions/id"
+                                  },
+                                  "lineColor": {
+                                    "$ref": "#/definitions/color"
+                                  },
+                                  "lineWidth": {
+                                    "description": "Width of the line",
+                                    "type": "number"
+                                  },
+                                  "pointRadius": {
+                                    "description": "Radius of the points",
+                                    "type": "number"
+                                  },
+                                  "yAxisId": {
+                                    "$ref": "#/definitions/yAxisId"
+                                  }
+                                },
+                                "required": [
+                                  "chartType",
+                                  "filter",
+                                  "id",
+                                  "lineColor",
+                                  "lineWidth",
+                                  "pointRadius",
+                                  "yAxisId"
+                                ],
+                                "type": "object"
+                              },
+                              {
+                                "additionalProperties": false,
+                                "description": "X-range layer",
+                                "properties": {
+                                  "chartType": {
+                                    "const": "x-range",
+                                    "description": "Layer that visualizes range data as full-height colored rectangles"
+                                  },
+                                  "colorScheme": {
+                                    "description": "https://github.com/d3/d3-scale-chromatic/blob/main/README.md#api-reference",
+                                    "enum": [
+                                      "schemeAccent",
+                                      "schemeCategory10",
+                                      "schemeDark2",
+                                      "schemePaired",
+                                      "schemePastel1",
+                                      "schemePastel2",
+                                      "schemeSet1",
+                                      "schemeSet2",
+                                      "schemeSet3",
+                                      "schemeTableau10"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "filter": {
+                                    "$ref": "#/definitions/filterResource"
+                                  },
+                                  "id": {
+                                    "$ref": "#/definitions/id"
+                                  },
+                                  "opacity": {
+                                    "type": "number"
+                                  },
+                                  "yAxisId": {
+                                    "$ref": "#/definitions/yAxisId"
+                                  }
+                                },
+                                "required": [
+                                  "chartType",
+                                  "colorScheme",
+                                  "filter",
+                                  "id",
+                                  "opacity",
+                                  "yAxisId"
+                                ],
+                                "type": "object"
+                              }
+                            ]
+                          },
+                          "type": "array"
+                        },
+                        "yAxes": {
+                          "description": "Row y-axes definitions",
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "color": {
+                                "$ref": "#/definitions/color"
+                              },
+                              "id": {
+                                "$ref": "#/definitions/id"
+                              },
+                              "label": {
+                                "$ref": "#/definitions/label"
+                              },
+                              "scaleDomain": {
+                                "description": "Min and max values of the axis domain: [min, max]",
+                                "items": {
+                                  "type": "number"
+                                },
+                                "type": "array"
+                              },
+                              "tickCount": {
+                                "description": "Number of ticks on the axis",
+                                "minimum": 0,
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "color",
+                              "id",
+                              "label",
+                              "scaleDomain",
+                              "tickCount"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "autoAdjustHeight",
+                        "height",
+                        "horizontalGuides",
+                        "id",
+                        "layers",
+                        "yAxes"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "verticalGuides": {
+                    "description": "Timeline vertical guide definitions",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/id"
+                        },
+                        "label": {
+                          "$ref": "#/definitions/label"
+                        },
+                        "timestamp": {
+                          "description": "DOY timestamp (YYYY-DDDThh:mm:ss) of the vertical guide",
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "label", "timestamp"],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "id",
+                  "marginLeft",
+                  "marginRight",
+                  "rows",
+                  "verticalGuides"
+                ],
+                "type": "object"
+              },
+              "type": {
+                "description": "Type of the section",
+                "enum": ["iframe", "table", "timeline"],
+                "type": "string"
+              }
+            },
+            "required": ["id", "size", "type"],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["sections"],
+      "type": "object"
+    }
+  },
+  "required": ["id", "meta", "name", "plan"],
+  "title": "View",
+  "type": "object"
+}

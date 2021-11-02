@@ -1,11 +1,23 @@
+import Ajv from 'ajv';
 import type { Express } from 'express';
+import { readFileSync } from 'fs';
 import { customAlphabet } from 'nanoid';
+import { resolve } from 'path';
+import { URL } from 'url';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { Db } from '../db/db.js';
 
 export default (app: Express) => {
   const db = Db.getDb();
+
+  const ajv = new Ajv();
+  ajv.addKeyword('$version');
+  const { pathname } = new URL('.', import.meta.url);
+  const path = resolve(pathname, '../../packages/schemas/view.json');
+  const schema = readFileSync(path).toString();
+  const jsonSchema = JSON.parse(schema);
+  const validate = ajv.compile<any>(jsonSchema);
 
   async function latestView(username: string): Promise<any> {
     const { rows } = await db.query(`
@@ -361,6 +373,40 @@ export default (app: Express) => {
         success: false,
         view: null,
       });
+    }
+  });
+
+  /**
+   * @swagger
+   * /view/validate:
+   *   post:
+   *     consumes:
+   *       - application/json
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       description: View JSON
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       200:
+   *         description: ValidateViewResponse
+   *     summary: Validate a view against it's JSON schema
+   *     tags:
+   *       - Views
+   */
+  app.post('/view/validate', async (req, res) => {
+    const { body } = req;
+    const valid = validate(body);
+
+    if (!valid) {
+      const errors = validate.errors;
+      res.json({ errors, valid });
+    } else {
+      res.json({ valid });
     }
   });
 };

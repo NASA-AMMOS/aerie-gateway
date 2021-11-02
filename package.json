@@ -9,8 +9,9 @@
     "url": "https://github.jpl.nasa.gov/Aerie/aerie-gateway.git"
   },
   "scripts": {
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc && npm run cp",
     "clean": "rm -rf dist",
+    "cp": "cp -R src/packages/schemas dist/packages",
     "hasura:metadata:apply": "hasura metadata apply",
     "hasura:metadata:apply:local": "hasura metadata apply --envfile .env.local",
     "hasura:metadata:export": "hasura metadata export",
@@ -19,6 +20,7 @@
     "start:local": "node -r dotenv/config dist/main.js dotenv_config_path=./.env.local"
   },
   "dependencies": {
+    "ajv": "^8.6.3",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
