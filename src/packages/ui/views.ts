@@ -114,6 +114,32 @@ export default (app: Express) => {
     });
   });
 
+  /**
+   * @swagger
+   * /view/{id}:
+   *   get:
+   *     parameters:
+   *       - description: Session token used for authorization
+   *         in: header
+   *         name: x-auth-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
+   *       - description: Id of the view to return
+   *         in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       200:
+   *         description: GetViewResponse
+   *     summary: Returns a view by id
+   *     tags:
+   *       - Views
+   */
   app.get('/view/:id', auth, async (req, res) => {
     const { params } = req;
     const { id } = params;
@@ -140,6 +166,32 @@ export default (app: Express) => {
     }
   });
 
+  /**
+   * @swagger
+   * /view/{id}:
+   *   delete:
+   *     parameters:
+   *       - description: Session token used for authorization
+   *         in: header
+   *         name: x-auth-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
+   *       - description: Id of the view to delete
+   *         in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       200:
+   *         description: DeleteViewResponse
+   *     summary: Deletes a view by id
+   *     tags:
+   *       - Views
+   */
   app.delete('/view/:id', auth, async (req, res) => {
     const { locals } = res;
     const { username = '' } = locals;
@@ -168,6 +220,41 @@ export default (app: Express) => {
     }
   });
 
+  /**
+   * @swagger
+   * /view/{id}:
+   *   put:
+   *     consumes:
+   *       - application/json
+   *     parameters:
+   *       - description: Session token used for authorization
+   *         in: header
+   *         name: x-auth-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
+   *       - description: Id of the view to update
+   *         in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       description: View JSON
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       200:
+   *         description: UpdateViewResponse
+   *     summary: Updates a view by id
+   *     tags:
+   *       - Views
+   */
   app.put('/view/:id', auth, async (req, res) => {
     const { locals } = res;
     const { username = '' } = locals;
@@ -210,6 +297,35 @@ export default (app: Express) => {
     }
   });
 
+  /**
+   * @swagger
+   * /view:
+   *   post:
+   *     consumes:
+   *       - application/json
+   *     parameters:
+   *       - description: Session token used for authorization
+   *         in: header
+   *         name: x-auth-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       description: View JSON
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *     responses:
+   *       200:
+   *         description: CreateViewResponse
+   *     summary: Creates a new view
+   *     tags:
+   *       - Views
+   */
   app.post('/view', auth, async (req, res) => {
     const { locals } = res;
     const { username = '' } = locals;

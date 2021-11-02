@@ -24,14 +24,14 @@ const options: swaggerJsDoc.Options = {
           'Endpoints for file management (e.g. adding, updating, or deleting files)',
       },
       {
-        name: 'Health',
-        description:
-          'Endpoints for health information (e.g. uptime) about this server',
-      },
-      {
         name: 'Views',
         description:
           'Endpoints for UI view management (e.g. adding, updating, getting, or deleting views)',
+      },
+      {
+        name: 'Health',
+        description:
+          'Endpoints for health information (e.g. uptime) about this server',
       },
     ],
   },
