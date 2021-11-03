@@ -44,11 +44,11 @@ comment on column plan.start_time is e''
   'DEPRECATED. The time at which the plan''s effective span begins.';
 
 
-create or replace function merlin.increment_revision_on_update_plan()
+create or replace function increment_revision_on_update_plan()
 returns trigger
 security definer
 language plpgsql as $$begin
-  update merlin.plan
+  update plan
   set revision = revision + 1
   where id = new.id
     or id = old.id;
@@ -61,7 +61,7 @@ do $$ begin
   after update on plan
   for each row
   when (pg_trigger_depth() < 1)
-  execute function merlin.increment_revision_on_update_plan();
+  execute function increment_revision_on_update_plan();
 exception
   when duplicate_object then null;
 end $$;

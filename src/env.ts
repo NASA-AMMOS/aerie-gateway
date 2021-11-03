@@ -4,7 +4,8 @@ export type Env = {
   FILE_STORE_PATH: string;
   GQL_API_URL: string;
   PORT: string;
-  POSTGRES_DB: string;
+  POSTGRES_AERIE_MERLIN_DB: string;
+  POSTGRES_AERIE_UI_DB: string;
   POSTGRES_HOST: string;
   POSTGRES_PASSWORD: string;
   POSTGRES_PORT: string;
@@ -20,7 +21,8 @@ export function getEnv(): Env {
   const FILE_STORE_PATH = env['FILE_STORE_PATH'] ?? '/app/files';
   const GQL_API_URL = env['GQL_API_URL'] ?? '';
   const PORT = env['PORT'] ?? '9000';
-  const POSTGRES_DB = env['POSTGRES_DB'] ?? '';
+  const POSTGRES_AERIE_MERLIN_DB = env['POSTGRES_AERIE_MERLIN_DB'] ?? '';
+  const POSTGRES_AERIE_UI_DB = env['POSTGRES_AERIE_UI_DB'] ?? '';
   const POSTGRES_HOST = env['POSTGRES_HOST'] ?? '';
   const POSTGRES_PASSWORD = env['POSTGRES_PASSWORD'] ?? '';
   const POSTGRES_PORT = env['POSTGRES_PORT'] ?? '';
@@ -33,7 +35,8 @@ export function getEnv(): Env {
     FILE_STORE_PATH,
     GQL_API_URL,
     PORT,
-    POSTGRES_DB,
+    POSTGRES_AERIE_MERLIN_DB,
+    POSTGRES_AERIE_UI_DB,
     POSTGRES_HOST,
     POSTGRES_PASSWORD,
     POSTGRES_PORT,

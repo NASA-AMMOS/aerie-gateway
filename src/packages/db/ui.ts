@@ -15,7 +15,6 @@ async function createTables(pool: Pool): Promise<void> {
 }
 
 export async function initUi(pool: Pool): Promise<void> {
-  await pool.query('set search_path to ui');
   await createTables(pool);
   await insertViews(pool);
 }
@@ -32,7 +31,7 @@ async function insertViews(pool: Pool): Promise<void> {
       const { id } = JSON.parse(view);
 
       await pool.query(`
-        insert into ui.view (id, view)
+        insert into view (id, view)
         values ('${id}', '${view}')
         on conflict (id) do update set view='${view}';
       `);

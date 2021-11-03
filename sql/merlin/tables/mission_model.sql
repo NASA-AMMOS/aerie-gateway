@@ -39,11 +39,11 @@ comment on column mission_model.jar_id is e''
   'An uploaded JAR file defining the mission model.';
 
 
-create or replace function merlin.increment_revision_on_update_mission_model()
+create or replace function increment_revision_on_update_mission_model()
 returns trigger
 security definer
 language plpgsql as $$begin
-  update merlin.mission_model
+  update mission_model
   set revision = revision + 1
   where id = new.id;
 
@@ -54,16 +54,16 @@ do $$ begin
   create trigger increment_revision_on_update_mission_model_trigger
   after insert on mission_model
   for each row
-  execute function merlin.increment_revision_on_update_mission_model();
+  execute function increment_revision_on_update_mission_model();
 exception
   when duplicate_object then null;
 end $$;
 
-create or replace function merlin.increment_revision_on_update_mission_model_jar()
+create or replace function increment_revision_on_update_mission_model_jar()
 returns trigger
 security definer
 language plpgsql as $$begin
-  update merlin.mission_model
+  update mission_model
   set revision = revision + 1
   where jar_id = new.id
     or jar_id = old.id;

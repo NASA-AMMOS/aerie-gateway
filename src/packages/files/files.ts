@@ -3,10 +3,10 @@ import fastGlob from 'fast-glob';
 import multer from 'multer';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
-import { Db } from '../db/db.js';
+import { DbMerlin } from '../db/db.js';
 
 export default (app: Express) => {
-  const db = Db.getDb();
+  const db = DbMerlin.getDb();
   const { FILE_STORE_PATH } = getEnv();
 
   const storage = multer.diskStorage({
@@ -53,7 +53,7 @@ export default (app: Express) => {
       const deleted_date = new Date();
       const { rowCount } = await db.query(
         `
-        update merlin.uploaded_file
+        update uploaded_file
         set deleted_date = $1
         where id='${id}';
       `,
@@ -115,7 +115,7 @@ export default (app: Express) => {
     const modified_date = new Date();
     const { rowCount, rows } = await db.query(
       `
-      insert into merlin.uploaded_file (name, path)
+      insert into uploaded_file (name, path)
       values ('${filename}', '${filename}')
       on conflict (name) do update
       set path = '${filename}', modified_date = $1, deleted_date = null

@@ -7,61 +7,58 @@ import { initUi } from './ui.js';
 const { Pool: DbPool } = pg;
 
 const {
-  POSTGRES_DB: database,
+  POSTGRES_AERIE_MERLIN_DB,
+  POSTGRES_AERIE_UI_DB,
   POSTGRES_HOST: host,
   POSTGRES_PASSWORD: password,
   POSTGRES_PORT: port,
   POSTGRES_USER: user,
 } = getEnv();
 
-export class Db {
-  private static pool: Pool | null = null;
+export class DbMerlin {
+  private static pool: Pool;
 
-  /**
-   * @note Assumes init() has already been called and completed.
-   * This is so we do not need to make this function async.
-   */
   static getDb(): Pool {
-    return Db.pool as Pool;
+    return DbMerlin.pool;
   }
 
   static async init(): Promise<void> {
     try {
-      const poolConfig: PoolConfig = {
-        database,
+      const config: PoolConfig = {
+        database: POSTGRES_AERIE_MERLIN_DB,
         host,
         password,
         port: parseInt(port, 10),
         user,
       };
-
-      Db.pool = new DbPool(poolConfig);
-      await Db.createSchemas();
-      await initMerlin(Db.pool);
-      await initUi(Db.pool);
+      DbMerlin.pool = new DbPool(config);
+      await initMerlin(DbMerlin.pool);
     } catch (error) {
-      const { message } = error as Error;
-      console.log(message);
+      console.log(error);
     }
   }
+}
 
-  static async createSchemas(): Promise<void> {
+export class DbUi {
+  private static pool: Pool;
+
+  static getDb(): Pool {
+    return DbUi.pool;
+  }
+
+  static async init(): Promise<void> {
     try {
-      if (Db.pool) {
-        await Db.pool.query(`
-          create schema if not exists merlin
-          authorization ${user};
-        `);
-        await Db.pool.query(`
-          create schema if not exists ui
-          authorization ${user};
-        `);
-      } else {
-        console.error('Error: Cannot create schemas. No database pool exists.');
-      }
+      const config: PoolConfig = {
+        database: POSTGRES_AERIE_UI_DB,
+        host,
+        password,
+        port: parseInt(port, 10),
+        user,
+      };
+      DbUi.pool = new DbPool(config);
+      await initUi(DbUi.pool);
     } catch (error) {
-      const { message } = error as Error;
-      console.log(message);
+      console.log(error);
     }
   }
 }

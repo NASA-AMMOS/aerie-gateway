@@ -94,7 +94,6 @@ async function createTables(pool: Pool): Promise<void> {
 }
 
 export async function initMerlin(pool: Pool): Promise<void> {
-  await pool.query('set search_path to merlin');
   await createDomainTypes(pool);
   await createTables(pool);
 }

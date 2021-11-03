@@ -1,6 +1,6 @@
 table:
   name: mission_model
-  schema: merlin
+  schema:
 object_relationships:
 - name: parameters
   using:
@@ -8,7 +8,7 @@ object_relationships:
       column: model_id
       table:
         name: mission_model_parameters
-        schema: merlin
+        schema:
 - name: uploaded_file
   using:
     foreign_key_constraint_on: jar_id
@@ -19,21 +19,21 @@ array_relationships:
       column: model_id
       table:
         name: activity_type
-        schema: merlin
+        schema:
 - name: conditions
   using:
     foreign_key_constraint_on:
       column: model_id
       table:
         name: condition
-        schema: merlin
+        schema:
 - name: plans
   using:
     foreign_key_constraint_on:
       column: model_id
       table:
         name: plan
-        schema: merlin
+        schema:
 event_triggers:
 - definition:
     enable_manual: false

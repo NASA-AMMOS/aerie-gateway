@@ -6,10 +6,10 @@ import { resolve } from 'path';
 import { URL } from 'url';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
-import { Db } from '../db/db.js';
+import { DbUi } from '../db/db.js';
 
 export default (app: Express) => {
-  const db = Db.getDb();
+  const db = DbUi.getDb();
 
   const ajv = new Ajv();
   ajv.addKeyword('$version');
@@ -22,7 +22,7 @@ export default (app: Express) => {
   async function latestView(username: string): Promise<any> {
     const { rows } = await db.query(`
       SELECT view
-      FROM ui.view
+      FROM view
       WHERE view->'meta'->>'owner' = '${username}'
       OR view->'meta'->>'owner' = 'system'
       ORDER BY view->'meta'->>'timeUpdated' DESC;
@@ -83,10 +83,10 @@ export default (app: Express) => {
   app.get('/views', auth, async (_, res) => {
     const { rows = [] } = await db.query(`
       SELECT view
-      FROM ui.view
+      FROM view
       ORDER BY view->'meta'->>'timeUpdated' DESC;
     `);
-    const views = rows.map(({ view }) => ({
+    const views = rows.map(({ view }: any) => ({
       id: view.id,
       meta: view.meta,
       name: view.name,
@@ -158,7 +158,7 @@ export default (app: Express) => {
 
     const { rows = [], rowCount } = await db.query(`
       SELECT view
-      FROM ui.view
+      FROM view
       WHERE id = '${id}';
     `);
 
@@ -211,7 +211,7 @@ export default (app: Express) => {
     const { id } = params;
 
     const { rowCount } = await db.query(`
-      DELETE FROM ui.view
+      DELETE FROM view
       WHERE id = '${id}'
       AND view->'meta'->>'owner' = '${username}';
     `);
@@ -276,7 +276,7 @@ export default (app: Express) => {
 
     const { rows } = await db.query(`
       SELECT view
-      FROM ui.view
+      FROM view
       WHERE id='${id}'
       AND view->'meta'->>'owner' = '${username}';
     `);
@@ -302,7 +302,7 @@ export default (app: Express) => {
 
     const viewStr = JSON.stringify(view);
     const { rowCount } = await db.query(`
-      UPDATE ui.view
+      UPDATE view
       SET view='${viewStr}'
       WHERE id='${id}'
       AND view->'meta'->>'owner' = '${username}';
@@ -382,7 +382,7 @@ export default (app: Express) => {
 
     const viewStr = JSON.stringify({ ...newView, id, meta });
     const { rowCount } = await db.query(`
-      INSERT INTO ui.view (id, view)
+      INSERT INTO view (id, view)
       VALUES ('${id}', '${viewStr}');
     `);
 
