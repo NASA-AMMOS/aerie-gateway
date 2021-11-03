@@ -282,27 +282,41 @@ export default (app: Express) => {
     `);
     const [{ view: currentView }] = rows;
     const now = Date.now();
-    const view = JSON.stringify({
+    const view = {
       ...updatedView,
       meta: {
         ...currentView.meta,
         timeUpdated: now,
       },
-    });
+    };
+    const valid = validate(view);
+
+    if (!valid) {
+      res.json({
+        errors: validate.errors,
+        message: `${id} not updated`,
+        success: false,
+      });
+      return;
+    }
+
+    const viewStr = JSON.stringify(view);
     const { rowCount } = await db.query(`
       UPDATE ui.view
-      SET view='${view}'
+      SET view='${viewStr}'
       WHERE id='${id}'
       AND view->'meta'->>'owner' = '${username}';
     `);
 
     if (rowCount > 0) {
       res.json({
+        errors: null,
         message: `${id} updated`,
         success: true,
       });
     } else {
       res.json({
+        errors: null,
         message: `${id} not updated`,
         success: false,
       });
@@ -342,7 +356,7 @@ export default (app: Express) => {
     const { locals } = res;
     const { username = '' } = locals;
     const { body } = req;
-    const { name, view: newView } = body;
+    const { view: newView } = body;
 
     const id = uniqueId();
     const now = Date.now();
@@ -353,9 +367,20 @@ export default (app: Express) => {
       timeUpdated: now,
       version: VERSION,
     };
-    const view = { ...newView, id, meta, name };
-    const viewStr = JSON.stringify({ ...newView, id, meta, name });
+    const view = { ...newView, id, meta };
+    const valid = validate(view);
 
+    if (!valid) {
+      res.json({
+        errors: validate.errors,
+        message: `${id} not created`,
+        success: false,
+        view: null,
+      });
+      return;
+    }
+
+    const viewStr = JSON.stringify({ ...newView, id, meta });
     const { rowCount } = await db.query(`
       INSERT INTO ui.view (id, view)
       VALUES ('${id}', '${viewStr}');
@@ -363,12 +388,14 @@ export default (app: Express) => {
 
     if (rowCount > 0) {
       res.json({
+        errors: null,
         message: `${id} created`,
         success: true,
         view,
       });
     } else {
       res.json({
+        errors: null,
         message: `${id} not created`,
         success: false,
         view: null,
