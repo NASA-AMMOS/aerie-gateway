@@ -1,6 +1,6 @@
 table:
   name: mission_model
-  schema:
+  schema: public
 object_relationships:
 - name: parameters
   using:
@@ -8,7 +8,7 @@ object_relationships:
       column: model_id
       table:
         name: mission_model_parameters
-        schema:
+        schema: public
 - name: uploaded_file
   using:
     foreign_key_constraint_on: jar_id
@@ -19,21 +19,21 @@ array_relationships:
       column: model_id
       table:
         name: activity_type
-        schema:
+        schema: public
 - name: conditions
   using:
     foreign_key_constraint_on:
       column: model_id
       table:
         name: condition
-        schema:
+        schema: public
 - name: plans
   using:
     foreign_key_constraint_on:
       column: model_id
       table:
         name: plan
-        schema:
+        schema: public
 event_triggers:
 - definition:
     enable_manual: false

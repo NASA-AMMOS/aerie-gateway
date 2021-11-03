@@ -1,6 +1,6 @@
 table:
   name: simulation
-  schema:
+  schema: public
 object_relationships:
 - name: dataset
   using:
@@ -8,7 +8,7 @@ object_relationships:
       column: simulation_id
       table:
         name: simulation_dataset
-        schema:
+        schema: public
 - name: plan
   using:
     foreign_key_constraint_on: plan_id
