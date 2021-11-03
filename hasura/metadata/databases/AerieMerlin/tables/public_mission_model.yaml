@@ -48,12 +48,12 @@ event_triggers:
       - name
       - version
       - owner
-  name: refreshModelParameters
+  name: refreshActivityTypes
   retry_conf:
     interval_sec: 10
     num_retries: 0
     timeout_sec: 60
-  webhook: http://merlin:27183/refreshModelParameters
+  webhook: http://merlin:27183/refreshActivityTypes
 - definition:
     enable_manual: false
     insert:
@@ -67,9 +67,9 @@ event_triggers:
       - name
       - version
       - owner
-  name: refreshActivityTypes
+  name: refreshModelParameters
   retry_conf:
     interval_sec: 10
     num_retries: 0
     timeout_sec: 60
-  webhook: http://merlin:27183/refreshActivityTypes
+  webhook: http://merlin:27183/refreshModelParameters
