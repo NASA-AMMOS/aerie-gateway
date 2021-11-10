@@ -3,6 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { getEnv } from './env.js';
 import initAuthRoutes from './packages/auth/routes.js';
+import initConstraintRoutes from './packages/constraints/constraints.js';
 import { DbMerlin, DbUi } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHealthRoutes from './packages/health/health.js';
@@ -22,6 +23,7 @@ async function main(): Promise<void> {
   await DbUi.init();
 
   initAuthRoutes(app);
+  initConstraintRoutes(app);
   initFileRoutes(app);
   initHealthRoutes(app);
   initPlaygroundRoutes(app);

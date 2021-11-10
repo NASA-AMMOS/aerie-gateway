@@ -2,8 +2,6 @@ import Ajv from 'ajv';
 import type { Express } from 'express';
 import { readFileSync } from 'fs';
 import { customAlphabet } from 'nanoid';
-import { resolve } from 'path';
-import { URL } from 'url';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbUi } from '../db/db.js';
@@ -13,9 +11,7 @@ export default (app: Express) => {
 
   const ajv = new Ajv();
   ajv.addKeyword('$version');
-  const { pathname } = new URL('.', import.meta.url);
-  const path = resolve(pathname, '../../packages/schemas/view.json');
-  const schema = readFileSync(path).toString();
+  const schema = readFileSync('schemas/view.json').toString();
   const jsonSchema = JSON.parse(schema);
   const validate = ajv.compile<any>(jsonSchema);
 

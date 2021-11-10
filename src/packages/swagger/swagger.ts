@@ -19,6 +19,10 @@ const options: swaggerJsDoc.Options = {
         description: 'Endpoints for authentication and session management',
       },
       {
+        name: 'Constraints',
+        description: 'Endpoints for constraint management (e.g. validation)',
+      },
+      {
         name: 'Files',
         description:
           'Endpoints for file management (e.g. adding, updating, or deleting files)',
@@ -26,7 +30,7 @@ const options: swaggerJsDoc.Options = {
       {
         name: 'Views',
         description:
-          'Endpoints for UI view management (e.g. adding, updating, getting, or deleting views)',
+          'Endpoints for UI view management (e.g. adding, updating, getting, deleting, or validating views)',
       },
       {
         name: 'Health',
