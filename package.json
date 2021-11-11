@@ -11,12 +11,7 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rm -rf dist",
-    "hasura:metadata:apply": "hasura metadata apply",
-    "hasura:metadata:apply:local": "hasura metadata apply --envfile .env.local",
-    "hasura:metadata:export": "hasura metadata export",
-    "hasura:metadata:export:local": "hasura metadata export --envfile .env.local",
-    "start": "node -r dotenv/config dist/main.js dotenv_config_path=./.env",
-    "start:local": "node -r dotenv/config dist/main.js dotenv_config_path=./.env.local"
+    "start": "node -r dotenv/config dist/main.js"
   },
   "dependencies": {
     "ajv": "^8.7.1",
@@ -40,8 +35,8 @@
     "@types/pg": "^8.6.1",
     "@types/swagger-jsdoc": "^6.0.1",
     "@types/swagger-ui-express": "^4.1.3",
-    "prettier": "^2.4.1",
     "hasura-cli": "^2.0.9",
+    "prettier": "^2.4.1",
     "typescript": "^4.4.4"
   }
 }

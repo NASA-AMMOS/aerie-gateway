@@ -1,17 +1,16 @@
 import type { Express } from 'express';
 import fastGlob from 'fast-glob';
 import multer from 'multer';
-import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbMerlin } from '../db/db.js';
 
 export default (app: Express) => {
   const db = DbMerlin.getDb();
-  const { FILE_STORE_PATH } = getEnv();
+  const fileStorePath = 'files';
 
   const storage = multer.diskStorage({
     destination(_, __, cb) {
-      cb(null, FILE_STORE_PATH);
+      cb(null, fileStorePath);
     },
     filename(_, file, cb) {
       const { originalname } = file;
@@ -156,7 +155,7 @@ export default (app: Express) => {
    *       - Files
    */
   app.get('/files', auth, async (_, res) => {
-    const files = await fastGlob(`${FILE_STORE_PATH}/**/*`);
+    const files = await fastGlob(`${fileStorePath}/**/*`);
     res.json(files);
   });
 };
