@@ -1,8 +1,7 @@
 import type { Pool, PoolConfig } from 'pg';
 import pg from 'pg';
 import { getEnv } from '../../env.js';
-import { initMerlin } from './merlin.js';
-import { initUi } from './ui.js';
+import { insertViews } from './ui.js';
 
 const { Pool: DbPool } = pg;
 
@@ -32,7 +31,6 @@ export class DbMerlin {
         user,
       };
       DbMerlin.pool = new DbPool(config);
-      await initMerlin(DbMerlin.pool);
     } catch (error) {
       console.log(error);
     }
@@ -56,7 +54,7 @@ export class DbUi {
         user,
       };
       DbUi.pool = new DbPool(config);
-      await initUi(DbUi.pool);
+      await insertViews(DbUi.pool);
     } catch (error) {
       console.log(error);
     }
