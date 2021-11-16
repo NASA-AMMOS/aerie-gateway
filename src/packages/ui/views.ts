@@ -1,7 +1,6 @@
 import Ajv from 'ajv';
 import type { Express } from 'express';
 import { readFileSync } from 'fs';
-import { customAlphabet } from 'nanoid';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbUi } from '../db/db.js';
@@ -46,14 +45,6 @@ export default (app: Express) => {
     } else {
       return null;
     }
-  }
-
-  function uniqueId(): string {
-    const alphabet =
-      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    const size = 15;
-    const nanoid = customAlphabet(alphabet, size);
-    return nanoid();
   }
 
   /**
@@ -155,7 +146,7 @@ export default (app: Express) => {
     const { rows = [], rowCount } = await db.query(`
       SELECT view
       FROM view
-      WHERE id = '${id}';
+      WHERE view->>'id' = '${id}';
     `);
 
     if (rowCount > 0) {
@@ -208,7 +199,7 @@ export default (app: Express) => {
 
     const { rowCount } = await db.query(`
       DELETE FROM view
-      WHERE id = '${id}'
+      WHERE view->>'id' = '${id}'
       AND view->'meta'->>'owner' = '${username}';
     `);
 
@@ -273,13 +264,14 @@ export default (app: Express) => {
     const { rows } = await db.query(`
       SELECT view
       FROM view
-      WHERE id='${id}'
+      WHERE view->>'id' = '${id}'
       AND view->'meta'->>'owner' = '${username}';
     `);
     const [{ view: currentView }] = rows;
     const now = Date.now();
     const view = {
       ...updatedView,
+      id: currentView.id,
       meta: {
         ...currentView.meta,
         timeUpdated: now,
@@ -300,7 +292,7 @@ export default (app: Express) => {
     const { rowCount } = await db.query(`
       UPDATE view
       SET view='${viewStr}'
-      WHERE id='${id}'
+      WHERE view->>'id' = '${id}'
       AND view->'meta'->>'owner' = '${username}';
     `);
 
@@ -354,7 +346,10 @@ export default (app: Express) => {
     const { body } = req;
     const { view: newView } = body;
 
-    const id = uniqueId();
+    const { rows } = await db.query('SELECT view FROM view');
+    const ids = rows.map(({ view }) => view.id).sort();
+    const id = ids.pop() + 1;
+
     const now = Date.now();
     const { VERSION } = getEnv();
     const meta = {
@@ -378,21 +373,21 @@ export default (app: Express) => {
 
     const viewStr = JSON.stringify({ ...newView, id, meta });
     const { rowCount } = await db.query(`
-      INSERT INTO view (id, view)
-      VALUES ('${id}', '${viewStr}');
+      INSERT INTO view (view)
+      VALUES ('${viewStr}');
     `);
 
     if (rowCount > 0) {
       res.json({
         errors: null,
-        message: `${id} created`,
+        message: `view created`,
         success: true,
         view,
       });
     } else {
       res.json({
         errors: null,
-        message: `${id} not created`,
+        message: `view not created`,
         success: false,
         view: null,
       });

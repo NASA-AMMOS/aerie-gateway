@@ -1,7 +1,6 @@
 import type { Pool, PoolConfig } from 'pg';
 import pg from 'pg';
 import { getEnv } from '../../env.js';
-import { insertViews } from './ui.js';
 
 const { Pool: DbPool } = pg;
 
@@ -54,7 +53,6 @@ export class DbUi {
         user,
       };
       DbUi.pool = new DbPool(config);
-      await insertViews(DbUi.pool);
     } catch (error) {
       console.log(error);
     }

@@ -52,8 +52,7 @@
   "description": "JSON schema used for configuring the Aerie UI",
   "properties": {
     "id": {
-      "description": "Unique UUID of the view",
-      "type": "string"
+      "$ref": "#/definitions/id"
     },
     "meta": {
       "additionalProperties": false,
