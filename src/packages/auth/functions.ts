@@ -59,7 +59,7 @@ export async function login(
   } else {
     return {
       message: 'Authentication is disabled',
-      ssoToken: 'AUTHENTICATION-DISABLED',
+      ssoToken: 'unknown',
       success: true,
       username: 'unknown',
     };
@@ -175,7 +175,12 @@ export async function user(ssoToken: string): Promise<UserResponse> {
     return {
       message: `Authentication is disabled`,
       success: true,
-      user: null,
+      user: {
+        filteredGroupList: [],
+        fullName: 'unknown',
+        groupList: [],
+        userId: 'unknown',
+      },
     };
   }
 }
