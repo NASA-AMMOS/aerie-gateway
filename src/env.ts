@@ -23,7 +23,7 @@ export const defaultEnv: Env = {
   POSTGRES_PASSWORD: 'aerie',
   POSTGRES_PORT: '5432',
   POSTGRES_USER: 'aerie',
-  VERSION: '0.9.1',
+  VERSION: '0.9.2',
 };
 
 export function getEnv(): Env {
