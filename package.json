@@ -6,7 +6,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.jpl.nasa.gov/Aerie/aerie-gateway.git"
+    "url": "https://github.com/NASA-AMMOS/aerie-gateway.git"
   },
   "scripts": {
     "build": "npm run clean && tsc",
