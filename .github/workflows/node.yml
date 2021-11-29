@@ -1,0 +1,21 @@
+name: Node.js CI
+
+on:
+  push:
+    branches:
+      - develop
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16.13.0'
+      - run: npm install
+      - run: npm run build
+      - run: rm -rf node_modules
+      - run: npm install --only=production
