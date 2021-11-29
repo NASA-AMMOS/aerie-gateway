@@ -1,4 +1,4 @@
-name: Build and Deploy
+name: Continuous Integration
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-and-deploy:
+  ci:
     runs-on: ubuntu-latest
     permissions:
       contents: read
