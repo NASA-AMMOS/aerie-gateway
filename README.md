@@ -1,4 +1,4 @@
-![example workflow](https://github.com/NASA-AMMOS/aerie-gateway/actions/workflows/ci.yml/badge.svg)
+![ci](https://github.com/NASA-AMMOS/aerie-gateway/actions/workflows/ci.yml/badge.svg)
 
 # aerie-gateway
 
