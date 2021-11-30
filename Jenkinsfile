@@ -8,11 +8,6 @@ def getArtifactoryPort() {
   }
 }
 
-def getDockerCompatibleTag(tag) {
-  def fixedTag = tag.replaceAll('\\+', '-').replaceAll('/', '-')
-  return fixedTag
-}
-
 pipeline {
   options {
     disableConcurrentBuilds()
@@ -21,16 +16,8 @@ pipeline {
     label 'CAE-Jenkins2-DH-Agents-Linux'
   }
   environment {
-    ARTIFACT_TAG = "${GIT_BRANCH}"
     ARTIFACTORY_URL = "artifactory.jpl.nasa.gov:${getArtifactoryPort()}"
-    AWS_ACCESS_KEY_ID = credentials('aerie-aws-access-key')
-    AWS_CLUSTER = "aerie-${GIT_BRANCH}-cluster"
-    AWS_DEFAULT_REGION = 'us-gov-west-1'
-    AWS_ECR = "448117317272.dkr.ecr.us-gov-west-1.amazonaws.com"
-    AWS_SECRET_ACCESS_KEY = credentials('aerie-aws-secret-access-key')
-    DOCKER_TAG = "${getDockerCompatibleTag(ARTIFACT_TAG)}"
-    DOCKER_TAG_ARTIFACTORY = "${ARTIFACTORY_URL}/gov/nasa/jpl/aerie/aerie-gateway:${DOCKER_TAG}"
-    DOCKER_TAG_AWS = "${AWS_ECR}/aerie/gateway:${DOCKER_TAG}"
+    DOCKER_GATEWAY_ARTIFACTORY = "${ARTIFACTORY_URL}/gov/nasa/jpl/aerie/aerie-gateway:${GIT_BRANCH}"
     NODE_LTS_IMAGE = "artifactory.jpl.nasa.gov:17001/node:lts-alpine"
   }
   stages {
@@ -63,7 +50,7 @@ pipeline {
                 npm install --only=production --silent
 
                 # Build Docker image
-                docker build -t "${DOCKER_TAG_ARTIFACTORY}" --build-arg NODE_LTS_IMAGE=${NODE_LTS_IMAGE} --rm .
+                docker build -t ${DOCKER_GATEWAY_ARTIFACTORY} --build-arg NODE_LTS_IMAGE=${NODE_LTS_IMAGE} --rm .
               '''
             }
           }
@@ -81,45 +68,19 @@ pipeline {
               )
             ]) {
               sh '''
-                echo "${DOCKER_LOGIN_PASSWORD}" | docker login -u "${DOCKER_LOGIN_USERNAME}" ${ARTIFACTORY_URL} --password-stdin
-                docker push "${DOCKER_TAG_ARTIFACTORY}"
+                echo ${DOCKER_LOGIN_PASSWORD} | docker login -u ${DOCKER_LOGIN_USERNAME} ${ARTIFACTORY_URL} --password-stdin
+                docker push ${DOCKER_GATEWAY_ARTIFACTORY}
                 docker logout ${ARTIFACTORY_URL}
               '''
-            }
-          }
-        }
-        stage('Deploy to AWS') {
-          when {
-            expression { GIT_BRANCH ==~ /(develop|staging)/ }
-          }
-          steps {
-            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'mpsa-aws-test-account']]) {
-              script{
-                sh '''
-                  aws ecr get-login-password | docker login --username AWS --password-stdin https://$AWS_ECR
-                  docker tag ${DOCKER_TAG_ARTIFACTORY} ${DOCKER_TAG_AWS}
-                  docker push ${DOCKER_TAG_AWS}
-                '''
-
-                try {
-                  sleep 5
-                  sh '''
-                    aws ecs stop-task --cluster "${AWS_CLUSTER}" --task $(aws ecs list-tasks --cluster "${AWS_CLUSTER}" --output text --query taskArns[0])
-                  '''
-                } catch (Exception e) {
-                  echo "Restarting the task failed"
-                  echo e.getMessage()
-                }
-              }
             }
           }
         }
       }
       post {
         always {
-          sh "docker rmi ${DOCKER_TAG_ARTIFACTORY} || true"
-          sh "docker rmi ${DOCKER_TAG_AWS} || true"
-          sh "docker logout || true"
+          sh '''
+            docker rmi ${DOCKER_GATEWAY_ARTIFACTORY} --force
+          '''
         }
         cleanup {
           cleanWs()
