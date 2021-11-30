@@ -31,6 +31,7 @@ pipeline {
     DOCKER_TAG = "${getDockerCompatibleTag(ARTIFACT_TAG)}"
     DOCKER_TAG_ARTIFACTORY = "${ARTIFACTORY_URL}/gov/nasa/jpl/aerie/aerie-gateway:${DOCKER_TAG}"
     DOCKER_TAG_AWS = "${AWS_ECR}/aerie/gateway:${DOCKER_TAG}"
+    NODE_LTS_IMAGE = "artifactory.jpl.nasa.gov:17001/node:lts-alpine"
   }
   stages {
     stage('Docker') {
@@ -62,7 +63,7 @@ pipeline {
                 npm install --only=production --silent
 
                 # Build Docker image
-                docker build -t "${DOCKER_TAG_ARTIFACTORY}" --rm .
+                docker build -t "${DOCKER_TAG_ARTIFACTORY}" --build-arg NODE_LTS_IMAGE=${NODE_LTS_IMAGE} --rm .
               '''
             }
           }
