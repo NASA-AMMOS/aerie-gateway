@@ -36,6 +36,9 @@
       "additionalProperties": false,
       "description": "Generic label object",
       "properties": {
+        "color": {
+          "$ref": "#/definitions/color"
+        },
         "text": {
           "description": "Label text content",
           "type": "string"
