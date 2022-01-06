@@ -2,7 +2,7 @@
 
 # aerie-gateway
 
-The primary API gateway for Aerie.
+The API gateway for [Aerie](https://github.com/NASA-AMMOS/aerie).
 
 ## Develop
 
