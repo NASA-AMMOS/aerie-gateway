@@ -1,7 +1,15 @@
 import type { Express } from 'express';
+import rateLimit from 'express-rate-limit';
 import { login, logout, session, user } from './functions.js';
 
 export default (app: Express) => {
+  const loginLimiter = rateLimit({
+    legacyHeaders: false,
+    max: 100,
+    standardHeaders: true,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+  });
+
   /**
    * @swagger
    * /auth/login:
@@ -29,7 +37,7 @@ export default (app: Express) => {
    *     tags:
    *       - Auth
    */
-  app.post('/auth/login', async (req, res) => {
+  app.post('/auth/login', loginLimiter, async (req, res) => {
     const { body } = req;
     const { username, password } = body;
     const response = await login(username, password);
