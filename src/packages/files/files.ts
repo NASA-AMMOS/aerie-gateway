@@ -54,9 +54,9 @@ export default (app: Express) => {
         `
         update uploaded_file
         set deleted_date = $1
-        where id='${id}';
+        where id = $2;
       `,
-        [deleted_date],
+        [deleted_date, id],
       );
 
       if (rowCount > 0) {
@@ -112,16 +112,20 @@ export default (app: Express) => {
     const [file] = req.files as Express.Multer.File[];
     const { filename } = file;
     const modified_date = new Date();
+
+    // Note because name and path are different types, we need to bind the filename variable
+    // twice so the query casts it appropriately to each type.
     const { rowCount, rows } = await db.query(
       `
       insert into uploaded_file (name, path)
-      values ('${filename}', '${filename}')
+      values ($1, $2)
       on conflict (name) do update
-      set path = '${filename}', modified_date = $1, deleted_date = null
+      set path = $2, modified_date = $3, deleted_date = null
       returning id;
     `,
-      [modified_date],
+      [filename, filename, modified_date],
     );
+
     const [row] = rows;
     const id = row ? row.id : null;
 

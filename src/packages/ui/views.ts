@@ -15,13 +15,16 @@ export default (app: Express) => {
   const validate = ajv.compile<any>(jsonSchema);
 
   async function latestView(username: string): Promise<any> {
-    const { rows } = await db.query(`
+    const { rows } = await db.query(
+      `
       SELECT view
       FROM view
-      WHERE view->'meta'->>'owner' = '${username}'
+      WHERE view->'meta'->>'owner' = $1
       OR view->'meta'->>'owner' = 'system'
       ORDER BY view->'meta'->>'timeUpdated' DESC;
-    `);
+    `,
+      [username],
+    );
 
     const userViews = [];
     const systemViews = [];
@@ -143,11 +146,14 @@ export default (app: Express) => {
     const { params } = req;
     const { id } = params;
 
-    const { rows = [], rowCount } = await db.query(`
+    const { rows = [], rowCount } = await db.query(
+      `
       SELECT view
       FROM view
-      WHERE view->>'id' = '${id}';
-    `);
+      WHERE view->>'id' = $1;
+    `,
+      [id],
+    );
 
     if (rowCount > 0) {
       const [{ view }] = rows;
@@ -197,11 +203,14 @@ export default (app: Express) => {
     const { params } = req;
     const { id } = params;
 
-    const { rowCount } = await db.query(`
+    const { rowCount } = await db.query(
+      `
       DELETE FROM view
-      WHERE view->>'id' = '${id}'
-      AND view->'meta'->>'owner' = '${username}';
-    `);
+      WHERE view->>'id' = $1
+      AND view->'meta'->>'owner' = $2;
+    `,
+      [id, username],
+    );
 
     if (rowCount > 0) {
       const nextView = await latestView(username);
@@ -261,12 +270,15 @@ export default (app: Express) => {
     const { view: updatedView } = body;
     const { id } = params;
 
-    const { rows } = await db.query(`
+    const { rows } = await db.query(
+      `
       SELECT view
       FROM view
-      WHERE view->>'id' = '${id}'
-      AND view->'meta'->>'owner' = '${username}';
-    `);
+      WHERE view->>'id' = $1
+      AND view->'meta'->>'owner' = $2;
+    `,
+      [id, username],
+    );
     const [{ view: currentView }] = rows;
     const now = Date.now();
     const view = {
@@ -289,12 +301,15 @@ export default (app: Express) => {
     }
 
     const viewStr = JSON.stringify(view);
-    const { rowCount } = await db.query(`
+    const { rowCount } = await db.query(
+      `
       UPDATE view
-      SET view='${viewStr}'
-      WHERE view->>'id' = '${id}'
-      AND view->'meta'->>'owner' = '${username}';
-    `);
+      SET view=$1
+      WHERE view->>'id' = $2
+      AND view->'meta'->>'owner' = $3;
+    `,
+      [viewStr, id, username],
+    );
 
     if (rowCount > 0) {
       res.json({
@@ -372,10 +387,13 @@ export default (app: Express) => {
     }
 
     const viewStr = JSON.stringify({ ...newView, id, meta });
-    const { rowCount } = await db.query(`
+    const { rowCount } = await db.query(
+      `
       INSERT INTO view (view)
-      VALUES ('${viewStr}');
-    `);
+      VALUES ($1);
+    `,
+      [viewStr],
+    );
 
     if (rowCount > 0) {
       res.json({
