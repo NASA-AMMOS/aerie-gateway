@@ -1,11 +1,21 @@
 import Ajv from 'ajv';
 import type { Express } from 'express';
+import rateLimit from 'express-rate-limit';
 import { readFileSync } from 'fs';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbUi } from '../db/db.js';
 
 export default (app: Express) => {
+  const { RATE_LIMITER_UI_VIEWS_MAX } = getEnv();
+
+  const viewsLimiter = rateLimit({
+    legacyHeaders: false,
+    max: RATE_LIMITER_UI_VIEWS_MAX,
+    standardHeaders: true,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+  });
+
   const db = DbUi.getDb();
 
   const ajv = new Ajv();
@@ -70,7 +80,7 @@ export default (app: Express) => {
    *     tags:
    *       - Views
    */
-  app.get('/views', auth, async (_, res) => {
+  app.get('/views', viewsLimiter, auth, async (_, res) => {
     const { rows = [] } = await db.query(`
       SELECT view
       FROM view
@@ -105,7 +115,7 @@ export default (app: Express) => {
    *     tags:
    *       - Views
    */
-  app.get('/view/latest', auth, async (_, res) => {
+  app.get('/view/latest', viewsLimiter, auth, async (_, res) => {
     const { locals } = res;
     const { username = '' } = locals;
     const view = await latestView(username);
@@ -142,7 +152,7 @@ export default (app: Express) => {
    *     tags:
    *       - Views
    */
-  app.get('/view/:id', auth, async (req, res) => {
+  app.get('/view/:id', viewsLimiter, auth, async (req, res) => {
     const { params } = req;
     const { id } = params;
 
@@ -197,7 +207,7 @@ export default (app: Express) => {
    *     tags:
    *       - Views
    */
-  app.delete('/view/:id', auth, async (req, res) => {
+  app.delete('/view/:id', viewsLimiter, auth, async (req, res) => {
     const { locals } = res;
     const { username = '' } = locals;
     const { params } = req;
@@ -263,7 +273,7 @@ export default (app: Express) => {
    *     tags:
    *       - Views
    */
-  app.put('/view/:id', auth, async (req, res) => {
+  app.put('/view/:id', viewsLimiter, auth, async (req, res) => {
     const { locals } = res;
     const { username = '' } = locals;
     const { body, params } = req;
@@ -355,7 +365,7 @@ export default (app: Express) => {
    *     tags:
    *       - Views
    */
-  app.post('/view', auth, async (req, res) => {
+  app.post('/view', viewsLimiter, auth, async (req, res) => {
     const { locals } = res;
     const { username = '' } = locals;
     const { body } = req;

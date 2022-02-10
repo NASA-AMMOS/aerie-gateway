@@ -1,11 +1,14 @@
 import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
+import { getEnv } from '../../env.js';
 import { login, logout, session, user } from './functions.js';
 
 export default (app: Express) => {
+  const { RATE_LIMITER_LOGIN_MAX } = getEnv();
+
   const loginLimiter = rateLimit({
     legacyHeaders: false,
-    max: 100,
+    max: RATE_LIMITER_LOGIN_MAX,
     standardHeaders: true,
     windowMs: 15 * 60 * 1000, // 15 minutes
   });

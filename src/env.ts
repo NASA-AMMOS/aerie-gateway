@@ -9,6 +9,9 @@ export type Env = {
   POSTGRES_PASSWORD: string;
   POSTGRES_PORT: string;
   POSTGRES_USER: string;
+  RATE_LIMITER_FILES_MAX: number;
+  RATE_LIMITER_LOGIN_MAX: number;
+  RATE_LIMITER_UI_VIEWS_MAX: number;
   VERSION: string;
 };
 
@@ -23,8 +26,25 @@ export const defaultEnv: Env = {
   POSTGRES_PASSWORD: 'aerie',
   POSTGRES_PORT: '5432',
   POSTGRES_USER: 'aerie',
+  RATE_LIMITER_FILES_MAX: 1000,
+  RATE_LIMITER_LOGIN_MAX: 1000,
+  RATE_LIMITER_UI_VIEWS_MAX: 1000,
   VERSION: '0.10.0',
 };
+
+/**
+ * Parse string typed environment variable into a number.
+ * Returns the default value if parse fails.
+ */
+function parseNumber(value: string | undefined, defaultValue: number): number {
+  if (typeof value === 'string') {
+    const parsedValue = parseFloat(value);
+    if (!Number.isNaN(parsedValue)) {
+      return parsedValue;
+    }
+  }
+  return defaultValue;
+}
 
 export function getEnv(): Env {
   const { env } = process;
@@ -42,6 +62,18 @@ export function getEnv(): Env {
     env['POSTGRES_PASSWORD'] ?? defaultEnv.POSTGRES_PASSWORD;
   const POSTGRES_PORT = env['POSTGRES_PORT'] ?? defaultEnv.POSTGRES_PORT;
   const POSTGRES_USER = env['POSTGRES_USER'] ?? defaultEnv.POSTGRES_USER;
+  const RATE_LIMITER_FILES_MAX = parseNumber(
+    env['RATE_LIMITER_FILES_MAX'],
+    defaultEnv.RATE_LIMITER_FILES_MAX,
+  );
+  const RATE_LIMITER_LOGIN_MAX = parseNumber(
+    env['RATE_LIMITER_LOGIN_MAX'],
+    defaultEnv.RATE_LIMITER_LOGIN_MAX,
+  );
+  const RATE_LIMITER_UI_VIEWS_MAX = parseNumber(
+    env['RATE_LIMITER_UI_VIEWS_MAX'],
+    defaultEnv.RATE_LIMITER_UI_VIEWS_MAX,
+  );
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {
@@ -55,6 +87,9 @@ export function getEnv(): Env {
     POSTGRES_PASSWORD,
     POSTGRES_PORT,
     POSTGRES_USER,
+    RATE_LIMITER_FILES_MAX,
+    RATE_LIMITER_LOGIN_MAX,
+    RATE_LIMITER_UI_VIEWS_MAX,
     VERSION,
   };
 }

@@ -1,10 +1,21 @@
 import type { Express } from 'express';
+import rateLimit from 'express-rate-limit';
 import fastGlob from 'fast-glob';
 import multer from 'multer';
+import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbMerlin } from '../db/db.js';
 
 export default (app: Express) => {
+  const { RATE_LIMITER_FILES_MAX } = getEnv();
+
+  const filesLimiter = rateLimit({
+    legacyHeaders: false,
+    max: RATE_LIMITER_FILES_MAX,
+    standardHeaders: true,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+  });
+
   const db = DbMerlin.getDb();
   const fileStorePath = 'files';
 
@@ -44,7 +55,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.delete('/file/:id', auth, async (req, res) => {
+  app.delete('/file/:id', filesLimiter, auth, async (req, res) => {
     const { params } = req;
     const { id } = params;
 
@@ -108,7 +119,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.post('/file', auth, upload.any(), async (req, res) => {
+  app.post('/file', filesLimiter, auth, upload.any(), async (req, res) => {
     const [file] = req.files as Express.Multer.File[];
     const { filename } = file;
     const modified_date = new Date();
@@ -158,7 +169,7 @@ export default (app: Express) => {
    *     tags:
    *       - Files
    */
-  app.get('/files', auth, async (_, res) => {
+  app.get('/files', filesLimiter, auth, async (_, res) => {
     const files = await fastGlob(`${fileStorePath}/**/*`);
     res.json(files);
   });
