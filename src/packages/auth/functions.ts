@@ -22,7 +22,7 @@ export async function login(
     let json: any;
 
     try {
-      const body = JSON.stringify({ username, password });
+      const body = JSON.stringify({ password, username });
       const url = `${AUTH_URL}/ssoToken?loginMethod=ldap`;
       response = await fetch(url, { agent, body, method: 'POST' });
       json = await response.json();

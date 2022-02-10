@@ -15,27 +15,27 @@ const options: swaggerJsDoc.Options = {
     openapi: '3.0.0',
     tags: [
       {
-        name: 'Auth',
         description: 'Endpoints for authentication and session management',
+        name: 'Auth',
       },
       {
-        name: 'Constraints',
         description: 'Endpoints for constraint management (e.g. validation)',
+        name: 'Constraints',
       },
       {
-        name: 'Files',
         description:
           'Endpoints for file management (e.g. adding, updating, or deleting files)',
+        name: 'Files',
       },
       {
-        name: 'Views',
         description:
           'Endpoints for UI view management (e.g. adding, updating, getting, deleting, or validating views)',
+        name: 'Views',
       },
       {
-        name: 'Health',
         description:
           'Endpoints for health information (e.g. uptime) about this server',
+        name: 'Health',
       },
     ],
   },
