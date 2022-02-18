@@ -1,4 +1,3 @@
-import https from 'https';
 import type { Response } from 'node-fetch';
 import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
@@ -8,8 +7,6 @@ import type {
   SessionResponse,
   UserResponse,
 } from './types.js';
-
-const agent = new https.Agent({ rejectUnauthorized: false });
 
 export async function login(
   username: string,
@@ -24,7 +21,7 @@ export async function login(
     try {
       const body = JSON.stringify({ password, username });
       const url = `${AUTH_URL}/ssoToken?loginMethod=ldap`;
-      response = await fetch(url, { agent, body, method: 'POST' });
+      response = await fetch(url, { body, method: 'POST' });
       json = await response.json();
       const { errorCode = false } = json;
 
@@ -76,7 +73,7 @@ export async function logout(ssoToken: string): Promise<LogoutResponse> {
     try {
       const body = JSON.stringify({ ssoToken });
       const url = `${AUTH_URL}/ssoToken?action=invalidate`;
-      response = await fetch(url, { agent, body, method: 'DELETE' });
+      response = await fetch(url, { body, method: 'DELETE' });
       json = await response.json();
       const { errorCode = false } = json;
 
@@ -107,7 +104,7 @@ export async function session(ssoToken: string): Promise<SessionResponse> {
     try {
       const body = JSON.stringify({ ssoToken });
       const url = `${AUTH_URL}/ssoToken?action=validate`;
-      response = await fetch(url, { agent, body, method: 'POST' });
+      response = await fetch(url, { body, method: 'POST' });
       json = await response.json();
       const { errorCode = false } = json;
 
@@ -141,7 +138,7 @@ export async function user(ssoToken: string): Promise<UserResponse> {
     try {
       const body = JSON.stringify({ ssoToken });
       const url = `${AUTH_URL}/userProfile`;
-      response = await fetch(url, { agent, body, method: 'POST' });
+      response = await fetch(url, { body, method: 'POST' });
       json = await response.json();
       const { errorCode = false } = json;
 
