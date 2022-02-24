@@ -1,4 +1,5 @@
 ![ci](https://github.com/NASA-AMMOS/aerie-gateway/actions/workflows/ci.yml/badge.svg)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/NASA-AMMOS/aerie-gateway?color=brightgreen)
 
 # aerie-gateway
 
