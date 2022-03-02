@@ -1,13 +1,20 @@
-import type { Express } from 'express';
+import { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import fastGlob from 'fast-glob';
+import fetch from 'node-fetch';
+import { FormData } from 'formdata-node';
+import { fileFromPath } from 'formdata-node/file-from-path';
 import multer from 'multer';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbMerlin } from '../db/db.js';
 
 export default (app: Express) => {
-  const { RATE_LIMITER_FILES_MAX } = getEnv();
+  const {
+    RATE_LIMITER_FILES_MAX,
+    COMMANDING_SERVER_PORT,
+    COMMANDING_SERVER_URL,
+  } = getEnv();
 
   const filesLimiter = rateLimit({
     legacyHeaders: false,
@@ -173,4 +180,71 @@ export default (app: Express) => {
     const files = await fastGlob(`${fileStorePath}/**/*`);
     res.json(files);
   });
+
+  /**
+   * @swagger
+   * /dictionary:
+   *   post:
+   *     consumes:
+   *       - multipart/form-data
+   *     description: If a file of the same name and location already exists, the new file overwrites the old
+   *     parameters:
+   *       - description: Session token used for authorization
+   *         in: header
+   *         name: x-auth-sso-token
+   *         required: true
+   *         schema:
+   *           type: string
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         multipart/form-data:
+   *          schema:
+   *            type: object
+   *            properties:
+   *              file:
+   *                format: binary
+   *                type: string
+   *     responses:
+   *       200:
+   *         description: UploadFileResponse
+   *     summary: Upload a command dictionary
+   *     tags:
+   *       - Command
+   */
+  app.post(
+    '/dictionary',
+    filesLimiter,
+    auth,
+    upload.any(),
+    async (req, res) => {
+      try {
+        const [file] = req.files as Express.Multer.File[];
+        const data = new FormData();
+        data.set('file', await fileFromPath(file.path));
+
+        //forward off to the commanding server
+        await fetch(
+          `${COMMANDING_SERVER_URL}:${COMMANDING_SERVER_PORT}/dictionary`,
+          {
+            body: data as any,
+            method: 'PUT',
+          },
+        )
+          .then(response => {
+            response.text().then(text => {
+              res.status(response.status).send(text);
+            });
+          })
+          .catch(reason => {
+            res
+              .status(500)
+              .send(`Error uploading Command Dictionary: ${reason}`);
+          });
+      } catch (error) {
+        res.status(500).send(`Error uploading Command Dictionary: ${error}`);
+      }
+    },
+  );
 };
