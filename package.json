@@ -22,6 +22,7 @@
     "express": "^4.17.3",
     "express-rate-limit": "^6.3.0",
     "fast-glob": "^3.2.11",
+    "formdata-node": "^4.3.2",
     "graphql-playground-middleware-express": "^1.7.23",
     "helmet": "^5.0.2",
     "multer": "^1.4.4",
