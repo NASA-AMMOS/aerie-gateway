@@ -28,7 +28,8 @@
     "node-fetch": "^3.2.2",
     "pg": "^8.7.3",
     "swagger-jsdoc": "^7.0.0-rc.6",
-    "swagger-ui-express": "^4.3.0"
+    "swagger-ui-express": "^4.3.0",
+    "winston": "^3.6.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.12",
