@@ -1,4 +1,5 @@
 ![ci](https://github.com/NASA-AMMOS/aerie-gateway/actions/workflows/ci.yml/badge.svg)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/NASA-AMMOS/aerie-gateway.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/NASA-AMMOS/aerie-gateway/context:javascript)
 ![GitHub package.json version](https://img.shields.io/github/package-json/v/NASA-AMMOS/aerie-gateway?color=brightgreen)
 
 # aerie-gateway
