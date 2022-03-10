@@ -7,6 +7,9 @@ import type {
   SessionResponse,
   UserResponse,
 } from './types.js';
+import getLogger from '../../logger.js';
+
+const logger = getLogger('packages/auth/functions');
 
 export async function login(
   username: string,
@@ -43,9 +46,9 @@ export async function login(
         };
       }
     } catch (error) {
-      console.log(error);
-      console.log(response);
-      console.log(json);
+      logger.error(error);
+      logger.error(response);
+      logger.error(json);
       return {
         message: 'An unexpected error occurred',
         ssoToken: null,
@@ -84,9 +87,9 @@ export async function logout(ssoToken: string): Promise<LogoutResponse> {
         return { message: 'Logout successful', success: true };
       }
     } catch (error) {
-      console.log(error);
-      console.log(response);
-      console.log(json);
+      logger.error(error);
+      logger.error(response);
+      logger.error(json);
       return { message: 'An unexpected error occurred', success: false };
     }
   } else {
@@ -118,9 +121,9 @@ export async function session(ssoToken: string): Promise<SessionResponse> {
         return { message, success: validated };
       }
     } catch (error) {
-      console.log(error);
-      console.log(response);
-      console.log(json);
+      logger.error(error);
+      logger.error(response);
+      logger.error(json);
       return { message: 'An unexpected error occurred', success: false };
     }
   } else {
@@ -159,9 +162,9 @@ export async function user(ssoToken: string): Promise<UserResponse> {
         };
       }
     } catch (error) {
-      console.log(error);
-      console.log(response);
-      console.log(json);
+      logger.error(error);
+      logger.error(response);
+      logger.error(json);
       return {
         message: 'An unexpected error occurred',
         success: false,
