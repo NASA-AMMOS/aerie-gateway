@@ -5,6 +5,9 @@ import multer from 'multer';
 import { getEnv } from '../../env.js';
 import { auth } from '../auth/middleware.js';
 import { DbMerlin } from '../db/db.js';
+import getLogger from '../../logger.js';
+
+const logger = getLogger('packages/files/files');
 
 export default (app: Express) => {
   const { RATE_LIMITER_FILES_MAX } = getEnv();
@@ -71,18 +74,18 @@ export default (app: Express) => {
       );
 
       if (rowCount > 0) {
-        console.log(
+        logger.info(
           `DELETE /file: Marked file as deleted in the database: ${id}`,
         );
       } else {
-        console.log(
+        logger.info(
           `DELETE /file: No file was marked as deleted in the database`,
         );
       }
 
       res.json({ id, success: true });
     } catch (error: any) {
-      console.error(error);
+      logger.error(error);
       res.status(404).json({ message: error.message, success: false });
     }
   });
@@ -141,9 +144,9 @@ export default (app: Express) => {
     const id = row ? row.id : null;
 
     if (rowCount > 0) {
-      console.log(`POST /file: Updated file in the database: ${id}`);
+      logger.info(`POST /file: Updated file in the database: ${id}`);
     } else {
-      console.log(`POST /file: No file was updated in the database`);
+      logger.info(`POST /file: No file was updated in the database`);
     }
 
     res.json({ file, id });

@@ -1,6 +1,7 @@
 import type { Pool, PoolConfig } from 'pg';
 import pg from 'pg';
 import { getEnv } from '../../env.js';
+import getLogger from '../../logger.js';
 
 const { Pool: DbPool } = pg;
 
@@ -12,6 +13,8 @@ const {
   POSTGRES_PORT: port,
   POSTGRES_USER: user,
 } = getEnv();
+
+const logger = getLogger('packages/db/db');
 
 export class DbMerlin {
   private static pool: Pool;
@@ -31,7 +34,7 @@ export class DbMerlin {
       };
       DbMerlin.pool = new DbPool(config);
     } catch (error) {
-      console.log(error);
+      logger.error(error);
     }
   }
 }
@@ -54,7 +57,7 @@ export class DbUi {
       };
       DbUi.pool = new DbPool(config);
     } catch (error) {
-      console.log(error);
+      logger.error(error);
     }
   }
 }

@@ -10,8 +10,10 @@ import initHealthRoutes from './packages/health/health.js';
 import initPlaygroundRoutes from './packages/playground/playground.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import initUiViewRoutes from './packages/ui/views.js';
+import getLogger from './logger.js';
 
 async function main(): Promise<void> {
+  const logger = getLogger('main');
   const { PORT } = getEnv();
   const app = express();
 
@@ -33,7 +35,7 @@ async function main(): Promise<void> {
   initUiViewRoutes(app);
 
   app.listen(PORT, () => {
-    console.log(`🚀 AERIE-GATEWAY listening on ${PORT}`);
+    logger.info(`🚀 AERIE-GATEWAY listening on ${PORT}`);
   });
 }
 
