@@ -371,8 +371,11 @@ export default (app: Express) => {
     const { body } = req;
     const { view: newView } = body;
 
-    const { rows } = await db.query('SELECT view FROM view');
-    const ids = rows.map(({ view }) => view.id).sort();
+    const { rows } = await db.query(`
+      SELECT view FROM view
+      ORDER BY view->'id' ASC;
+    `);
+    const ids = rows.map(({ view }) => view.id);
     const id = ids.pop() + 1;
 
     const now = Date.now();
