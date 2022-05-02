@@ -136,14 +136,7 @@
     },
     "gridName": {
       "description": "Optional name of grid for specifying a layout tied to a specific workflow",
-      "enum": [
-        "Activities",
-        "Constraints",
-        "Custom",
-        "Scheduling",
-        "Simulation",
-        "Views"
-      ],
+      "enum": ["Activities", "Constraints", "Scheduling", "Simulation", "View"],
       "type": "string"
     },
     "gridRows": {
