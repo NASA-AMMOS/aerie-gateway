@@ -59,27 +59,15 @@ export function getEnv(): Env {
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
-  const POSTGRES_AERIE_MERLIN_DB =
-    env['POSTGRES_AERIE_MERLIN_DB'] ?? defaultEnv.POSTGRES_AERIE_MERLIN_DB;
-  const POSTGRES_AERIE_UI_DB =
-    env['POSTGRES_AERIE_UI_DB'] ?? defaultEnv.POSTGRES_AERIE_UI_DB;
+  const POSTGRES_AERIE_MERLIN_DB = env['POSTGRES_AERIE_MERLIN_DB'] ?? defaultEnv.POSTGRES_AERIE_MERLIN_DB;
+  const POSTGRES_AERIE_UI_DB = env['POSTGRES_AERIE_UI_DB'] ?? defaultEnv.POSTGRES_AERIE_UI_DB;
   const POSTGRES_HOST = env['POSTGRES_HOST'] ?? defaultEnv.POSTGRES_HOST;
-  const POSTGRES_PASSWORD =
-    env['POSTGRES_PASSWORD'] ?? defaultEnv.POSTGRES_PASSWORD;
+  const POSTGRES_PASSWORD = env['POSTGRES_PASSWORD'] ?? defaultEnv.POSTGRES_PASSWORD;
   const POSTGRES_PORT = env['POSTGRES_PORT'] ?? defaultEnv.POSTGRES_PORT;
   const POSTGRES_USER = env['POSTGRES_USER'] ?? defaultEnv.POSTGRES_USER;
-  const RATE_LIMITER_FILES_MAX = parseNumber(
-    env['RATE_LIMITER_FILES_MAX'],
-    defaultEnv.RATE_LIMITER_FILES_MAX,
-  );
-  const RATE_LIMITER_LOGIN_MAX = parseNumber(
-    env['RATE_LIMITER_LOGIN_MAX'],
-    defaultEnv.RATE_LIMITER_LOGIN_MAX,
-  );
-  const RATE_LIMITER_UI_VIEWS_MAX = parseNumber(
-    env['RATE_LIMITER_UI_VIEWS_MAX'],
-    defaultEnv.RATE_LIMITER_UI_VIEWS_MAX,
-  );
+  const RATE_LIMITER_FILES_MAX = parseNumber(env['RATE_LIMITER_FILES_MAX'], defaultEnv.RATE_LIMITER_FILES_MAX);
+  const RATE_LIMITER_LOGIN_MAX = parseNumber(env['RATE_LIMITER_LOGIN_MAX'], defaultEnv.RATE_LIMITER_LOGIN_MAX);
+  const RATE_LIMITER_UI_VIEWS_MAX = parseNumber(env['RATE_LIMITER_UI_VIEWS_MAX'], defaultEnv.RATE_LIMITER_UI_VIEWS_MAX);
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {

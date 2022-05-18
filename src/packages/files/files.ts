@@ -74,13 +74,9 @@ export default (app: Express) => {
       );
 
       if (rowCount > 0) {
-        logger.info(
-          `DELETE /file: Marked file as deleted in the database: ${id}`,
-        );
+        logger.info(`DELETE /file: Marked file as deleted in the database: ${id}`);
       } else {
-        logger.info(
-          `DELETE /file: No file was marked as deleted in the database`,
-        );
+        logger.info(`DELETE /file: No file was marked as deleted in the database`);
       }
 
       res.json({ id, success: true });

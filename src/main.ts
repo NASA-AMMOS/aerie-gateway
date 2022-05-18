@@ -16,9 +16,7 @@ async function main(): Promise<void> {
   const { PORT } = getEnv();
   const app = express();
 
-  app.use(
-    helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }),
-  );
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
   app.use(cors());
   app.use(express.json());
 

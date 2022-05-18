@@ -1,20 +1,12 @@
 import type { Response } from 'node-fetch';
 import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
-import type {
-  LoginResponse,
-  LogoutResponse,
-  SessionResponse,
-  UserResponse,
-} from './types.js';
+import type { LoginResponse, LogoutResponse, SessionResponse, UserResponse } from './types.js';
 import getLogger from '../../logger.js';
 
 const logger = getLogger('packages/auth/functions');
 
-export async function login(
-  username: string,
-  password: string,
-): Promise<LoginResponse> {
+export async function login(username: string, password: string): Promise<LoginResponse> {
   const { AUTH_TYPE, AUTH_URL } = getEnv();
 
   if (AUTH_TYPE === 'cam') {
