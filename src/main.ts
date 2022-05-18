@@ -2,15 +2,14 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { getEnv } from './env.js';
+import getLogger from './logger.js';
 import initAuthRoutes from './packages/auth/routes.js';
-import initConstraintRoutes from './packages/constraints/constraints.js';
 import { DbMerlin, DbUi } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHealthRoutes from './packages/health/health.js';
 import initPlaygroundRoutes from './packages/playground/playground.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import initUiViewRoutes from './packages/ui/views.js';
-import getLogger from './logger.js';
 
 async function main(): Promise<void> {
   const logger = getLogger('main');
@@ -27,7 +26,6 @@ async function main(): Promise<void> {
   await DbUi.init();
 
   initAuthRoutes(app);
-  initConstraintRoutes(app);
   initFileRoutes(app);
   initHealthRoutes(app);
   initPlaygroundRoutes(app);

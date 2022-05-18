@@ -94,22 +94,6 @@
     },
     "gridComponentName": {
       "description": "Name of the component to display in the grid area",
-      "enum": [
-        "ActivityForm",
-        "ActivityTable",
-        "ActivityTypes",
-        "ConstraintEditor",
-        "Constraints",
-        "ConstraintViolations",
-        "IFrame",
-        "SchedulingEditor",
-        "Scheduling",
-        "Simulation",
-        "Timeline",
-        "TimelineForm",
-        "ViewEditor",
-        "Views"
-      ],
       "type": "string"
     },
     "gridGutter": {
@@ -136,7 +120,6 @@
     },
     "gridName": {
       "description": "Optional name of grid for specifying a layout tied to a specific workflow",
-      "enum": ["Activities", "Constraints", "Scheduling", "Simulation", "View"],
       "type": "string"
     },
     "gridRows": {
