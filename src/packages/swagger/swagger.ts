@@ -19,10 +19,6 @@ const options: swaggerJsDoc.Options = {
         name: 'Auth',
       },
       {
-        description: 'Endpoints for constraint management (e.g. validation)',
-        name: 'Constraints',
-      },
-      {
         description:
           'Endpoints for file management (e.g. adding, updating, or deleting files)',
         name: 'Files',
