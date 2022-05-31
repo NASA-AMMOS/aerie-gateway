@@ -1,7 +1,7 @@
 {
   "$id": "https://github.com/NASA-AMMOS/aerie-gateway/blob/develop/schemas/view.json",
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$version": "0.11.2",
+  "$version": "0.11.3",
   "additionalProperties": false,
   "definitions": {
     "color": {
@@ -376,14 +376,7 @@
                                 "$ref": "#/definitions/yAxisId"
                               }
                             },
-                            "required": [
-                              "activityColor",
-                              "activityHeight",
-                              "chartType",
-                              "filter",
-                              "id",
-                              "yAxisId"
-                            ],
+                            "required": ["activityColor", "activityHeight", "chartType", "filter", "id", "yAxisId"],
                             "type": "object"
                           },
                           {
@@ -463,14 +456,7 @@
                                 "$ref": "#/definitions/yAxisId"
                               }
                             },
-                            "required": [
-                              "chartType",
-                              "colorScheme",
-                              "filter",
-                              "id",
-                              "opacity",
-                              "yAxisId"
-                            ],
+                            "required": ["chartType", "colorScheme", "filter", "id", "opacity", "yAxisId"],
                             "type": "object"
                           }
                         ]
@@ -504,26 +490,13 @@
                             "type": "number"
                           }
                         },
-                        "required": [
-                          "color",
-                          "id",
-                          "label",
-                          "scaleDomain",
-                          "tickCount"
-                        ],
+                        "required": ["color", "id", "label", "scaleDomain", "tickCount"],
                         "type": "object"
                       },
                       "type": "array"
                     }
                   },
-                  "required": [
-                    "autoAdjustHeight",
-                    "height",
-                    "horizontalGuides",
-                    "id",
-                    "layers",
-                    "yAxes"
-                  ],
+                  "required": ["autoAdjustHeight", "height", "horizontalGuides", "id", "layers", "yAxes"],
                   "type": "object"
                 },
                 "type": "array"
@@ -550,13 +523,7 @@
                 "type": "array"
               }
             },
-            "required": [
-              "id",
-              "marginLeft",
-              "marginRight",
-              "rows",
-              "verticalGuides"
-            ],
+            "required": ["id", "marginLeft", "marginRight", "rows", "verticalGuides"],
             "type": "object"
           },
           "type": "array"

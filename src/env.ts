@@ -33,7 +33,7 @@ export const defaultEnv: Env = {
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
   RATE_LIMITER_UI_VIEWS_MAX: 1000,
-  VERSION: '0.11.2',
+  VERSION: '0.11.3',
 };
 
 /**
