@@ -6,14 +6,12 @@ export type Env = {
   LOG_LEVEL: string;
   PORT: string;
   POSTGRES_AERIE_MERLIN_DB: string;
-  POSTGRES_AERIE_UI_DB: string;
   POSTGRES_HOST: string;
   POSTGRES_PASSWORD: string;
   POSTGRES_PORT: string;
   POSTGRES_USER: string;
   RATE_LIMITER_FILES_MAX: number;
   RATE_LIMITER_LOGIN_MAX: number;
-  RATE_LIMITER_UI_VIEWS_MAX: number;
   VERSION: string;
 };
 
@@ -25,14 +23,12 @@ export const defaultEnv: Env = {
   LOG_LEVEL: 'info',
   PORT: '9000',
   POSTGRES_AERIE_MERLIN_DB: 'aerie_merlin',
-  POSTGRES_AERIE_UI_DB: 'aerie_ui',
   POSTGRES_HOST: 'localhost',
   POSTGRES_PASSWORD: '',
   POSTGRES_PORT: '5432',
   POSTGRES_USER: '',
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
-  RATE_LIMITER_UI_VIEWS_MAX: 1000,
   VERSION: '0.12.1',
 };
 
@@ -60,14 +56,12 @@ export function getEnv(): Env {
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
   const POSTGRES_AERIE_MERLIN_DB = env['POSTGRES_AERIE_MERLIN_DB'] ?? defaultEnv.POSTGRES_AERIE_MERLIN_DB;
-  const POSTGRES_AERIE_UI_DB = env['POSTGRES_AERIE_UI_DB'] ?? defaultEnv.POSTGRES_AERIE_UI_DB;
   const POSTGRES_HOST = env['POSTGRES_HOST'] ?? defaultEnv.POSTGRES_HOST;
   const POSTGRES_PASSWORD = env['POSTGRES_PASSWORD'] ?? defaultEnv.POSTGRES_PASSWORD;
   const POSTGRES_PORT = env['POSTGRES_PORT'] ?? defaultEnv.POSTGRES_PORT;
   const POSTGRES_USER = env['POSTGRES_USER'] ?? defaultEnv.POSTGRES_USER;
   const RATE_LIMITER_FILES_MAX = parseNumber(env['RATE_LIMITER_FILES_MAX'], defaultEnv.RATE_LIMITER_FILES_MAX);
   const RATE_LIMITER_LOGIN_MAX = parseNumber(env['RATE_LIMITER_LOGIN_MAX'], defaultEnv.RATE_LIMITER_LOGIN_MAX);
-  const RATE_LIMITER_UI_VIEWS_MAX = parseNumber(env['RATE_LIMITER_UI_VIEWS_MAX'], defaultEnv.RATE_LIMITER_UI_VIEWS_MAX);
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {
@@ -78,14 +72,12 @@ export function getEnv(): Env {
     LOG_LEVEL,
     PORT,
     POSTGRES_AERIE_MERLIN_DB,
-    POSTGRES_AERIE_UI_DB,
     POSTGRES_HOST,
     POSTGRES_PASSWORD,
     POSTGRES_PORT,
     POSTGRES_USER,
     RATE_LIMITER_FILES_MAX,
     RATE_LIMITER_LOGIN_MAX,
-    RATE_LIMITER_UI_VIEWS_MAX,
     VERSION,
   };
 }

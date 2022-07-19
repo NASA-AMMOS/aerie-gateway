@@ -7,7 +7,6 @@ const { Pool: DbPool } = pg;
 
 const {
   POSTGRES_AERIE_MERLIN_DB,
-  POSTGRES_AERIE_UI_DB,
   POSTGRES_HOST: host,
   POSTGRES_PASSWORD: password,
   POSTGRES_PORT: port,
@@ -33,29 +32,6 @@ export class DbMerlin {
         user,
       };
       DbMerlin.pool = new DbPool(config);
-    } catch (error) {
-      logger.error(error);
-    }
-  }
-}
-
-export class DbUi {
-  private static pool: Pool;
-
-  static getDb(): Pool {
-    return DbUi.pool;
-  }
-
-  static async init(): Promise<void> {
-    try {
-      const config: PoolConfig = {
-        database: POSTGRES_AERIE_UI_DB,
-        host,
-        password,
-        port: parseInt(port, 10),
-        user,
-      };
-      DbUi.pool = new DbPool(config);
     } catch (error) {
       logger.error(error);
     }

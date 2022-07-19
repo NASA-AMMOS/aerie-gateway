@@ -1,7 +1,6 @@
 {
   "$id": "https://github.com/NASA-AMMOS/aerie-gateway/blob/develop/schemas/view.json",
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$version": "0.12.1",
   "additionalProperties": false,
   "definitions": {
     "color": {
@@ -176,36 +175,6 @@
   },
   "description": "JSON schema definition used for configuring the Aerie UI",
   "properties": {
-    "id": {
-      "$ref": "#/definitions/id"
-    },
-    "meta": {
-      "additionalProperties": false,
-      "properties": {
-        "owner": {
-          "description": "Username of the view's owner",
-          "type": "string"
-        },
-        "timeCreated": {
-          "description": "Time view was created in number of milliseconds elapsed since January 1, 1970 00:00:00 UTC",
-          "type": "number"
-        },
-        "timeUpdated": {
-          "description": "Time view was last updated in number of milliseconds elapsed since January 1, 1970 00:00:00 UTC",
-          "type": "number"
-        },
-        "version": {
-          "description": "The version of the schema the view adheres to",
-          "type": "string"
-        }
-      },
-      "required": ["owner", "timeCreated", "timeUpdated", "version"],
-      "type": "object"
-    },
-    "name": {
-      "description": "Name of the view",
-      "type": "string"
-    },
     "plan": {
       "additionalProperties": false,
       "description": "View configuration for a plan",
@@ -533,7 +502,7 @@
       "type": "object"
     }
   },
-  "required": ["id", "meta", "name", "plan"],
+  "required": ["plan"],
   "title": "View",
   "type": "object"
 }
