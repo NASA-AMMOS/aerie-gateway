@@ -45,11 +45,11 @@ jobs:
         with:
           context: .
           load: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
       - name: Scan Docker image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
