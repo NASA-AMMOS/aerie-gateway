@@ -185,24 +185,15 @@
             "additionalProperties": false,
             "properties": {
               "columnDefs": {
-                "description": "Column definitions for the activity table",
+                "description": "Array of column definition objects that conform to the ag-grid ColumnDef type",
                 "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "field": {
-                      "description": "Property on the activity to show in the column",
-                      "type": "string"
-                    },
-                    "name": {
-                      "description": "Display name of the field property for the column header",
-                      "type": "string"
-                    },
-                    "sortable": {
-                      "description": "If true the column becomes sortable",
-                      "type": "boolean"
-                    }
-                  },
-                  "required": ["field", "name", "sortable"],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "columnStates": {
+                "description": "Array of column state objects that conform to the ag-grid ColumnState type",
+                "items": {
                   "type": "object"
                 },
                 "type": "array"
@@ -211,7 +202,7 @@
                 "$ref": "#/definitions/id"
               }
             },
-            "required": ["columnDefs", "id"],
+            "required": ["columnDefs", "columnStates", "id"],
             "type": "object"
           },
           "type": "array"
