@@ -29,7 +29,7 @@ export const defaultEnv: Env = {
   POSTGRES_USER: '',
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
-  VERSION: '0.12.3',
+  VERSION: '0.13.0',
 };
 
 /**
