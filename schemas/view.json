@@ -255,6 +255,10 @@
                 "description": "Timeline row definitions",
                 "items": {
                   "additionalProperties": false,
+                  "expanded": {
+                    "description": "Expanded state of the timeline row",
+                    "type": "boolean"
+                  },
                   "properties": {
                     "autoAdjustHeight": {
                       "description": "If true the row height is set automatically to fit the row content",
@@ -460,7 +464,7 @@
                       "type": "array"
                     }
                   },
-                  "required": ["autoAdjustHeight", "height", "horizontalGuides", "id", "layers", "name", "yAxes"],
+                  "required": ["autoAdjustHeight", "expanded", "height", "horizontalGuides", "id", "layers", "name", "yAxes"],
                   "type": "object"
                 },
                 "type": "array"
