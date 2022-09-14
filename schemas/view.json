@@ -423,6 +423,10 @@
                       },
                       "type": "array"
                     },
+                    "name": {
+                      "description": "Name of the row",
+                      "type": "string"
+                    },
                     "yAxes": {
                       "description": "Row y-axes definitions",
                       "items": {
