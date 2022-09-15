@@ -241,6 +241,10 @@
               "id": {
                 "$ref": "#/definitions/id"
               },
+              "expanded": {
+                "description": "Expanded state of the timeline row",
+                "type": "boolean"
+              },
               "marginLeft": {
                 "description": "Left margin of the timeline in pixels",
                 "minimum": 0,
@@ -423,6 +427,10 @@
                       },
                       "type": "array"
                     },
+                    "name": {
+                      "description": "Name of the row",
+                      "type": "string"
+                    },
                     "yAxes": {
                       "description": "Row y-axes definitions",
                       "items": {
@@ -456,7 +464,7 @@
                       "type": "array"
                     }
                   },
-                  "required": ["autoAdjustHeight", "height", "horizontalGuides", "id", "layers", "yAxes"],
+                  "required": ["autoAdjustHeight", "expanded", "height", "horizontalGuides", "id", "layers", "name", "yAxes"],
                   "type": "object"
                 },
                 "type": "array"
