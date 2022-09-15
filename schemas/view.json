@@ -241,6 +241,10 @@
               "id": {
                 "$ref": "#/definitions/id"
               },
+              "expanded": {
+                "description": "Expanded state of the timeline row",
+                "type": "boolean"
+              },
               "marginLeft": {
                 "description": "Left margin of the timeline in pixels",
                 "minimum": 0,
@@ -255,10 +259,6 @@
                 "description": "Timeline row definitions",
                 "items": {
                   "additionalProperties": false,
-                  "expanded": {
-                    "description": "Expanded state of the timeline row",
-                    "type": "boolean"
-                  },
                   "properties": {
                     "autoAdjustHeight": {
                       "description": "If true the row height is set automatically to fit the row content",
