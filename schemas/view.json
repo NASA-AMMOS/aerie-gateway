@@ -241,10 +241,6 @@
               "id": {
                 "$ref": "#/definitions/id"
               },
-              "expanded": {
-                "description": "Expanded state of the timeline row",
-                "type": "boolean"
-              },
               "marginLeft": {
                 "description": "Left margin of the timeline in pixels",
                 "minimum": 0,
@@ -262,6 +258,10 @@
                   "properties": {
                     "autoAdjustHeight": {
                       "description": "If true the row height is set automatically to fit the row content",
+                      "type": "boolean"
+                    },
+                    "expanded": {
+                      "description": "Expanded state of the timeline row",
                       "type": "boolean"
                     },
                     "height": {
@@ -464,7 +464,16 @@
                       "type": "array"
                     }
                   },
-                  "required": ["autoAdjustHeight", "expanded", "height", "horizontalGuides", "id", "layers", "name", "yAxes"],
+                  "required": [
+                    "autoAdjustHeight",
+                    "expanded",
+                    "height",
+                    "horizontalGuides",
+                    "id",
+                    "layers",
+                    "name",
+                    "yAxes"
+                  ],
                   "type": "object"
                 },
                 "type": "array"
