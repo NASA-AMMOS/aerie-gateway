@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "lib": ["ES2020"],
+    "lib": ["ES2021", "DOM"],
     "module": "ES2020",
     "moduleResolution": "Node",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "dist",
     "strict": true,
-    "target": "ES2020"
+    "target": "ES2021"
   },
   "exclude": ["node_modules"],
   "include": ["./src/main.ts"]
