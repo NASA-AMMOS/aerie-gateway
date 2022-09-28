@@ -1,11 +1,12 @@
 import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
-import fastGlob from 'fast-glob';
 import multer from 'multer';
+import { customAlphabet } from 'nanoid';
+import { parse } from 'path';
 import { getEnv } from '../../env.js';
+import getLogger from '../../logger.js';
 import { auth } from '../auth/middleware.js';
 import { DbMerlin } from '../db/db.js';
-import getLogger from '../../logger.js';
 
 const logger = getLogger('packages/files/files');
 
@@ -28,7 +29,13 @@ export default (app: Express) => {
     },
     filename(_, file, cb) {
       const { originalname } = file;
-      cb(null, originalname);
+      const nanoId = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz', 14);
+      const uniqueId = nanoId();
+      const now = Date.now();
+      const { ext, name } = parse(originalname);
+      const uniqueFileName = `${name}-${now}-${uniqueId}`;
+      const fileName = `${uniqueFileName}${ext}`;
+      cb(null, fileName);
     },
   });
 
@@ -92,7 +99,6 @@ export default (app: Express) => {
    *   post:
    *     consumes:
    *       - multipart/form-data
-   *     description: If a file of the same name and location already exists, the new file overwrites the old
    *     parameters:
    *       - description: Session token used for authorization
    *         in: header
@@ -121,7 +127,6 @@ export default (app: Express) => {
   app.post('/file', filesLimiter, auth, upload.any(), async (req, res) => {
     const [file] = req.files as Express.Multer.File[];
     const { filename } = file;
-    const modified_date = new Date();
 
     // Note because name and path are different types, we need to bind the filename variable
     // twice so the query casts it appropriately to each type.
@@ -129,47 +134,20 @@ export default (app: Express) => {
       `
       insert into uploaded_file (name, path)
       values ($1, $2)
-      on conflict (name) do update
-      set path = $2, modified_date = $3, deleted_date = null
       returning id;
     `,
-      [filename, filename, modified_date],
+      [filename, filename],
     );
 
     const [row] = rows;
     const id = row ? row.id : null;
 
     if (rowCount > 0) {
-      logger.info(`POST /file: Updated file in the database: ${id}`);
+      logger.info(`POST /file: Added file to the database: ${id}`);
     } else {
-      logger.info(`POST /file: No file was updated in the database`);
+      logger.info(`POST /file: No file was added to the database`);
     }
 
     res.json({ file, id });
-  });
-
-  /**
-   * @swagger
-   * /files:
-   *   get:
-   *     parameters:
-   *       - description: Session token used for authorization
-   *         in: header
-   *         name: x-auth-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
-   *     produces:
-   *       - application/json
-   *     responses:
-   *       200:
-   *         description: A list of absolute file paths
-   *     summary: Returns a list of absolute paths for all files stored on the filesystem
-   *     tags:
-   *       - Files
-   */
-  app.get('/files', filesLimiter, auth, async (_, res) => {
-    const files = await fastGlob(`${fileStorePath}/**/*`);
-    res.json(files);
   });
 };
