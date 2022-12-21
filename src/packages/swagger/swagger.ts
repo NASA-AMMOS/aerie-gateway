@@ -23,10 +23,6 @@ const options: swaggerJsDoc.Options = {
         name: 'Files',
       },
       {
-        description: 'Endpoints for UI view management (e.g. validating views)',
-        name: 'Views',
-      },
-      {
         description: 'Endpoints for health information (e.g. uptime) about this server',
         name: 'Health',
       },
