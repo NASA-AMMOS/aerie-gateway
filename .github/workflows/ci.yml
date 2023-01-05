@@ -61,9 +61,6 @@ jobs:
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      - name: Delete Untagged Docker Images
-        uses: camargo/delete-untagged-action@v1
-        with:
-          github-token: ${{ secrets.DELETE_PACKAGES_TOKEN }}
