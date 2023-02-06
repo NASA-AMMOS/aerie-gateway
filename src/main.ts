@@ -7,7 +7,6 @@ import initAuthRoutes from './packages/auth/routes.js';
 import { DbMerlin } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHealthRoutes from './packages/health/health.js';
-import initPlaygroundRoutes from './packages/playground/playground.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 
 async function main(): Promise<void> {
@@ -24,7 +23,6 @@ async function main(): Promise<void> {
   initAuthRoutes(app);
   initFileRoutes(app);
   initHealthRoutes(app);
-  initPlaygroundRoutes(app);
   initSwaggerRoutes(app);
 
   app.listen(PORT, () => {
