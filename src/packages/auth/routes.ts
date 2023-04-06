@@ -51,13 +51,8 @@ export default (app: Express) => {
    * @swagger
    * /auth/logout:
    *   delete:
-   *     parameters:
-   *       - description: Session token used for authorization
-   *         in: header
-   *         name: x-auth-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
+   *     security:
+   *       - bearerAuth: []
    *     produces:
    *       - application/json
    *     responses:
@@ -68,9 +63,8 @@ export default (app: Express) => {
    *       - Auth
    */
   app.delete('/auth/logout', async (req, res) => {
-    const { headers } = req;
-    const { 'x-auth-sso-token': ssoToken = '' } = headers;
-    const response = await logout(ssoToken as string);
+    const authorizationHeader = req.get('authorization');
+    const response = await logout(authorizationHeader);
     res.json(response);
   });
 
@@ -78,13 +72,8 @@ export default (app: Express) => {
    * @swagger
    * /auth/session:
    *   get:
-   *     parameters:
-   *       - description: Session token used for authorization
-   *         in: header
-   *         name: x-auth-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
+   *     security:
+   *       - bearerAuth: []
    *     produces:
    *       - application/json
    *     responses:
@@ -95,9 +84,8 @@ export default (app: Express) => {
    *       - Auth
    */
   app.get('/auth/session', async (req, res) => {
-    const { headers } = req;
-    const { 'x-auth-sso-token': ssoToken = '' } = headers;
-    const response = await session(ssoToken as string);
+    const authorizationHeader = req.get('authorization');
+    const response = await session(authorizationHeader);
     res.json(response);
   });
 
@@ -105,13 +93,8 @@ export default (app: Express) => {
    * @swagger
    * /auth/user:
    *   get:
-   *     parameters:
-   *       - description: Session token used for authorization
-   *         in: header
-   *         name: x-auth-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
+   *     security:
+   *       - bearerAuth: []
    *     produces:
    *       - application/json
    *     responses:
@@ -122,9 +105,8 @@ export default (app: Express) => {
    *       - Auth
    */
   app.get('/auth/user', async (req, res) => {
-    const { headers } = req;
-    const { 'x-auth-sso-token': ssoToken = '' } = headers;
-    const response = await user(ssoToken as string);
+    const authorizationHeader = req.get('authorization');
+    const response = await user(authorizationHeader);
     res.json(response);
   });
 };
