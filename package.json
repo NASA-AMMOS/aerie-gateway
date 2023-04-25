@@ -1,7 +1,7 @@
 {
   "name": "aerie-gateway",
   "description": "The API gateway for Aerie.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "license": "MIT",
   "private": true,
