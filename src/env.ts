@@ -2,6 +2,7 @@ export type Env = {
   AUTH_TYPE: string;
   AUTH_URL: string;
   GQL_API_URL: string;
+  GQL_API_WS_URL: string;
   HASURA_GRAPHQL_JWT_SECRET: string;
   LOG_FILE: string;
   LOG_LEVEL: string;
@@ -20,6 +21,7 @@ export const defaultEnv: Env = {
   AUTH_TYPE: 'cam',
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
+  GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_GRAPHQL_JWT_SECRET: '',
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
@@ -54,6 +56,7 @@ export function getEnv(): Env {
   const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
+  const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
   const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
@@ -71,6 +74,7 @@ export function getEnv(): Env {
     AUTH_TYPE,
     AUTH_URL,
     GQL_API_URL,
+    GQL_API_WS_URL,
     HASURA_GRAPHQL_JWT_SECRET,
     LOG_FILE,
     LOG_LEVEL,
