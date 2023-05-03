@@ -3,6 +3,7 @@ import express from 'express';
 import helmet from 'helmet';
 import { getEnv } from './env.js';
 import getLogger from './logger.js';
+import initApiPlaygroundRoutes from './packages/api-playground/api-playground.js';
 import initAuthRoutes from './packages/auth/routes.js';
 import { DbMerlin } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
 
   await DbMerlin.init();
 
+  initApiPlaygroundRoutes(app);
   initAuthRoutes(app);
   initFileRoutes(app);
   initHealthRoutes(app);
