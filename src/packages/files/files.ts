@@ -45,13 +45,9 @@ export default (app: Express) => {
    * @swagger
    * /file/{id}:
    *   delete:
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
-   *       - description: Session token used for authorization
-   *         in: header
-   *         name: x-auth-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
    *       - description: ID of the file to delete
    *         in: path
    *         name: id
@@ -97,15 +93,10 @@ export default (app: Express) => {
    * @swagger
    * /file:
    *   post:
+   *     security:
+   *       - bearerAuth: []
    *     consumes:
    *       - multipart/form-data
-   *     parameters:
-   *       - description: Session token used for authorization
-   *         in: header
-   *         name: x-auth-sso-token
-   *         required: true
-   *         schema:
-   *           type: string
    *     produces:
    *       - application/json
    *     requestBody:

@@ -8,6 +8,15 @@ const { VERSION } = getEnv();
 const options: swaggerJsDoc.Options = {
   apis: ['./dist/packages/**/*.js'],
   definition: {
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          bearerFormat: 'JWT',
+          scheme: 'bearer',
+          type: 'http',
+        },
+      },
+    },
     info: {
       title: 'Aerie Gateway',
       version: VERSION,
@@ -15,7 +24,7 @@ const options: swaggerJsDoc.Options = {
     openapi: '3.0.0',
     tags: [
       {
-        description: 'Endpoints for authentication and session management',
+        description: 'Endpoints for authentication and authorization management',
         name: 'Auth',
       },
       {

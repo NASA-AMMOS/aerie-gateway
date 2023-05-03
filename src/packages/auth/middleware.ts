@@ -9,9 +9,8 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
     res.locals.username = 'unknown';
     next();
   } else {
-    const { headers } = req;
-    const { 'x-auth-sso-token': ssoToken = '' } = headers;
-    const response = await user(ssoToken as string);
+    const authorizationHeader = req.get('authorization');
+    const response = await user(authorizationHeader);
 
     if (response.success) {
       res.locals.username = response.user?.userId;
