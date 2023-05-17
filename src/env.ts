@@ -1,6 +1,10 @@
 export type Env = {
+  ALLOWED_ROLES: string[];
+  ALLOWED_ROLES_NO_AUTH: string[];
   AUTH_TYPE: string;
   AUTH_URL: string;
+  DEFAULT_ROLE: string;
+  DEFAULT_ROLE_NO_AUTH: string;
   GQL_API_URL: string;
   GQL_API_WS_URL: string;
   HASURA_GRAPHQL_JWT_SECRET: string;
@@ -18,8 +22,12 @@ export type Env = {
 };
 
 export const defaultEnv: Env = {
+  ALLOWED_ROLES: ['user', 'viewer'],
+  ALLOWED_ROLES_NO_AUTH: ['admin', 'user', 'viewer'],
   AUTH_TYPE: 'cam',
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
+  DEFAULT_ROLE: 'user',
+  DEFAULT_ROLE_NO_AUTH: 'admin',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_GRAPHQL_JWT_SECRET: '',
@@ -35,6 +43,22 @@ export const defaultEnv: Env = {
   RATE_LIMITER_LOGIN_MAX: 1000,
   VERSION: '1.9.0',
 };
+
+/**
+ * Parse string typed environment variable into an array.
+ * Returns the default value if parse fails.
+ */
+function parseArray(value: string | undefined, defaultValue: string[]): string[] {
+  if (typeof value === 'string') {
+    try {
+      const parsedValue = JSON.parse(value);
+      return parsedValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+  return defaultValue;
+}
 
 /**
  * Parse string typed environment variable into a number.
@@ -53,8 +77,12 @@ function parseNumber(value: string | undefined, defaultValue: number): number {
 export function getEnv(): Env {
   const { env } = process;
 
+  const ALLOWED_ROLES = parseArray(env['ALLOWED_ROLES'], defaultEnv.ALLOWED_ROLES);
+  const ALLOWED_ROLES_NO_AUTH = parseArray(env['ALLOWED_ROLES_NO_AUTH'], defaultEnv.ALLOWED_ROLES_NO_AUTH);
   const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
+  const DEFAULT_ROLE = env['DEFAULT_ROLE'] ?? defaultEnv.DEFAULT_ROLE;
+  const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
   const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
@@ -71,8 +99,12 @@ export function getEnv(): Env {
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {
+    ALLOWED_ROLES,
+    ALLOWED_ROLES_NO_AUTH,
     AUTH_TYPE,
     AUTH_URL,
+    DEFAULT_ROLE,
+    DEFAULT_ROLE_NO_AUTH,
     GQL_API_URL,
     GQL_API_WS_URL,
     HASURA_GRAPHQL_JWT_SECRET,
