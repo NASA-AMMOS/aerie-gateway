@@ -1,6 +1,7 @@
 export type JsonWebToken = string;
 
 export type JwtPayload = {
+  activeRole: string;
   camToken: string;
   'https://hasura.io/jwt/claims': Record<string, string | string[]>;
   username: string;
@@ -11,7 +12,7 @@ export type JwtSecret = {
   type: string;
 };
 
-export type LoginResponse = {
+export type AuthResponse = {
   message: string;
   success: boolean;
   token: JsonWebToken | null;
