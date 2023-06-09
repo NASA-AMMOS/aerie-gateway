@@ -7,7 +7,7 @@ import type {
   JsonWebToken,
   JwtPayload,
   JwtSecret,
-  LoginResponse,
+  AuthResponse,
   LogoutResponse,
   SessionResponse,
   UserResponse,
@@ -48,12 +48,14 @@ export function generateJwt(
   defaultRole: string,
   allowedRoles: string[],
   otherClaims: Record<string, string | string[]> = {},
+  activeRole?: string,
 ): string | null {
   try {
     const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
     const { key, type }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
     const options: jwt.SignOptions = { algorithm: type as 'HS256' | 'RS512', expiresIn: '36h' };
     const payload: JwtPayload = {
+      activeRole: activeRole && allowedRoles.includes(activeRole) ? activeRole : defaultRole,
       camToken,
       'https://hasura.io/jwt/claims': {
         'x-hasura-allowed-roles': allowedRoles,
@@ -71,7 +73,7 @@ export function generateJwt(
   }
 }
 
-export async function login(username: string, password: string): Promise<LoginResponse> {
+export async function login(username: string, password: string): Promise<AuthResponse> {
   const { AUTH_TYPE, AUTH_URL } = getEnv();
 
   if (AUTH_TYPE === 'cam') {
@@ -98,7 +100,7 @@ export async function login(username: string, password: string): Promise<LoginRe
         return {
           message: 'Login successful',
           success: true,
-          token: generateJwt(username, camToken, 'admin', ['admin']),
+          token: generateJwt(username, camToken, 'admin', ['admin', 'user']),
         };
       }
     } catch (error) {
@@ -115,7 +117,7 @@ export async function login(username: string, password: string): Promise<LoginRe
     return {
       message: 'Authentication is disabled',
       success: true,
-      token: generateJwt('unknown', '', 'admin', ['admin']),
+      token: generateJwt(username || 'unknown', '', 'admin', ['admin', 'user']),
     };
   }
 }
@@ -257,6 +259,55 @@ export async function user(authorizationHeader: string | undefined): Promise<Use
         groupList: [],
         userId: 'unknown',
       },
+    };
+  }
+}
+
+export async function changeRole(
+  authorizationHeader: string | undefined,
+  role: string | undefined,
+): Promise<AuthResponse> {
+  const { AUTH_TYPE } = getEnv();
+  const jwtPayload = decodeJwt(authorizationHeader);
+
+  let response: Response | undefined;
+  let json: any;
+
+  try {
+    if (jwtPayload) {
+      const {
+        camToken,
+        username,
+        'https://hasura.io/jwt/claims': {
+          'x-hasura-allowed-roles': allowedRoles,
+          'x-hasura-default-role': defaultRole,
+        },
+        ...claims
+      } = jwtPayload;
+      if (AUTH_TYPE === 'cam') {
+        return {
+          message: 'Role change successful',
+          success: true,
+          token: generateJwt(username, camToken, defaultRole as string, allowedRoles as string[], claims, role),
+        };
+      } else {
+        return {
+          message: 'Authentication is disabled',
+          success: true,
+          token: generateJwt(username || 'unknown', '', defaultRole as string, allowedRoles as string[], {}, role),
+        };
+      }
+    } else {
+      return { message: 'No JWT payload found', success: false, token: null };
+    }
+  } catch (error) {
+    logger.error(error);
+    logger.error(response);
+    logger.error(json);
+    return {
+      message: 'An unexpected error occurred',
+      success: false,
+      token: null,
     };
   }
 }
