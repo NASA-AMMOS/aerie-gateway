@@ -1,3 +1,5 @@
+import type { Algorithm } from 'jsonwebtoken';
+
 export type Env = {
   ALLOWED_ROLES: string[];
   ALLOWED_ROLES_NO_AUTH: string[];
@@ -8,6 +10,8 @@ export type Env = {
   GQL_API_URL: string;
   GQL_API_WS_URL: string;
   HASURA_GRAPHQL_JWT_SECRET: string;
+  JWT_ALGORITHMS: Algorithm[];
+  JWT_EXPIRATION: string;
   LOG_FILE: string;
   LOG_LEVEL: string;
   PORT: string;
@@ -31,6 +35,8 @@ export const defaultEnv: Env = {
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_GRAPHQL_JWT_SECRET: '',
+  JWT_ALGORITHMS: ['HS256'],
+  JWT_EXPIRATION: '36h',
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
   PORT: '9000',
@@ -45,10 +51,10 @@ export const defaultEnv: Env = {
 };
 
 /**
- * Parse string typed environment variable into an array.
+ * Parse generically typed environment variable into an array.
  * Returns the default value if parse fails.
  */
-function parseArray(value: string | undefined, defaultValue: string[]): string[] {
+function parseArray<T = string>(value: string | undefined, defaultValue: T[]): T[] {
   if (typeof value === 'string') {
     try {
       const parsedValue = JSON.parse(value);
@@ -86,6 +92,8 @@ export function getEnv(): Env {
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
   const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
+  const JWT_ALGORITHMS = parseArray(env['JWT_ALGORITHMS'], defaultEnv.JWT_ALGORITHMS);
+  const JWT_EXPIRATION = env['JWT_EXPIRATION'] ?? defaultEnv.JWT_EXPIRATION;
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
@@ -108,6 +116,8 @@ export function getEnv(): Env {
     GQL_API_URL,
     GQL_API_WS_URL,
     HASURA_GRAPHQL_JWT_SECRET,
+    JWT_ALGORITHMS,
+    JWT_EXPIRATION,
     LOG_FILE,
     LOG_LEVEL,
     PORT,

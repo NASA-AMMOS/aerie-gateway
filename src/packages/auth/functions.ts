@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { Algorithm } from 'jsonwebtoken';
 import type { Response } from 'node-fetch';
 import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
@@ -79,9 +79,9 @@ export async function getUserRoles(
 export function decodeJwt(authorizationHeader: string | undefined): JwtPayload | null {
   try {
     const token = authorizationHeaderToToken(authorizationHeader);
-    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
+    const { HASURA_GRAPHQL_JWT_SECRET, JWT_ALGORITHMS } = getEnv();
     const { key }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
-    const options: jwt.VerifyOptions = { algorithms: ['HS256'] };
+    const options: jwt.VerifyOptions = { algorithms: JWT_ALGORITHMS };
     const jwtPayload = jwt.verify(token, key, options) as JwtPayload;
     return jwtPayload;
   } catch (e) {
@@ -99,9 +99,9 @@ export function generateJwt(
   activeRole?: string,
 ): string | null {
   try {
-    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
+    const { HASURA_GRAPHQL_JWT_SECRET, JWT_EXPIRATION } = getEnv();
     const { key, type }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
-    const options: jwt.SignOptions = { algorithm: type as 'HS256' | 'RS512', expiresIn: '36h' };
+    const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: JWT_EXPIRATION };
     const payload: JwtPayload = {
       activeRole: activeRole && allowedRoles.includes(activeRole) ? activeRole : defaultRole,
       camToken,
