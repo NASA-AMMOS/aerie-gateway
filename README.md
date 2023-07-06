@@ -6,7 +6,7 @@ The API gateway for [Aerie](https://github.com/NASA-AMMOS/aerie).
 
 ## Develop
 
-First make sure you have [Node.js LTS](https://nodejs.org) installed. Set the default `POSTGRES_USER` and `POSTGRES_PASSWORD` environment variables, then do:
+First make sure you have [Node.js LTS](https://nodejs.org) installed. Set the default `POSTGRES_USER` and `POSTGRES_PASSWORD` [environment variables](./docs/ENVIRONMENT.md), then do:
 
 ```sh
 npm install
