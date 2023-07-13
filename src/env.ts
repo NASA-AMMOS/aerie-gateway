@@ -27,11 +27,11 @@ export type Env = {
 
 export const defaultEnv: Env = {
   ALLOWED_ROLES: ['user', 'viewer'],
-  ALLOWED_ROLES_NO_AUTH: ['admin', 'user', 'viewer'],
+  ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
   AUTH_TYPE: 'cam',
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
   DEFAULT_ROLE: 'user',
-  DEFAULT_ROLE_NO_AUTH: 'admin',
+  DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_GRAPHQL_JWT_SECRET: '',
