@@ -95,7 +95,6 @@ export function generateJwt(
   camToken: string,
   defaultRole: string,
   allowedRoles: string[],
-  otherClaims: Record<string, string | string[]> = {},
   activeRole?: string,
 ): string | null {
   try {
@@ -109,7 +108,6 @@ export function generateJwt(
         'x-hasura-allowed-roles': allowedRoles,
         'x-hasura-default-role': defaultRole,
         'x-hasura-user-id': username,
-        ...otherClaims,
       },
       username,
     };
@@ -331,19 +329,18 @@ export async function changeRole(
           'x-hasura-allowed-roles': allowedRoles,
           'x-hasura-default-role': defaultRole,
         },
-        ...claims
       } = jwtPayload;
       if (AUTH_TYPE === 'cam') {
         return {
           message: 'Role change successful',
           success: true,
-          token: generateJwt(username, camToken, defaultRole as string, allowedRoles as string[], claims, role),
+          token: generateJwt(username, camToken, defaultRole as string, allowedRoles as string[], role),
         };
       } else {
         return {
           message: 'Authentication is disabled',
           success: true,
-          token: generateJwt(username || 'unknown', '', defaultRole as string, allowedRoles as string[], {}, role),
+          token: generateJwt(username || 'unknown', '', defaultRole as string, allowedRoles as string[], role),
         };
       }
     } else {
