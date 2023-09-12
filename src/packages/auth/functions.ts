@@ -7,6 +7,7 @@ import { DbMerlin } from '../db/db.js';
 import type {
   AuthResponse,
   JsonWebToken,
+  JwtDecode,
   JwtPayload,
   JwtSecret,
   LogoutResponse,
@@ -76,17 +77,26 @@ export async function getUserRoles(
   }
 }
 
-export function decodeJwt(authorizationHeader: string | undefined): JwtPayload | null {
+export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
   try {
     const token = authorizationHeaderToToken(authorizationHeader);
     const { HASURA_GRAPHQL_JWT_SECRET, JWT_ALGORITHMS } = getEnv();
     const { key }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
     const options: jwt.VerifyOptions = { algorithms: JWT_ALGORITHMS };
     const jwtPayload = jwt.verify(token, key, options) as JwtPayload;
-    return jwtPayload;
+    return { jwtErrorMessage: '', jwtPayload };
   } catch (e) {
     console.error(e);
-    return null;
+
+    if (e instanceof jwt.TokenExpiredError) {
+      const tokenExpiredError = e as jwt.TokenExpiredError;
+      const jwtErrorMessage = `Token expired on ${tokenExpiredError.expiredAt}`;
+      return { jwtErrorMessage, jwtPayload: null };
+    } else {
+      const error = e as Error;
+      const jwtErrorMessage = error?.message ?? 'Token could not be verified';
+      return { jwtErrorMessage, jwtPayload: null };
+    }
   }
 }
 
@@ -177,7 +187,7 @@ export async function logout(authorizationHeader: string | undefined): Promise<L
     let json: any;
 
     try {
-      const jwtPayload = decodeJwt(authorizationHeader);
+      const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
       if (jwtPayload) {
         const { camToken } = jwtPayload;
@@ -194,7 +204,7 @@ export async function logout(authorizationHeader: string | undefined): Promise<L
           return { message: 'Logout successful', success: true };
         }
       } else {
-        return { message: 'No JWT payload found', success: false };
+        return { message: jwtErrorMessage, success: false };
       }
     } catch (error) {
       logger.error(error);
@@ -215,7 +225,7 @@ export async function session(authorizationHeader: string | undefined): Promise<
     let json: any;
 
     try {
-      const jwtPayload = decodeJwt(authorizationHeader);
+      const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
       if (jwtPayload) {
         const { camToken } = jwtPayload;
@@ -236,7 +246,7 @@ export async function session(authorizationHeader: string | undefined): Promise<
           return { message, success: validated };
         }
       } else {
-        return { message: 'No JWT payload found', success: false };
+        return { message: jwtErrorMessage, success: false };
       }
     } catch (error) {
       logger.error(error);
@@ -257,7 +267,7 @@ export async function user(authorizationHeader: string | undefined): Promise<Use
     let json: any;
 
     try {
-      const jwtPayload = decodeJwt(authorizationHeader);
+      const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
       if (jwtPayload) {
         const { camToken } = jwtPayload;
@@ -284,7 +294,7 @@ export async function user(authorizationHeader: string | undefined): Promise<Use
           };
         }
       } else {
-        return { message: 'No JWT payload found', success: false, user: null };
+        return { message: jwtErrorMessage, success: false, user: null };
       }
     } catch (error) {
       logger.error(error);
@@ -315,7 +325,7 @@ export async function changeRole(
   role: string | undefined,
 ): Promise<AuthResponse> {
   const { AUTH_TYPE } = getEnv();
-  const jwtPayload = decodeJwt(authorizationHeader);
+  const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
   let response: Response | undefined;
   let json: any;
@@ -344,7 +354,7 @@ export async function changeRole(
         };
       }
     } else {
-      return { message: 'No JWT payload found', success: false, token: null };
+      return { message: jwtErrorMessage, success: false, token: null };
     }
   } catch (error) {
     logger.error(error);
