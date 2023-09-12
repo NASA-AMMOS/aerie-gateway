@@ -7,7 +7,6 @@ export type JwtDecode = {
 
 export type JwtPayload = {
   activeRole: string;
-  camToken: string;
   'https://hasura.io/jwt/claims': Record<string, string | string[]>;
   username: string;
 };
@@ -23,11 +22,6 @@ export type AuthResponse = {
   token: JsonWebToken | null;
 };
 
-export type LogoutResponse = {
-  message: string;
-  success: boolean;
-};
-
 export type SessionResponse = {
   message: string;
   success: boolean;
@@ -40,8 +34,5 @@ export type UserResponse = {
 };
 
 export type User = {
-  filteredGroupList: string[];
-  fullName: string;
-  groupList: string[];
-  userId: string;
+  id: string;
 };
