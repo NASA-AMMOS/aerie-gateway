@@ -4,16 +4,7 @@ import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { DbMerlin } from '../db/db.js';
-import type {
-  AuthResponse,
-  JsonWebToken,
-  JwtDecode,
-  JwtPayload,
-  JwtSecret,
-  LogoutResponse,
-  SessionResponse,
-  UserResponse,
-} from './types.js';
+import type { AuthResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse } from './types.js';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -102,7 +93,6 @@ export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
 
 export function generateJwt(
   username: string,
-  camToken: string,
   defaultRole: string,
   allowedRoles: string[],
   activeRole?: string,
@@ -113,7 +103,6 @@ export function generateJwt(
     const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: JWT_EXPIRATION };
     const payload: JwtPayload = {
       activeRole: activeRole && allowedRoles.includes(activeRole) ? activeRole : defaultRole,
-      camToken,
       'https://hasura.io/jwt/claims': {
         'x-hasura-allowed-roles': allowedRoles,
         'x-hasura-default-role': defaultRole,
@@ -151,12 +140,11 @@ export async function login(username: string, password: string): Promise<AuthRes
           token: null,
         };
       } else {
-        const { ssoCookieValue: camToken } = json;
         const { allowed_roles, default_role } = await getUserRoles(username, DEFAULT_ROLE, ALLOWED_ROLES);
         return {
           message: 'Login successful',
           success: true,
-          token: generateJwt(username, camToken, default_role, allowed_roles),
+          token: generateJwt(username, default_role, allowed_roles),
         };
       }
     } catch (error) {
@@ -174,149 +162,24 @@ export async function login(username: string, password: string): Promise<AuthRes
     return {
       message: 'Authentication is disabled',
       success: true,
-      token: generateJwt(username, '', default_role, allowed_roles),
+      token: generateJwt(username, default_role, allowed_roles),
     };
-  }
-}
-
-export async function logout(authorizationHeader: string | undefined): Promise<LogoutResponse> {
-  const { AUTH_TYPE, AUTH_URL } = getEnv();
-
-  if (AUTH_TYPE === 'cam') {
-    let response: Response | undefined;
-    let json: any;
-
-    try {
-      const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
-
-      if (jwtPayload) {
-        const { camToken } = jwtPayload;
-        const body = JSON.stringify({ ssoToken: camToken });
-        const url = `${AUTH_URL}/ssoToken?action=invalidate`;
-        response = await fetch(url, { body, method: 'DELETE' });
-        json = await response.json();
-        const { errorCode = false } = json;
-
-        if (errorCode) {
-          const { errorMessage } = json;
-          return { message: errorMessage, success: false };
-        } else {
-          return { message: 'Logout successful', success: true };
-        }
-      } else {
-        return { message: jwtErrorMessage, success: false };
-      }
-    } catch (error) {
-      logger.error(error);
-      logger.error(response);
-      logger.error(json);
-      return { message: 'An unexpected error occurred', success: false };
-    }
-  } else {
-    return { message: 'Authentication is disabled', success: true };
   }
 }
 
 export async function session(authorizationHeader: string | undefined): Promise<SessionResponse> {
-  const { AUTH_TYPE, AUTH_URL } = getEnv();
+  const { AUTH_TYPE } = getEnv();
 
   if (AUTH_TYPE === 'cam') {
-    let response: Response | undefined;
-    let json: any;
+    const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
-    try {
-      const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
-
-      if (jwtPayload) {
-        const { camToken } = jwtPayload;
-
-        const body = JSON.stringify({ ssoToken: camToken });
-        const url = `${AUTH_URL}/ssoToken?action=validate`;
-        response = await fetch(url, { body, method: 'POST' });
-        json = await response.json();
-        const { errorCode = false } = json;
-
-        if (errorCode) {
-          const { errorMessage } = json;
-          return { message: errorMessage, success: false };
-        } else {
-          const { validated } = json;
-          const valid = validated ? 'valid' : 'invalid';
-          const message = `Token is ${valid}`;
-          return { message, success: validated };
-        }
-      } else {
-        return { message: jwtErrorMessage, success: false };
-      }
-    } catch (error) {
-      logger.error(error);
-      logger.error(response);
-      logger.error(json);
-      return { message: 'An unexpected error occurred', success: false };
+    if (jwtPayload) {
+      return { message: 'Token is valid', success: true };
+    } else {
+      return { message: jwtErrorMessage, success: false };
     }
   } else {
     return { message: `Authentication is disabled`, success: true };
-  }
-}
-
-export async function user(authorizationHeader: string | undefined): Promise<UserResponse> {
-  const { AUTH_TYPE, AUTH_URL } = getEnv();
-
-  if (AUTH_TYPE === 'cam') {
-    let response: Response | undefined;
-    let json: any;
-
-    try {
-      const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
-
-      if (jwtPayload) {
-        const { camToken } = jwtPayload;
-        const body = JSON.stringify({ ssoToken: camToken });
-        const url = `${AUTH_URL}/userProfile`;
-        response = await fetch(url, { body, method: 'POST' });
-        json = await response.json();
-        const { errorCode = false } = json;
-
-        if (errorCode) {
-          const { errorMessage } = json;
-          return { message: errorMessage, success: false, user: null };
-        } else {
-          const { filteredGroupList, fullName, groupList, userId } = json;
-          return {
-            message: 'User found',
-            success: true,
-            user: {
-              filteredGroupList,
-              fullName,
-              groupList,
-              userId,
-            },
-          };
-        }
-      } else {
-        return { message: jwtErrorMessage, success: false, user: null };
-      }
-    } catch (error) {
-      logger.error(error);
-      logger.error(response);
-      logger.error(json);
-      return {
-        message: 'An unexpected error occurred',
-        success: false,
-        user: null,
-      };
-    }
-  } else {
-    return {
-      message: `Authentication is disabled`,
-      success: true,
-      user: {
-        filteredGroupList: [],
-        fullName: 'unknown',
-        groupList: [],
-        userId: 'unknown',
-      },
-    };
   }
 }
 
@@ -327,30 +190,27 @@ export async function changeRole(
   const { AUTH_TYPE } = getEnv();
   const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
-  let response: Response | undefined;
-  let json: any;
-
   try {
     if (jwtPayload) {
       const {
-        camToken,
         username,
         'https://hasura.io/jwt/claims': {
           'x-hasura-allowed-roles': allowedRoles,
           'x-hasura-default-role': defaultRole,
         },
       } = jwtPayload;
+
       if (AUTH_TYPE === 'cam') {
         return {
           message: 'Role change successful',
           success: true,
-          token: generateJwt(username, camToken, defaultRole as string, allowedRoles as string[], role),
+          token: generateJwt(username, defaultRole as string, allowedRoles as string[], role),
         };
       } else {
         return {
           message: 'Authentication is disabled',
           success: true,
-          token: generateJwt(username || 'unknown', '', defaultRole as string, allowedRoles as string[], role),
+          token: generateJwt(username, defaultRole as string, allowedRoles as string[], role),
         };
       }
     } else {
@@ -358,8 +218,6 @@ export async function changeRole(
     }
   } catch (error) {
     logger.error(error);
-    logger.error(response);
-    logger.error(json);
     return {
       message: 'An unexpected error occurred',
       success: false,

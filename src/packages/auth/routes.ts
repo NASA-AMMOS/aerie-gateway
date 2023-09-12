@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getEnv } from '../../env.js';
-import { changeRole, login, logout, session, user } from './functions.js';
+import { changeRole, login, session } from './functions.js';
 
 export default (app: Express) => {
   const { RATE_LIMITER_LOGIN_MAX } = getEnv();
@@ -49,27 +49,6 @@ export default (app: Express) => {
 
   /**
    * @swagger
-   * /auth/logout:
-   *   delete:
-   *     security:
-   *       - bearerAuth: []
-   *     produces:
-   *       - application/json
-   *     responses:
-   *       200:
-   *         description: LogoutResponse
-   *     summary: Logout to terminate a session
-   *     tags:
-   *       - Auth
-   */
-  app.delete('/auth/logout', async (req, res) => {
-    const authorizationHeader = req.get('authorization');
-    const response = await logout(authorizationHeader);
-    res.json(response);
-  });
-
-  /**
-   * @swagger
    * /auth/session:
    *   get:
    *     security:
@@ -86,27 +65,6 @@ export default (app: Express) => {
   app.get('/auth/session', async (req, res) => {
     const authorizationHeader = req.get('authorization');
     const response = await session(authorizationHeader);
-    res.json(response);
-  });
-
-  /**
-   * @swagger
-   * /auth/user:
-   *   get:
-   *     security:
-   *       - bearerAuth: []
-   *     produces:
-   *       - application/json
-   *     responses:
-   *       200:
-   *         description: UserResponse
-   *     summary: Returns a session's user information
-   *     tags:
-   *       - Auth
-   */
-  app.get('/auth/user', async (req, res) => {
-    const authorizationHeader = req.get('authorization');
-    const response = await user(authorizationHeader);
     res.json(response);
   });
 
