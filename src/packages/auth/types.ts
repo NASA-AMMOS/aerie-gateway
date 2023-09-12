@@ -1,5 +1,10 @@
 export type JsonWebToken = string;
 
+export type JwtDecode = {
+  jwtErrorMessage: string;
+  jwtPayload: JwtPayload | null;
+};
+
 export type JwtPayload = {
   activeRole: string;
   camToken: string;
