@@ -91,18 +91,12 @@ export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
   }
 }
 
-export function generateJwt(
-  username: string,
-  defaultRole: string,
-  allowedRoles: string[],
-  activeRole?: string,
-): string | null {
+export function generateJwt(username: string, defaultRole: string, allowedRoles: string[]): string | null {
   try {
     const { HASURA_GRAPHQL_JWT_SECRET, JWT_EXPIRATION } = getEnv();
     const { key, type }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
     const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: JWT_EXPIRATION };
     const payload: JwtPayload = {
-      activeRole: activeRole && allowedRoles.includes(activeRole) ? activeRole : defaultRole,
       'https://hasura.io/jwt/claims': {
         'x-hasura-allowed-roles': allowedRoles,
         'x-hasura-default-role': defaultRole,
@@ -180,48 +174,5 @@ export async function session(authorizationHeader: string | undefined): Promise<
     }
   } else {
     return { message: `Authentication is disabled`, success: true };
-  }
-}
-
-export async function changeRole(
-  authorizationHeader: string | undefined,
-  role: string | undefined,
-): Promise<AuthResponse> {
-  const { AUTH_TYPE } = getEnv();
-  const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
-
-  try {
-    if (jwtPayload) {
-      const {
-        username,
-        'https://hasura.io/jwt/claims': {
-          'x-hasura-allowed-roles': allowedRoles,
-          'x-hasura-default-role': defaultRole,
-        },
-      } = jwtPayload;
-
-      if (AUTH_TYPE === 'cam') {
-        return {
-          message: 'Role change successful',
-          success: true,
-          token: generateJwt(username, defaultRole as string, allowedRoles as string[], role),
-        };
-      } else {
-        return {
-          message: 'Authentication is disabled',
-          success: true,
-          token: generateJwt(username, defaultRole as string, allowedRoles as string[], role),
-        };
-      }
-    } else {
-      return { message: jwtErrorMessage, success: false, token: null };
-    }
-  } catch (error) {
-    logger.error(error);
-    return {
-      message: 'An unexpected error occurred',
-      success: false,
-      token: null,
-    };
   }
 }

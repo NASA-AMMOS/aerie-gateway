@@ -6,7 +6,6 @@ export type JwtDecode = {
 };
 
 export type JwtPayload = {
-  activeRole: string;
   'https://hasura.io/jwt/claims': Record<string, string | string[]>;
   username: string;
 };
