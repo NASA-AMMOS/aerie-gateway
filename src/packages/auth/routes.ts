@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getEnv } from '../../env.js';
-import { changeRole, login, session } from './functions.js';
+import { login, session } from './functions.js';
 
 export default (app: Express) => {
   const { RATE_LIMITER_LOGIN_MAX } = getEnv();
@@ -65,41 +65,6 @@ export default (app: Express) => {
   app.get('/auth/session', async (req, res) => {
     const authorizationHeader = req.get('authorization');
     const response = await session(authorizationHeader);
-    res.json(response);
-  });
-
-  /**
-   * @swagger
-   * /auth/changeRole:
-   *   post:
-   *     security:
-   *       - bearerAuth: []
-   *     consumes:
-   *       - application/json
-   *     produces:
-   *       - application/json
-   *     requestBody:
-   *       description: User's desired role
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               role:
-   *                 type: string
-   *     responses:
-   *       200:
-   *         description: AuthResponse
-   *     summary: Changes a user's role in the session
-   *     tags:
-   *       - Auth
-   */
-  app.post('/auth/changeRole', async (req, res) => {
-    const authorizationHeader = req.get('authorization');
-    const { body } = req;
-    const { role: requestedRole } = body;
-    const response = await changeRole(authorizationHeader, requestedRole);
     res.json(response);
   });
 };
