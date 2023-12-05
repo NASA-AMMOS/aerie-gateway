@@ -5,6 +5,8 @@ export type Env = {
   ALLOWED_ROLES_NO_AUTH: string[];
   AUTH_TYPE: string;
   AUTH_URL: string;
+  AUTH_UI_URL: string;
+  AUTH_SSO_TOKEN_NAME: string;
   DEFAULT_ROLE: string;
   DEFAULT_ROLE_NO_AUTH: string;
   GQL_API_URL: string;
@@ -30,6 +32,8 @@ export const defaultEnv: Env = {
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
   AUTH_TYPE: 'cam',
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
+  AUTH_UI_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui/',
+  AUTH_SSO_TOKEN_NAME: 'iPlanetDirectoryPro',
   DEFAULT_ROLE: 'user',
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
@@ -87,6 +91,8 @@ export function getEnv(): Env {
   const ALLOWED_ROLES_NO_AUTH = parseArray(env['ALLOWED_ROLES_NO_AUTH'], defaultEnv.ALLOWED_ROLES_NO_AUTH);
   const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
+  const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
+  const AUTH_SSO_TOKEN_NAME = env['AUTH_SSO_TOKEN_NAME'] ?? defaultEnv.AUTH_SSO_TOKEN_NAME;
   const DEFAULT_ROLE = env['DEFAULT_ROLE'] ?? defaultEnv.DEFAULT_ROLE;
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
@@ -111,6 +117,8 @@ export function getEnv(): Env {
     ALLOWED_ROLES_NO_AUTH,
     AUTH_TYPE,
     AUTH_URL,
+    AUTH_UI_URL,
+    AUTH_SSO_TOKEN_NAME,
     DEFAULT_ROLE,
     DEFAULT_ROLE_NO_AUTH,
     GQL_API_URL,

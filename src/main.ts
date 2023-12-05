@@ -9,6 +9,7 @@ import { DbMerlin } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHealthRoutes from './packages/health/health.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
+import cookieParser from 'cookie-parser';
 
 async function main(): Promise<void> {
   const logger = getLogger('main');
@@ -18,6 +19,7 @@ async function main(): Promise<void> {
   app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
   app.use(cors());
   app.use(express.json());
+  app.use(cookieParser());
 
   await DbMerlin.init();
 

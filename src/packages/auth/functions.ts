@@ -41,6 +41,7 @@ export async function getUserRoles(
     [username],
   );
 
+  // @ts-ignore
   if (rowCount > 0) {
     const [row] = rows;
     const { hasura_allowed_roles, hasura_default_role } = row;
@@ -110,6 +111,70 @@ export function generateJwt(username: string, defaultRole: string, allowedRoles:
     console.error(e);
     return null;
   }
+}
+
+export async function validateSSOToken(ssoToken: string): Promise<SessionResponse> {
+  const { AUTH_URL, AUTH_UI_URL } = getEnv();
+
+  const body = JSON.stringify({ ssoToken });
+  const url = `${AUTH_URL}/ssoToken?action=validate`;
+  const response = await fetch(url, { body, method: 'POST' });
+  const json = await response.json();
+
+  // @ts-ignore
+  const { validated = false, errorCode = false } = json;
+
+  if (errorCode) {
+    return {
+      message: AUTH_UI_URL,
+      success: false
+    };
+  }
+
+  return {
+    message: "",
+    success: validated
+  };
+}
+
+export async function loginSSO(ssoToken: string): Promise<AuthResponse> {
+  const { AUTH_TYPE, AUTH_URL, DEFAULT_ROLE, ALLOWED_ROLES, DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH } = getEnv();
+
+  try {
+    const body = JSON.stringify({ ssoToken });
+    const url = `${AUTH_URL}/userProfile`;
+    const response = await fetch(url, { body, method: 'POST' });
+    const json = await response.json();
+    // @ts-ignore
+    const { userId = "", errorCode = false } = json;
+
+    if (errorCode) {
+      // @ts-ignore
+      const { errorMessage } = json;
+      return {
+        message: errorMessage,
+        success: false,
+        token: null,
+      };
+    }
+
+    const { allowed_roles, default_role } = AUTH_TYPE === "none"
+      ? await getUserRoles(userId, DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH)
+      : await getUserRoles(userId, DEFAULT_ROLE, ALLOWED_ROLES);
+
+    return {
+      message: userId,
+      success: true,
+      token: generateJwt(userId, default_role, allowed_roles),
+    };
+  } catch (error) {
+    return {
+      message: 'An unexpected error occurred',
+      success: false,
+      token: null,
+    };
+  }
+
 }
 
 export async function login(username: string, password: string): Promise<AuthResponse> {

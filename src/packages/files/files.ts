@@ -76,6 +76,7 @@ export default (app: Express) => {
         [deleted_date, id],
       );
 
+      // @ts-ignore
       if (rowCount > 0) {
         logger.info(`DELETE /file: Marked file as deleted in the database: ${id}`);
       } else {
@@ -133,6 +134,7 @@ export default (app: Express) => {
     const [row] = rows;
     const id = row ? row.id : null;
 
+    // @ts-ignore
     if (rowCount > 0) {
       logger.info(`POST /file: Added file to the database: ${id}`);
     } else {
