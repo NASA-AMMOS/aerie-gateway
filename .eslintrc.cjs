@@ -1,4 +1,5 @@
 module.exports = {
+  ignorePatterns: ["static/*"],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
