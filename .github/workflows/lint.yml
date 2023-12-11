@@ -1,0 +1,27 @@
+name: lint
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.13.0'
+      - name: Install Dev Dependencies and Build
+        run: |
+          npm install
+          npm run build
+      - name: Lint
+        run: |
+          npm run lint
