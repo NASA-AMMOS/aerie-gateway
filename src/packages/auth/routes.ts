@@ -72,9 +72,9 @@ export default (app: Express) => {
     // TODO, switch based on AUTH_TYPE to call different SSO provider adapters
     const { token, success, message } = await loginSSO(ssoToken);
     const resp = {
-      token,
+      message,
       success,
-      message
+      token,
     };
     res.json(resp);
   });

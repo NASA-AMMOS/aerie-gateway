@@ -35,3 +35,14 @@ export type UserResponse = {
 export type User = {
   id: string;
 };
+
+export type CAMValidateResponse = {
+  validated?: boolean;
+  errorCode?: string;
+};
+
+export type CAMLoginResponse = {
+  userId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+};

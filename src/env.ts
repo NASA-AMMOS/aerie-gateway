@@ -3,10 +3,10 @@ import type { Algorithm } from 'jsonwebtoken';
 export type Env = {
   ALLOWED_ROLES: string[];
   ALLOWED_ROLES_NO_AUTH: string[];
-  AUTH_TYPE: string;
-  AUTH_URL: string;
-  AUTH_UI_URL: string;
   AUTH_SSO_TOKEN_NAME: string;
+  AUTH_TYPE: string;
+  AUTH_UI_URL: string;
+  AUTH_URL: string;
   DEFAULT_ROLE: string;
   DEFAULT_ROLE_NO_AUTH: string;
   GQL_API_URL: string;
@@ -30,10 +30,10 @@ export type Env = {
 export const defaultEnv: Env = {
   ALLOWED_ROLES: ['user', 'viewer'],
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
-  AUTH_TYPE: 'cam',
-  AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
-  AUTH_UI_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui/',
   AUTH_SSO_TOKEN_NAME: 'iPlanetDirectoryPro',
+  AUTH_TYPE: 'cam',
+  AUTH_UI_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui/',
+  AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
   DEFAULT_ROLE: 'user',
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
@@ -115,10 +115,10 @@ export function getEnv(): Env {
   return {
     ALLOWED_ROLES,
     ALLOWED_ROLES_NO_AUTH,
-    AUTH_TYPE,
-    AUTH_URL,
-    AUTH_UI_URL,
     AUTH_SSO_TOKEN_NAME,
+    AUTH_TYPE,
+    AUTH_UI_URL,
+    AUTH_URL,
     DEFAULT_ROLE,
     DEFAULT_ROLE_NO_AUTH,
     GQL_API_URL,

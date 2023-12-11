@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { DbMerlin } from '../db/db.js';
-import type { AuthResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse } from './types.js';
+import type { AuthResponse, CAMLoginResponse, CAMValidateResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse } from './types.js';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -41,8 +41,7 @@ export async function getUserRoles(
     [username],
   );
 
-  // @ts-ignore
-  if (rowCount > 0) {
+  if (rowCount && rowCount > 0) {
     const [row] = rows;
     const { hasura_allowed_roles, hasura_default_role } = row;
     return { allowed_roles: hasura_allowed_roles, default_role: hasura_default_role };
@@ -119,9 +118,8 @@ export async function validateSSOToken(ssoToken: string): Promise<SessionRespons
   const body = JSON.stringify({ ssoToken });
   const url = `${AUTH_URL}/ssoToken?action=validate`;
   const response = await fetch(url, { body, method: 'POST' });
-  const json = await response.json();
+  const json = await response.json() as CAMValidateResponse;
 
-  // @ts-ignore
   const { validated = false, errorCode = false } = json;
 
   if (errorCode) {
@@ -144,15 +142,13 @@ export async function loginSSO(ssoToken: string): Promise<AuthResponse> {
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/userProfile`;
     const response = await fetch(url, { body, method: 'POST' });
-    const json = await response.json();
-    // @ts-ignore
+    const json = await response.json() as CAMLoginResponse;
     const { userId = "", errorCode = false } = json;
 
     if (errorCode) {
-      // @ts-ignore
       const { errorMessage } = json;
       return {
-        message: errorMessage,
+        message: errorMessage ?? "error logging into CAM",
         success: false,
         token: null,
       };
