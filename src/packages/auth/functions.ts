@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { DbMerlin } from '../db/db.js';
-import type { AuthResponse, CAMLoginResponse, CAMValidateResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse } from './types.js';
+import type { AuthResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse } from './types.js';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -110,67 +110,6 @@ export function generateJwt(username: string, defaultRole: string, allowedRoles:
     console.error(e);
     return null;
   }
-}
-
-export async function validateSSOToken(ssoToken: string): Promise<SessionResponse> {
-  const { AUTH_URL, AUTH_UI_URL } = getEnv();
-
-  const body = JSON.stringify({ ssoToken });
-  const url = `${AUTH_URL}/ssoToken?action=validate`;
-  const response = await fetch(url, { body, method: 'POST' });
-  const json = await response.json() as CAMValidateResponse;
-
-  const { validated = false, errorCode = false } = json;
-
-  if (errorCode) {
-    return {
-      message: AUTH_UI_URL,
-      success: false
-    };
-  }
-
-  return {
-    message: "",
-    success: validated
-  };
-}
-
-export async function loginSSO(ssoToken: string): Promise<AuthResponse> {
-  const { AUTH_TYPE, AUTH_URL, DEFAULT_ROLE, ALLOWED_ROLES, DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH } = getEnv();
-
-  try {
-    const body = JSON.stringify({ ssoToken });
-    const url = `${AUTH_URL}/userProfile`;
-    const response = await fetch(url, { body, method: 'POST' });
-    const json = await response.json() as CAMLoginResponse;
-    const { userId = "", errorCode = false } = json;
-
-    if (errorCode) {
-      const { errorMessage } = json;
-      return {
-        message: errorMessage ?? "error logging into CAM",
-        success: false,
-        token: null,
-      };
-    }
-
-    const { allowed_roles, default_role } = AUTH_TYPE === "none"
-      ? await getUserRoles(userId, DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH)
-      : await getUserRoles(userId, DEFAULT_ROLE, ALLOWED_ROLES);
-
-    return {
-      message: userId,
-      success: true,
-      token: generateJwt(userId, default_role, allowed_roles),
-    };
-  } catch (error) {
-    return {
-      message: 'An unexpected error occurred',
-      success: false,
-      token: null,
-    };
-  }
-
 }
 
 export async function login(username: string, password: string): Promise<AuthResponse> {

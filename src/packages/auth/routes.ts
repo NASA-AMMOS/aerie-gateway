@@ -1,9 +1,10 @@
 import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getEnv } from '../../env.js';
-import { login, loginSSO, session, validateSSOToken } from './functions.js';
+import { login, session } from './functions.js';
+import { AuthAdapter } from './types.js';
 
-export default (app: Express) => {
+export default (app: Express, auth: AuthAdapter) => {
   const { RATE_LIMITER_LOGIN_MAX } = getEnv();
 
   const loginLimiter = rateLimit({
@@ -49,38 +50,6 @@ export default (app: Express) => {
 
   /**
    * @swagger
-   * /auth/loginSSO:
-   *   get:
-   *     parameters:
-   *       - in: cookie
-   *         name: AUTH_SSO_TOKEN_NAME
-   *         schema:
-   *           type: string
-   *         description: SSO token cookie that is named according to the gateway environment variable
-   *     produces:
-   *       - application/json
-   *     responses:
-   *       200:
-   *         description: AuthResponse
-   *     summary: Login to initiate a session
-   *     tags:
-   *       - Auth
-   */
-  app.get('/auth/loginSSO', loginLimiter, async (req, res) => {
-    const { AUTH_SSO_TOKEN_NAME } = getEnv();
-    const ssoToken = req.cookies[AUTH_SSO_TOKEN_NAME];
-    // TODO, switch based on AUTH_TYPE to call different SSO provider adapters
-    const { token, success, message } = await loginSSO(ssoToken);
-    const resp = {
-      message,
-      success,
-      token,
-    };
-    res.json(resp);
-  });
-
-  /**
-   * @swagger
    * /auth/validateSSO:
    *   get:
    *     parameters:
@@ -99,11 +68,39 @@ export default (app: Express) => {
    *       - Auth
    */
   app.get('/auth/validateSSO', loginLimiter, async (req, res) => {
-    const { AUTH_SSO_TOKEN_NAME } = getEnv();
-    const ssoToken = req.cookies[AUTH_SSO_TOKEN_NAME];
-    // TODO, switch based on AUTH_TYPE to call different SSO provider adapters
-    const response = await validateSSOToken(ssoToken);
-    res.json(response);
+    const { token, success, message, userId, redirectURL } = await auth.validate(req.cookies);
+    const resp = {
+      message,
+      success,
+      token,
+      userId,
+      redirectURL
+    };
+    res.json(resp);
+  });
+
+  /**
+   * @swagger
+   * /auth/logoutSSO:
+   *   get:
+   *     parameters:
+   *       - in: cookie
+   *         name: AUTH_SSO_TOKEN_NAME
+   *         schema:
+   *           type: string
+   *         description: SSO token cookie that is named according to the gateway environment variable
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       200:
+   *        description: boolean
+   *     summary: Invalidates a user's SSO token against external auth providers
+   *     tags:
+   *       - Auth
+   */
+  app.get('/auth/logoutSSO', async (req, res) => {
+    const success = await auth.logout(req.cookies);
+    res.json({ success });
   });
 
   /**

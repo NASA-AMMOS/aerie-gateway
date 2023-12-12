@@ -36,13 +36,15 @@ export type User = {
   id: string;
 };
 
-export type CAMValidateResponse = {
-  validated?: boolean;
-  errorCode?: string;
+export type ValidateResponse = {
+  success: boolean;
+  message: string;
+  userId?: string;
+  token?: string;
+  redirectURL?: string;
 };
 
-export type CAMLoginResponse = {
-  userId?: string;
-  errorCode?: string;
-  errorMessage?: string;
+export interface AuthAdapter {
+  validate(cookies: any): Promise<ValidateResponse>;
+  logout(cookies: any): Promise<boolean>;
 };
