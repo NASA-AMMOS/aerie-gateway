@@ -63,16 +63,16 @@ export const CAMAuthAdapter: AuthAdapter = {
       return {
         message: "valid SSO token",
         redirectURL: "",
+        success: validated,
         token: loginResp.token ?? undefined,
         userId: loginResp.message,
-        success: validated
       }
     }
 
     return {
       message: "invalid SSO token",
       redirectURL: AUTH_UI_URL,
-      success: false
+      success: false,
     }
   },
 

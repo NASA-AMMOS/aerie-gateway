@@ -71,10 +71,10 @@ export default (app: Express, auth: AuthAdapter) => {
     const { token, success, message, userId, redirectURL } = await auth.validate(req.cookies);
     const resp = {
       message,
+      redirectURL,
       success,
       token,
       userId,
-      redirectURL
     };
     res.json(resp);
   });

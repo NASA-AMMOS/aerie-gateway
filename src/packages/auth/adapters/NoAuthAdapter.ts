@@ -3,8 +3,8 @@ import { generateJwt, getUserRoles } from "../functions.js";
 import type { AuthAdapter, ValidateResponse } from "../types.js";
 
 export const NoAuthAdapter: AuthAdapter = {
-  logout: async (_cookies: any): Promise<boolean> => true,
-  validate: async (_cookies: any): Promise<ValidateResponse> => {
+  logout: async (): Promise<boolean> => true,
+  validate: async (): Promise<ValidateResponse> => {
 
     const { DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH } = getEnv();
 
