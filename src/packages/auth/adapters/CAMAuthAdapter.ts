@@ -49,7 +49,7 @@ export const CAMAuthAdapter: AuthAdapter = {
 
     const { validated = false, errorCode = false } = json;
 
-    if (errorCode) {
+    if (errorCode || !validated) {
       return {
         message: "invalid token, redirecting to login UI",
         redirectURL: AUTH_UI_URL,
@@ -59,20 +59,12 @@ export const CAMAuthAdapter: AuthAdapter = {
 
     const loginResp = await loginSSO(ssoToken);
 
-    if (validated) {
-      return {
-        message: "valid SSO token",
-        redirectURL: "",
-        success: validated,
-        token: loginResp.token ?? undefined,
-        userId: loginResp.message,
-      }
-    }
-
     return {
-      message: "invalid SSO token",
-      redirectURL: AUTH_UI_URL,
-      success: false,
+      message: "valid SSO token",
+      redirectURL: "",
+      success: validated,
+      token: loginResp.token ?? undefined,
+      userId: loginResp.message,
     }
   },
 
