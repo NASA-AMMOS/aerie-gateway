@@ -11,9 +11,9 @@ import initHealthRoutes from './packages/health/health.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import cookieParser from 'cookie-parser';
 import { AuthAdapter } from './packages/auth/types.js';
-import { NoAuthAdapter } from "./packages/auth/adapters/NoAuthAdapter.js";
-import { CAMAuthAdapter } from "./packages/auth/adapters/CAMAuthAdapter.js";
-import { DefaultAuthAdapter } from "./packages/auth/adapters/DefaultAuthAdapter.js";
+import { NoAuthAdapter } from './packages/auth/adapters/NoAuthAdapter.js';
+import { CAMAuthAdapter } from './packages/auth/adapters/CAMAuthAdapter.js';
+import { FakeAuthAdapter } from './packages/auth/adapters/FakeAuthAdapter.js';
 
 async function main(): Promise<void> {
   const logger = getLogger('main');
@@ -27,14 +27,16 @@ async function main(): Promise<void> {
 
   await DbMerlin.init();
 
-  let authHandler: AuthAdapter = DefaultAuthAdapter;
+  let authHandler: AuthAdapter = FakeAuthAdapter;
   switch (AUTH_TYPE) {
-    case "none":
+    case 'none':
       authHandler = NoAuthAdapter;
       break;
-    case "cam":
+    case 'cam':
       authHandler = CAMAuthAdapter;
       break;
+    default:
+      authHandler = FakeAuthAdapter;
   }
 
   initApiPlaygroundRoutes(app);

@@ -1,8 +1,9 @@
 import { getEnv } from '../../../env.js';
-import { generateJwt, getUserRoles } from "../functions.js";
-import type { AuthAdapter, AuthResponse, ValidateResponse } from "../types.js";
+import { generateJwt, getUserRoles } from '../functions.js';
+import fetch from 'node-fetch';
+import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
-import { Request } from "express";
+import { Request } from 'express';
 
 type CAMValidateResponse = {
   validated?: boolean;
@@ -23,7 +24,6 @@ type CAMLoginResponse = {
 };
 
 export const CAMAuthAdapter: AuthAdapter = {
-
   logout: async (req: Request): Promise<boolean> => {
     const { AUTH_SSO_TOKEN_NAME, AUTH_URL } = getEnv();
 
@@ -33,7 +33,7 @@ export const CAMAuthAdapter: AuthAdapter = {
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/ssoToken?action=invalidate`;
     const response = await fetch(url, { body, method: 'DELETE' });
-    const { invalidated = false } = await response.json() as CAMInvalidateResponse;
+    const { invalidated = false } = (await response.json()) as CAMInvalidateResponse;
 
     return invalidated;
   },
@@ -47,7 +47,7 @@ export const CAMAuthAdapter: AuthAdapter = {
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/ssoToken?action=validate`;
     const response = await fetch(url, { body, method: 'POST' });
-    const json = await response.json() as CAMValidateResponse;
+    const json = (await response.json()) as CAMValidateResponse;
 
     const { validated = false, errorCode = false } = json;
 
@@ -57,23 +57,22 @@ export const CAMAuthAdapter: AuthAdapter = {
 
     if (errorCode || !validated) {
       return {
-        message: "invalid token, redirecting to login UI",
+        message: 'invalid token, redirecting to login UI',
         redirectURL,
-        success: false
+        success: false,
       };
     }
 
     const loginResp = await loginSSO(ssoToken);
 
     return {
-      message: "valid SSO token",
-      redirectURL: "",
+      message: 'valid SSO token',
+      redirectURL: '',
       success: validated,
       token: loginResp.token ?? undefined,
       userId: loginResp.message,
-    }
+    };
   },
-
 };
 
 async function loginSSO(ssoToken: any): Promise<AuthResponse> {
@@ -83,13 +82,13 @@ async function loginSSO(ssoToken: any): Promise<AuthResponse> {
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/userProfile`;
     const response = await fetch(url, { body, method: 'POST' });
-    const json = await response.json() as CAMLoginResponse;
-    const { userId = "", errorCode = false } = json;
+    const json = (await response.json()) as CAMLoginResponse;
+    const { userId = '', errorCode = false } = json;
 
     if (errorCode) {
       const { errorMessage } = json;
       return {
-        message: errorMessage ?? "error logging into CAM",
+        message: errorMessage ?? 'error logging into CAM',
         success: false,
         token: null,
       };

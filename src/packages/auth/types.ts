@@ -1,4 +1,4 @@
-import { Request } from "express";
+import { Request } from 'express';
 
 export type JsonWebToken = string;
 
@@ -49,4 +49,4 @@ export type ValidateResponse = {
 export interface AuthAdapter {
   validate(req: Request): Promise<ValidateResponse>;
   logout(req: Request): Promise<boolean>;
-};
+}
