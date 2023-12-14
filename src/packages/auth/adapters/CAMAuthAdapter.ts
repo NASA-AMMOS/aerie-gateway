@@ -2,6 +2,8 @@ import { getEnv } from '../../../env.js';
 import { generateJwt, getUserRoles } from "../functions.js";
 import type { AuthAdapter, AuthResponse, ValidateResponse } from "../types.js";
 
+import { Request } from "express";
+
 type CAMValidateResponse = {
   validated?: boolean;
   errorCode?: string;
@@ -22,10 +24,10 @@ type CAMLoginResponse = {
 
 export const CAMAuthAdapter: AuthAdapter = {
 
-  logout: async (cookies: any): Promise<boolean> => {
-
+  logout: async (req: Request): Promise<boolean> => {
     const { AUTH_SSO_TOKEN_NAME, AUTH_URL } = getEnv();
 
+    const cookies = req.cookies;
     const ssoToken = cookies[AUTH_SSO_TOKEN_NAME];
 
     const body = JSON.stringify({ ssoToken });
@@ -36,10 +38,10 @@ export const CAMAuthAdapter: AuthAdapter = {
     return invalidated;
   },
 
-  validate: async (cookies: any): Promise<ValidateResponse> => {
-
+  validate: async (req: Request): Promise<ValidateResponse> => {
     const { AUTH_SSO_TOKEN_NAME, AUTH_URL, AUTH_UI_URL } = getEnv();
 
+    const cookies = req.cookies;
     const ssoToken = cookies[AUTH_SSO_TOKEN_NAME];
 
     const body = JSON.stringify({ ssoToken });
@@ -49,10 +51,14 @@ export const CAMAuthAdapter: AuthAdapter = {
 
     const { validated = false, errorCode = false } = json;
 
+    const redirectTo = req.headers.referrer;
+
+    const redirectURL = `${AUTH_UI_URL}/?goto=${redirectTo}`;
+
     if (errorCode || !validated) {
       return {
         message: "invalid token, redirecting to login UI",
-        redirectURL: AUTH_UI_URL,
+        redirectURL,
         success: false
       };
     }

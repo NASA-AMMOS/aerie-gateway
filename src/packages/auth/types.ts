@@ -1,3 +1,5 @@
+import { Request } from "express";
+
 export type JsonWebToken = string;
 
 export type JwtDecode = {
@@ -45,6 +47,6 @@ export type ValidateResponse = {
 };
 
 export interface AuthAdapter {
-  validate(cookies: any): Promise<ValidateResponse>;
-  logout(cookies: any): Promise<boolean>;
+  validate(req: Request): Promise<ValidateResponse>;
+  logout(req: Request): Promise<boolean>;
 };

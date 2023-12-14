@@ -68,7 +68,7 @@ export default (app: Express, auth: AuthAdapter) => {
    *       - Auth
    */
   app.get('/auth/validateSSO', loginLimiter, async (req, res) => {
-    const { token, success, message, userId, redirectURL } = await auth.validate(req.cookies);
+    const { token, success, message, userId, redirectURL } = await auth.validate(req);
     const resp = {
       message,
       redirectURL,
@@ -99,7 +99,7 @@ export default (app: Express, auth: AuthAdapter) => {
    *       - Auth
    */
   app.get('/auth/logoutSSO', async (req, res) => {
-    const success = await auth.logout(req.cookies);
+    const success = await auth.logout(req);
     res.json({ success });
   });
 
