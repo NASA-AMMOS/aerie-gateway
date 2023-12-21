@@ -6,7 +6,7 @@ The API gateway for [Aerie](https://github.com/NASA-AMMOS/aerie).
 
 ## Need Help?
 
-- Join us on the [JPL Slack Grid](https://join.slack.com/share/enQtNjM2MjkwODY0MTk5MS1lNWU5MTA1MzQyNjQ0ZTJjOGFlOTljYTA2YjIxNWMxZGIyZjBjNTlkOTEwNjZmMGYwY2Y0ZTM1OGM4ZGQ5NmQ1) (#nasa-ammos-aerie-users)
+- Join us on the [NASA-AMMOS Slack](https://join.slack.com/t/nasa-ammos/shared_invite/zt-1mlgmk5c2-MgqVSyKzVRUWrXy87FNqPw) (#aerie-users)
 - Contact aerie-support@googlegroups.com
 
 ## Develop
