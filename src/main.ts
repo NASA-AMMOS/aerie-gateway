@@ -13,7 +13,6 @@ import cookieParser from 'cookie-parser';
 import { AuthAdapter } from './packages/auth/types.js';
 import { NoAuthAdapter } from './packages/auth/adapters/NoAuthAdapter.js';
 import { CAMAuthAdapter } from './packages/auth/adapters/CAMAuthAdapter.js';
-import { FakeAuthAdapter } from './packages/auth/adapters/FakeAuthAdapter.js';
 
 async function main(): Promise<void> {
   const logger = getLogger('main');
@@ -27,7 +26,7 @@ async function main(): Promise<void> {
 
   await DbMerlin.init();
 
-  let authHandler: AuthAdapter = FakeAuthAdapter;
+  let authHandler: AuthAdapter;
   switch (AUTH_TYPE) {
     case 'none':
       authHandler = NoAuthAdapter;
@@ -36,7 +35,7 @@ async function main(): Promise<void> {
       authHandler = CAMAuthAdapter;
       break;
     default:
-      authHandler = FakeAuthAdapter;
+      throw new Error(`invalid auth type env var: ${AUTH_TYPE}`);
   }
 
   initApiPlaygroundRoutes(app);
