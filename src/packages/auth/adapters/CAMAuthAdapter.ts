@@ -28,7 +28,7 @@ export const CAMAuthAdapter: AuthAdapter = {
     const { AUTH_SSO_TOKEN_NAME, AUTH_URL } = getEnv();
 
     const cookies = req.cookies;
-    const ssoToken = cookies[AUTH_SSO_TOKEN_NAME];
+    const ssoToken = cookies[AUTH_SSO_TOKEN_NAME[0]];
 
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/ssoToken?action=invalidate`;
@@ -42,7 +42,7 @@ export const CAMAuthAdapter: AuthAdapter = {
     const { AUTH_SSO_TOKEN_NAME, AUTH_URL, AUTH_UI_URL } = getEnv();
 
     const cookies = req.cookies;
-    const ssoToken = cookies[AUTH_SSO_TOKEN_NAME];
+    const ssoToken = cookies[AUTH_SSO_TOKEN_NAME[0]];
 
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/ssoToken?action=validate`;

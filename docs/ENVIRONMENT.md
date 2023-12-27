@@ -9,7 +9,7 @@ This document provides detailed information about environment variables for the 
 | `AUTH_TYPE`                 | Mode of authentication. Set to `cam` to enable CAM authentication.                                   | `string` | none                                           |
 | `AUTH_URL`                  | URL of Auth provider's REST API. Used if the given `AUTH_TYPE` is not set to `none`.                 | `string` | https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api |
 | `AUTH_UI_URL`               | URL of Auth provider's login UI. Returned to the UI if SSO token is invalid, so user is redirected   | `string` | https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui  |
-| `AUTH_SSO_TOKEN_NAME`       | The name of the SSO token the Gateway should parse cookies for. Likely found in auth provider docs.  | `string` | iPlanetDirectoryPro                            |
+| `AUTH_SSO_TOKEN_NAME`       | The name of the SSO token the Gateway should parse cookies for. Likely found in auth provider docs.  | `array`  | ["iPlanetDirectoryPro"]                        |
 | `DEFAULT_ROLE`              | Default role when authentication is enabled.                                                         | `array`  | user                                           |
 | `DEFAULT_ROLE_NO_AUTH`      | Default role when authentication is disabled.                                                        | `array`  | aerie_admin                                    |
 | `GQL_API_URL`               | URL of GraphQL API for the GraphQL Playground.                                                       | `string` | http://localhost:8080/v1/graphql               |
