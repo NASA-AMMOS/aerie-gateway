@@ -151,20 +151,30 @@ export async function login(username: string, password: string): Promise<AuthRes
         token: null,
       };
     }
-  } else {
+  } else if (AUTH_TYPE === 'none') {
     const { allowed_roles, default_role } = await getUserRoles(username, DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH);
     return {
       message: 'Authentication is disabled',
       success: true,
       token: generateJwt(username, default_role, allowed_roles),
     };
+  } else {
+    const message = 'user + pass login is not supported by current Gateway AUTH_TYPE';
+    logger.error(message);
+    return {
+      message,
+      success: false,
+      token: '',
+    }
   }
 }
 
 export async function session(authorizationHeader: string | undefined): Promise<SessionResponse> {
   const { AUTH_TYPE } = getEnv();
 
-  if (AUTH_TYPE === 'cam') {
+  if (AUTH_TYPE === 'none') {
+    return { message: `Authentication is disabled`, success: true };
+  } else {
     const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
     if (jwtPayload) {
@@ -172,7 +182,5 @@ export async function session(authorizationHeader: string | undefined): Promise<
     } else {
       return { message: jwtErrorMessage, success: false };
     }
-  } else {
-    return { message: `Authentication is disabled`, success: true };
   }
 }
