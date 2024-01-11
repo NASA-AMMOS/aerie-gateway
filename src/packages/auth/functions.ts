@@ -170,17 +170,11 @@ export async function login(username: string, password: string): Promise<AuthRes
 }
 
 export async function session(authorizationHeader: string | undefined): Promise<SessionResponse> {
-  const { AUTH_TYPE } = getEnv();
+  const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
 
-  if (AUTH_TYPE === 'none') {
-    return { message: `Authentication is disabled`, success: true };
+  if (jwtPayload) {
+    return { message: 'Token is valid', success: true };
   } else {
-    const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
-
-    if (jwtPayload) {
-      return { message: 'Token is valid', success: true };
-    } else {
-      return { message: jwtErrorMessage, success: false };
-    }
+    return { message: jwtErrorMessage, success: false };
   }
 }
