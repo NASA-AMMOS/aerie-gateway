@@ -134,7 +134,7 @@ export async function login(username: string, password: string): Promise<AuthRes
           token: null,
         };
       } else {
-        const { allowed_roles, default_role } = await getUserRoles(username, DEFAULT_ROLE, ALLOWED_ROLES);
+        const { allowed_roles, default_role } = await getUserRoles(username, DEFAULT_ROLE[0], ALLOWED_ROLES);
         return {
           message: 'Login successful',
           success: true,

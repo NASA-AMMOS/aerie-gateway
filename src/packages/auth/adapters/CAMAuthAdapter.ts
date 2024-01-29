@@ -94,7 +94,7 @@ async function loginSSO(ssoToken: any): Promise<AuthResponse> {
       };
     }
 
-    const { allowed_roles, default_role } = await getUserRoles(userId, DEFAULT_ROLE, ALLOWED_ROLES);
+    const { allowed_roles, default_role } = await getUserRoles(userId, DEFAULT_ROLE[0], ALLOWED_ROLES);
 
     return {
       message: userId,

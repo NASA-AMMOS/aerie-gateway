@@ -7,7 +7,7 @@ export type Env = {
   AUTH_TYPE: string;
   AUTH_UI_URL: string;
   AUTH_URL: string;
-  DEFAULT_ROLE: string;
+  DEFAULT_ROLE: string[];
   DEFAULT_ROLE_NO_AUTH: string;
   GQL_API_URL: string;
   GQL_API_WS_URL: string;
@@ -34,7 +34,7 @@ export const defaultEnv: Env = {
   AUTH_TYPE: 'cam',
   AUTH_UI_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui/',
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
-  DEFAULT_ROLE: 'user',
+  DEFAULT_ROLE: ['user'],
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
@@ -63,7 +63,8 @@ function parseArray<T = string>(value: string | undefined, defaultValue: T[]): T
     try {
       const parsedValue = JSON.parse(value);
       return parsedValue;
-    } catch {
+    } catch (e) {
+      console.error(e);
       return defaultValue;
     }
   }
@@ -93,7 +94,7 @@ export function getEnv(): Env {
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
   const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
   const AUTH_SSO_TOKEN_NAME = parseArray(env['AUTH_SSO_TOKEN_NAME'], defaultEnv.AUTH_SSO_TOKEN_NAME);
-  const DEFAULT_ROLE = env['DEFAULT_ROLE'] ?? defaultEnv.DEFAULT_ROLE;
+  const DEFAULT_ROLE = parseArray(env['DEFAULT_ROLE'], defaultEnv.DEFAULT_ROLE);
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
