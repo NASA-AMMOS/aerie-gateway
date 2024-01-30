@@ -201,3 +201,16 @@ export function validateGroupRoleMappings() {
     }
   }
 }
+
+export function getDefaultRoleForAuthGroup(group: string): string {
+  const { DEFAULT_ROLE, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+  const roles = new Set(AUTH_GROUP_ROLE_MAPPINGS[group]);
+
+  for (const defaultRole of DEFAULT_ROLE) {
+    if (roles.has(defaultRole)) {
+      return defaultRole;
+    }
+  }
+
+  throw new Error(`Fatal error, not able to find default role for ${group} auth group`);
+}
