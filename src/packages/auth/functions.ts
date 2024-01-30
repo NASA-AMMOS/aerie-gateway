@@ -178,3 +178,26 @@ export async function session(authorizationHeader: string | undefined): Promise<
     return { message: jwtErrorMessage, success: false };
   }
 }
+
+export function validateGroupRoleMappings() {
+  const { DEFAULT_ROLE, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+
+  for (const group in AUTH_GROUP_ROLE_MAPPINGS) {
+    // compute intersection of this mapping's roles and DEFAULT_ROLE list
+    // the mapping is invalid if we don't have any overlap, since we can't compute
+    // a default role for this group -> role mapping
+    const roles = new Set(AUTH_GROUP_ROLE_MAPPINGS[group]);
+    const intersection = DEFAULT_ROLE.filter(e => roles.has(e));
+
+    if (intersection.length == 0) {
+      throw new Error(`
+        No roles within DEFAULT_ROLE list were found in the group to role mapping.
+            DEFAULT_ROLE: ${DEFAULT_ROLE}
+            Group: ${group}
+            Roles: ${[...roles]}
+        Roles must share at least one role with DEFAULT_ROLE, which becomes
+        the default role for any user logging in under this group
+      `);
+    }
+  }
+}
