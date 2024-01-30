@@ -4,7 +4,7 @@ import { GroupRoleMapping } from './packages/auth/types';
 export type Env = {
   ALLOWED_ROLES: string[];
   ALLOWED_ROLES_NO_AUTH: string[];
-  AUTH_GROUP_ROLE_MAPPINGS: GroupRoleMapping[];
+  AUTH_GROUP_ROLE_MAPPINGS: GroupRoleMapping;
   AUTH_SSO_TOKEN_NAME: string[];
   AUTH_TYPE: string;
   AUTH_UI_URL: string;
@@ -32,7 +32,7 @@ export type Env = {
 export const defaultEnv: Env = {
   ALLOWED_ROLES: ['user', 'viewer'],
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
-  AUTH_GROUP_ROLE_MAPPINGS: [],
+  AUTH_GROUP_ROLE_MAPPINGS: {},
   AUTH_SSO_TOKEN_NAME: ['iPlanetDirectoryPro'], // default CAM token name
   AUTH_TYPE: 'cam',
   AUTH_UI_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui/',
@@ -75,10 +75,9 @@ function parseArray<T = string>(value: string | undefined, defaultValue: T[]): T
 }
 
 /**
- * JSON.parse wrapper that parses JSON env var strings into typed object.
- * Returns the default value if parse fails.
+ * Parses a JSON env var string into a GroupRoleMapping object, which has dynamically named keys
  */
-function parseJson<T>(value: string | undefined, defaultValue: T): T {
+function parseGroupRoleMappings(value: string | undefined, defaultValue: GroupRoleMapping): GroupRoleMapping {
   if (typeof value === 'string') {
     try {
       return JSON.parse(value);
@@ -112,7 +111,7 @@ export function getEnv(): Env {
   const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
   const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
-  const AUTH_GROUP_ROLE_MAPPINGS = parseJson(env['AUTH_GROUP_ROLE_MAPPINGS'], defaultEnv.AUTH_GROUP_ROLE_MAPPINGS);
+  const AUTH_GROUP_ROLE_MAPPINGS = parseGroupRoleMappings(env['AUTH_GROUP_ROLE_MAPPINGS'], defaultEnv.AUTH_GROUP_ROLE_MAPPINGS);
   const AUTH_SSO_TOKEN_NAME = parseArray(env['AUTH_SSO_TOKEN_NAME'], defaultEnv.AUTH_SSO_TOKEN_NAME);
   const DEFAULT_ROLE = parseArray(env['DEFAULT_ROLE'], defaultEnv.DEFAULT_ROLE);
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;

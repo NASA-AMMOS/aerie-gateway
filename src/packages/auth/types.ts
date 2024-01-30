@@ -51,7 +51,4 @@ export interface AuthAdapter {
   logout(req: Request): Promise<boolean>;
 }
 
-export type GroupRoleMapping = {
-  group: string;
-  roles: string[];
-}
+export type GroupRoleMapping = {[key: string] : string[]}
