@@ -1,5 +1,5 @@
 import { getEnv } from '../../../env.js';
-import { generateJwt, getUserRoles } from '../functions.js';
+import { generateJwt, getUserRoles, mapGroupsToRoles } from '../functions.js';
 import fetch from 'node-fetch';
 import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
@@ -21,6 +21,7 @@ type CAMLoginResponse = {
   userId?: string;
   errorCode?: string;
   errorMessage?: string;
+  groupList?: string[];
 };
 
 export const CAMAuthAdapter: AuthAdapter = {
@@ -76,14 +77,14 @@ export const CAMAuthAdapter: AuthAdapter = {
 };
 
 async function loginSSO(ssoToken: any): Promise<AuthResponse> {
-  const { AUTH_URL, DEFAULT_ROLE, ALLOWED_ROLES } = getEnv();
+  const { AUTH_URL } = getEnv();
 
   try {
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/userProfile`;
     const response = await fetch(url, { body, method: 'POST' });
     const json = (await response.json()) as CAMLoginResponse;
-    const { userId = '', errorCode = false } = json;
+    const { userId = '', errorCode = false, groupList = [] } = json;
 
     if (errorCode) {
       const { errorMessage } = json;
@@ -94,7 +95,9 @@ async function loginSSO(ssoToken: any): Promise<AuthResponse> {
       };
     }
 
-    const { allowed_roles, default_role } = await getUserRoles(userId, DEFAULT_ROLE[0], ALLOWED_ROLES);
+    const { user_default_role, user_allowed_roles } = mapGroupsToRoles(groupList);
+
+    const { allowed_roles, default_role } = await getUserRoles(userId, user_default_role, user_allowed_roles);
 
     return {
       message: userId,
@@ -109,3 +112,4 @@ async function loginSSO(ssoToken: any): Promise<AuthResponse> {
     };
   }
 }
+
