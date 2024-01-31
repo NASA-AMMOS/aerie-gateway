@@ -202,9 +202,9 @@ export function validateGroupRoleMappings() {
   }
 }
 
-export function getDefaultRoleForAuthGroup(group: string): string {
-  const { DEFAULT_ROLE, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
-  const roles = new Set(AUTH_GROUP_ROLE_MAPPINGS[group]);
+export function getDefaultRoleForAllowedRoles(allowedRoles: string[]): string {
+  const { DEFAULT_ROLE } = getEnv();
+  const roles = new Set(allowedRoles);
 
   for (const defaultRole of DEFAULT_ROLE) {
     if (roles.has(defaultRole)) {
@@ -212,5 +212,43 @@ export function getDefaultRoleForAuthGroup(group: string): string {
     }
   }
 
-  throw new Error(`Fatal error, not able to find default role for ${group} auth group`);
+  throw new Error(`Fatal error, not able to find a matching default role within the following auth roles: ${allowedRoles}`);
+}
+
+export function mapGroupsToRoles(groupList: string[]): { user_default_role: string, user_allowed_roles: string[] } {
+  const { DEFAULT_ROLE, ALLOWED_ROLES, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+
+  let user_default_role = DEFAULT_ROLE[0];
+  let user_allowed_roles  = ALLOWED_ROLES;
+
+  // use auth group -> aerie role mappings if set
+  if (JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}') {
+    const mappedGroupMembership = getGroupsWithMappings(groupList);
+    if (mappedGroupMembership.length > 0) {
+      user_allowed_roles = getAllowedRolesForAuthGroup(mappedGroupMembership);
+      user_default_role = getDefaultRoleForAllowedRoles(user_allowed_roles);
+    }
+  }
+
+  return {
+    user_default_role,
+    user_allowed_roles
+  };
+}
+
+export function getGroupsWithMappings(authGroups: string[]): string[] {
+  const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+  const authGroupsSet = new Set(authGroups);
+
+  return Object
+    .keys(AUTH_GROUP_ROLE_MAPPINGS)
+    .filter(mappedGroup => authGroupsSet.has(mappedGroup));
+}
+
+export function getAllowedRolesForAuthGroup(groups: string[]): string[] {
+  const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+  const allAllowedRoles = groups
+    .map(g => AUTH_GROUP_ROLE_MAPPINGS[g]) // map auth group to aerie roles
+    .reduce((acc, elem) => acc.concat(elem), []); // concat all allowed roles for all member groups
+  return [...new Set(allAllowedRoles)]; // deduplicate
 }
