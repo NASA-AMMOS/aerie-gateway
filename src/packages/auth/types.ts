@@ -1,3 +1,5 @@
+import { Request } from 'express';
+
 export type JsonWebToken = string;
 
 export type JwtDecode = {
@@ -35,3 +37,16 @@ export type UserResponse = {
 export type User = {
   id: string;
 };
+
+export type ValidateResponse = {
+  success: boolean;
+  message: string;
+  userId?: string;
+  token?: string;
+  redirectURL?: string;
+};
+
+export interface AuthAdapter {
+  validate(req: Request): Promise<ValidateResponse>;
+  logout(req: Request): Promise<boolean>;
+}
