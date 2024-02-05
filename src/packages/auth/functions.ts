@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { DbMerlin } from '../db/db.js';
-import type { AuthResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse } from './types.js';
+import type { AuthResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse, UserRoles } from './types.js';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -215,24 +215,24 @@ export function getDefaultRoleForAllowedRoles(allowedRoles: string[]): string {
   throw new Error(`Fatal error, not able to find a matching default role within the following auth roles: ${allowedRoles}`);
 }
 
-export function mapGroupsToRoles(groupList: string[]): { user_default_role: string, user_allowed_roles: string[] } {
+export function mapGroupsToRoles(groupList: string[]): UserRoles {
   const { DEFAULT_ROLE, ALLOWED_ROLES, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
 
-  let user_default_role = DEFAULT_ROLE[0];
-  let user_allowed_roles  = ALLOWED_ROLES;
+  let default_role = DEFAULT_ROLE[0];
+  let allowed_roles  = ALLOWED_ROLES;
 
   // use auth group -> aerie role mappings if set
   if (JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}') {
     const mappedGroupMembership = getGroupsWithMappings(groupList);
     if (mappedGroupMembership.length > 0) {
-      user_allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
-      user_default_role = getDefaultRoleForAllowedRoles(user_allowed_roles);
+      allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
+      default_role = getDefaultRoleForAllowedRoles(allowed_roles);
     }
   }
 
   return {
-    user_default_role,
-    user_allowed_roles
+    default_role,
+    allowed_roles
   };
 }
 

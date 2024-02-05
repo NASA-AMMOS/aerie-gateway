@@ -52,3 +52,8 @@ export interface AuthAdapter {
 }
 
 export type GroupRoleMapping = {[key: string] : string[]}
+
+export type UserRoles = {
+  default_role: string;
+  allowed_roles: string[];
+}
