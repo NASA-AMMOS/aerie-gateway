@@ -231,8 +231,8 @@ export function mapGroupsToRoles(groupList: string[]): UserRoles {
   }
 
   return {
-    default_role,
-    allowed_roles
+    allowed_roles,
+    default_role
   };
 }
 
