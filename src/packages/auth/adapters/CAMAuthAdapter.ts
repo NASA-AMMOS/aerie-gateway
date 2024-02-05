@@ -95,14 +95,14 @@ async function loginSSO(ssoToken: any): Promise<AuthResponse> {
       };
     }
 
-    const { user_default_role, user_allowed_roles } = mapGroupsToRoles(groupList);
+    const { default_role, allowed_roles } = mapGroupsToRoles(groupList);
 
-    const { allowed_roles, default_role } = await getUserRoles(userId, user_default_role, user_allowed_roles);
+    const user_roles = await getUserRoles(userId, default_role, allowed_roles);
 
     return {
       message: userId,
       success: true,
-      token: generateJwt(userId, default_role, allowed_roles),
+      token: generateJwt(userId, user_roles.default_role, user_roles.allowed_roles),
     };
   } catch (error) {
     return {
