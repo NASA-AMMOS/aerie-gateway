@@ -225,7 +225,7 @@ export function mapGroupsToRoles(groupList: string[]): { user_default_role: stri
   if (JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}') {
     const mappedGroupMembership = getGroupsWithMappings(groupList);
     if (mappedGroupMembership.length > 0) {
-      user_allowed_roles = getAllowedRolesForAuthGroup(mappedGroupMembership);
+      user_allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
       user_default_role = getDefaultRoleForAllowedRoles(user_allowed_roles);
     }
   }
@@ -245,7 +245,7 @@ export function getGroupsWithMappings(authGroups: string[]): string[] {
     .filter(mappedGroup => authGroupsSet.has(mappedGroup));
 }
 
-export function getAllowedRolesForAuthGroup(groups: string[]): string[] {
+export function getAllAllowedRolesForAuthGroups(groups: string[]): string[] {
   const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
   const allAllowedRoles = groups
     .map(g => AUTH_GROUP_ROLE_MAPPINGS[g]) // map auth group to aerie roles
