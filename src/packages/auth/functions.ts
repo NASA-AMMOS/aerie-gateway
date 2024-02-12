@@ -44,10 +44,10 @@ export async function getUserRoles(
   // if auth group mappings exist, the auth provider and mappings
   // are the source of truth, so we need to upsert roles in the DB
   if (authGroupMappingsExist()) {
-    await db.query('begin;')
+    await db.query('begin;');
     await deleteUserAllowedRoles(username);
     await upsertUserRoles(username, default_role, allowed_roles);
-    await db.query('commit;')
+    await db.query('commit;');
     return { allowed_roles, default_role };
   }
 

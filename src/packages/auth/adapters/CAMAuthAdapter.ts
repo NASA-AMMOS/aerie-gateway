@@ -1,9 +1,5 @@
 import { getEnv } from '../../../env.js';
-import {
-  generateJwt,
-  getUserRoles,
-  mapGroupsToRoles,
-} from '../functions.js';
+import { generateJwt, getUserRoles, mapGroupsToRoles } from '../functions.js';
 import fetch from 'node-fetch';
 import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
