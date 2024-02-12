@@ -1,5 +1,9 @@
 import { getEnv } from '../../../env.js';
-import { generateJwt, getUserRoles, mapGroupsToRoles } from '../functions.js';
+import {
+  generateJwt,
+  getUserRoles,
+  mapGroupsToRoles,
+} from '../functions.js';
 import fetch from 'node-fetch';
 import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
@@ -99,12 +103,21 @@ export async function loginSSO(ssoToken: any): Promise<AuthResponse> {
 
     const user_roles = await getUserRoles(userId, default_role, allowed_roles);
 
+    if (user_roles.allowed_roles.length == 0) {
+      return {
+        message: `User ${userId} has no allowed roles`,
+        success: false,
+        token: null,
+      };
+    }
+
     return {
       message: userId,
       success: true,
       token: generateJwt(userId, user_roles.default_role, user_roles.allowed_roles),
     };
   } catch (error) {
+    console.error(error);
     return {
       message: 'An unexpected error occurred',
       success: false,
