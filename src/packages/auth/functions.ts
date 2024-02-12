@@ -41,6 +41,17 @@ export async function getUserRoles(
 ): Promise<{ allowed_roles: string[]; default_role: string }> {
   const db = DbMerlin.getDb();
 
+  // if auth group mappings exist, the auth provider and mappings
+  // are the source of truth, so we need to upsert roles in the DB
+  if (authGroupMappingsExist()) {
+    await db.query('begin;')
+    await deleteUserAllowedRoles(username);
+    await upsertUserRoles(username, default_role, allowed_roles);
+    await db.query('commit;')
+    return { allowed_roles, default_role };
+  }
+
+  // otherwise, the source of truth is the DB
   const { rows, rowCount } = await db.query(
     `
       select hasura_default_role, hasura_allowed_roles
@@ -55,25 +66,45 @@ export async function getUserRoles(
     const { hasura_allowed_roles, hasura_default_role } = row;
     return { allowed_roles: hasura_allowed_roles, default_role: hasura_default_role };
   } else {
+    // since user does not exist, this upsert is just an insert
+    upsertUserRoles(username, default_role, allowed_roles);
+    return { allowed_roles, default_role };
+  }
+}
+
+export async function deleteUserAllowedRoles(username: string) {
+  const db = DbMerlin.getDb();
+
+  await db.query(
+    `
+      delete from metadata.users_allowed_roles
+      where username = $1;
+    `,
+    [username],
+  );
+}
+
+export async function upsertUserRoles(username: string, default_role: string, allowed_roles: string[]) {
+  const db = DbMerlin.getDb();
+
+  await db.query(
+    `
+      insert into metadata.users (username, default_role)
+      values ($1, $2)
+      on conflict (username) do update
+      set default_role = excluded.default_role;
+    `,
+    [username, default_role],
+  );
+
+  for (const allowed_role of allowed_roles) {
     await db.query(
       `
-        insert into metadata.users (username, default_role)
-        values ($1, $2);
+        insert into metadata.users_allowed_roles (username, allowed_role)
+        values ($1, $2)
       `,
-      [username, default_role],
+      [username, allowed_role],
     );
-
-    for (const allowed_role of allowed_roles) {
-      await db.query(
-        `
-          insert into metadata.users_allowed_roles (username, allowed_role)
-          values ($1, $2);
-        `,
-        [username, allowed_role],
-      );
-    }
-
-    return { allowed_roles, default_role };
   }
 }
 
@@ -223,18 +254,17 @@ export function getDefaultRoleForAllowedRoles(allowedRoles: string[]): string {
 }
 
 export function mapGroupsToRoles(groupList: string[]): UserRoles {
-  const { DEFAULT_ROLE, ALLOWED_ROLES, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+  const { DEFAULT_ROLE, ALLOWED_ROLES } = getEnv();
 
   // use auth group -> aerie role mappings if set
-  if (JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}') {
+  if (authGroupMappingsExist()) {
     const mappedGroupMembership = getGroupsWithMappings(groupList);
-    if (mappedGroupMembership.length > 0) {
-      const allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
-      return {
-        allowed_roles,
-        default_role: getDefaultRoleForAllowedRoles(allowed_roles),
-      };
-    }
+    const allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
+
+    return {
+      allowed_roles,
+      default_role: getDefaultRoleForAllowedRoles(allowed_roles),
+    };
   }
 
   return {
@@ -256,4 +286,9 @@ export function getAllAllowedRolesForAuthGroups(groups: string[]): string[] {
     .map(g => AUTH_GROUP_ROLE_MAPPINGS[g]) // map auth group to aerie roles
     .reduce((acc, elem) => acc.concat(elem), []); // concat all allowed roles for all member groups
   return [...new Set(allAllowedRoles)]; // deduplicate
+}
+
+export function authGroupMappingsExist(): boolean {
+  const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
+  return JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}';
 }
