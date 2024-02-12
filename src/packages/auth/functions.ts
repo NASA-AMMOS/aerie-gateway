@@ -228,21 +228,21 @@ export function getDefaultRoleForAllowedRoles(allowedRoles: string[]): string {
 export function mapGroupsToRoles(groupList: string[]): UserRoles {
   const { DEFAULT_ROLE, ALLOWED_ROLES, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
 
-  let default_role = DEFAULT_ROLE[0];
-  let allowed_roles = ALLOWED_ROLES;
-
   // use auth group -> aerie role mappings if set
   if (JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}') {
     const mappedGroupMembership = getGroupsWithMappings(groupList);
     if (mappedGroupMembership.length > 0) {
-      allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
-      default_role = getDefaultRoleForAllowedRoles(allowed_roles);
+      const allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
+      return {
+        allowed_roles,
+        default_role: getDefaultRoleForAllowedRoles(allowed_roles),
+      };
     }
   }
 
   return {
-    allowed_roles,
-    default_role,
+    allowed_roles: ALLOWED_ROLES,
+    default_role: DEFAULT_ROLE[0],
   };
 }
 
