@@ -13,6 +13,7 @@ import type {
   SessionResponse,
   UserRoles,
 } from './types.js';
+import { loginSSO } from './adapters/CAMAuthAdapter.js';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -121,7 +122,7 @@ export function generateJwt(username: string, defaultRole: string, allowedRoles:
 }
 
 export async function login(username: string, password: string): Promise<AuthResponse> {
-  const { AUTH_TYPE, AUTH_URL, ALLOWED_ROLES, ALLOWED_ROLES_NO_AUTH, DEFAULT_ROLE, DEFAULT_ROLE_NO_AUTH } = getEnv();
+  const { AUTH_TYPE, AUTH_URL, ALLOWED_ROLES_NO_AUTH, DEFAULT_ROLE_NO_AUTH } = getEnv();
 
   if (AUTH_TYPE === 'cam') {
     let response: Response | undefined;
@@ -142,12 +143,8 @@ export async function login(username: string, password: string): Promise<AuthRes
           token: null,
         };
       } else {
-        const { allowed_roles, default_role } = await getUserRoles(username, DEFAULT_ROLE[0], ALLOWED_ROLES);
-        return {
-          message: 'Login successful',
-          success: true,
-          token: generateJwt(username, default_role, allowed_roles),
-        };
+        const { ssoCookieValue } = json;
+        return loginSSO(ssoCookieValue);
       }
     } catch (error) {
       logger.error(error);

@@ -76,7 +76,7 @@ export const CAMAuthAdapter: AuthAdapter = {
   },
 };
 
-async function loginSSO(ssoToken: any): Promise<AuthResponse> {
+export async function loginSSO(ssoToken: any): Promise<AuthResponse> {
   const { AUTH_URL } = getEnv();
 
   try {
