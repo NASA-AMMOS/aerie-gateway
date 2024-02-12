@@ -111,7 +111,10 @@ export function getEnv(): Env {
   const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
   const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
-  const AUTH_GROUP_ROLE_MAPPINGS = parseGroupRoleMappings(env['AUTH_GROUP_ROLE_MAPPINGS'], defaultEnv.AUTH_GROUP_ROLE_MAPPINGS);
+  const AUTH_GROUP_ROLE_MAPPINGS = parseGroupRoleMappings(
+    env['AUTH_GROUP_ROLE_MAPPINGS'],
+    defaultEnv.AUTH_GROUP_ROLE_MAPPINGS,
+  );
   const AUTH_SSO_TOKEN_NAME = parseArray(env['AUTH_SSO_TOKEN_NAME'], defaultEnv.AUTH_SSO_TOKEN_NAME);
   const DEFAULT_ROLE = parseArray(env['DEFAULT_ROLE'], defaultEnv.DEFAULT_ROLE);
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;

@@ -4,7 +4,15 @@ import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { DbMerlin } from '../db/db.js';
-import type { AuthResponse, JsonWebToken, JwtDecode, JwtPayload, JwtSecret, SessionResponse, UserRoles } from './types.js';
+import type {
+  AuthResponse,
+  JsonWebToken,
+  JwtDecode,
+  JwtPayload,
+  JwtSecret,
+  SessionResponse,
+  UserRoles,
+} from './types.js';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -165,7 +173,7 @@ export async function login(username: string, password: string): Promise<AuthRes
       message,
       success: false,
       token: '',
-    }
+    };
   }
 }
 
@@ -212,14 +220,16 @@ export function getDefaultRoleForAllowedRoles(allowedRoles: string[]): string {
     }
   }
 
-  throw new Error(`Fatal error, not able to find a matching default role within the following auth roles: ${allowedRoles}`);
+  throw new Error(
+    `Fatal error, not able to find a matching default role within the following auth roles: ${allowedRoles}`,
+  );
 }
 
 export function mapGroupsToRoles(groupList: string[]): UserRoles {
   const { DEFAULT_ROLE, ALLOWED_ROLES, AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
 
   let default_role = DEFAULT_ROLE[0];
-  let allowed_roles  = ALLOWED_ROLES;
+  let allowed_roles = ALLOWED_ROLES;
 
   // use auth group -> aerie role mappings if set
   if (JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}') {
@@ -232,7 +242,7 @@ export function mapGroupsToRoles(groupList: string[]): UserRoles {
 
   return {
     allowed_roles,
-    default_role
+    default_role,
   };
 }
 
@@ -240,9 +250,7 @@ export function getGroupsWithMappings(authGroups: string[]): string[] {
   const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
   const authGroupsSet = new Set(authGroups);
 
-  return Object
-    .keys(AUTH_GROUP_ROLE_MAPPINGS)
-    .filter(mappedGroup => authGroupsSet.has(mappedGroup));
+  return Object.keys(AUTH_GROUP_ROLE_MAPPINGS).filter(mappedGroup => authGroupsSet.has(mappedGroup));
 }
 
 export function getAllAllowedRolesForAuthGroups(groups: string[]): string[] {

@@ -112,4 +112,3 @@ async function loginSSO(ssoToken: any): Promise<AuthResponse> {
     };
   }
 }
-
