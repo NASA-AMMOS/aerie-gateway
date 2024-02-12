@@ -273,6 +273,10 @@ export function mapGroupsToRoles(groupList: string[]): UserRoles {
   };
 }
 
+/**
+ * Filters auth group mappings to only those with a group -> role mapping.
+ * I.e. intersection between `AUTH_GROUP_ROLE_MAPPINGS` and param `authGroups` list
+ **/
 export function getGroupsWithMappings(authGroups: string[]): string[] {
   const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
   const authGroupsSet = new Set(authGroups);
