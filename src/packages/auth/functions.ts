@@ -290,3 +290,24 @@ export function authGroupMappingsExist(): boolean {
   const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
   return JSON.stringify(AUTH_GROUP_ROLE_MAPPINGS) !== '{}';
 }
+
+export function parseTokenFromCookie(userCookie: string | undefined): JsonWebToken | undefined {
+  if (!userCookie) return;
+
+  const userBuffer = Buffer.from(userCookie ?? '', 'base64');
+  const userStr = userBuffer.toString('utf-8');
+
+  try {
+    const { token } = JSON.parse(userStr);
+    return token;
+  } catch {
+    return;
+  }
+}
+
+export async function cookieIsValid(userCookie: string | undefined): Promise<boolean> {
+  const userToken = parseTokenFromCookie(userCookie);
+  const tokenHeader = `Bearer ${userToken}`;
+  const { success } = await session(tokenHeader);
+  return success;
+}

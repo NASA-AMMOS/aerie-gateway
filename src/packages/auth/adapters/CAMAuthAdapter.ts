@@ -1,5 +1,12 @@
 import { getEnv } from '../../../env.js';
-import { authGroupMappingsExist, generateJwt, getUserRoles, mapGroupsToRoles, syncRolesToDB } from '../functions.js';
+import {
+  authGroupMappingsExist,
+  cookieIsValid,
+  generateJwt,
+  getUserRoles,
+  mapGroupsToRoles,
+  syncRolesToDB,
+} from '../functions.js';
 import fetch from 'node-fetch';
 import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
@@ -103,7 +110,8 @@ export async function loginSSO(ssoToken: string, userCookie?: string): Promise<A
     // We only do this when the user is logging in for the first time
     // in a session (user cookie DNE) for DB performance reasons,
     // and to avoid roles changing underneath the user during a session
-    if (!userCookie && authGroupMappingsExist()) {
+    const isNewUserSession = !(userCookie && cookieIsValid(userCookie));
+    if (isNewUserSession && authGroupMappingsExist()) {
       await syncRolesToDB(userId, default_role, allowed_roles);
     }
 
