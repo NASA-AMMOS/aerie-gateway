@@ -41,17 +41,6 @@ export async function getUserRoles(
 ): Promise<{ allowed_roles: string[]; default_role: string }> {
   const db = DbMerlin.getDb();
 
-  // if auth group mappings exist, the auth provider and mappings
-  // are the source of truth, so we need to upsert roles in the DB
-  if (authGroupMappingsExist()) {
-    await db.query('begin;');
-    await deleteUserAllowedRoles(username);
-    await upsertUserRoles(username, default_role, allowed_roles);
-    await db.query('commit;');
-    return { allowed_roles, default_role };
-  }
-
-  // otherwise, the source of truth is the DB
   const { rows, rowCount } = await db.query(
     `
       select hasura_default_role, hasura_allowed_roles
@@ -106,6 +95,11 @@ export async function upsertUserRoles(username: string, default_role: string, al
       [username, allowed_role],
     );
   }
+}
+
+export async function syncRolesToDB(username: string, default_role: string, allowed_roles: string[]) {
+  await deleteUserAllowedRoles(username);
+  await upsertUserRoles(username, default_role, allowed_roles);
 }
 
 export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {

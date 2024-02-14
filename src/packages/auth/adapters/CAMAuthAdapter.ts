@@ -1,5 +1,5 @@
 import { getEnv } from '../../../env.js';
-import { generateJwt, getUserRoles, mapGroupsToRoles } from '../functions.js';
+import { authGroupMappingsExist, generateJwt, getUserRoles, mapGroupsToRoles, syncRolesToDB } from '../functions.js';
 import fetch from 'node-fetch';
 import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
@@ -44,6 +44,7 @@ export const CAMAuthAdapter: AuthAdapter = {
 
     const cookies = req.cookies;
     const ssoToken = cookies[AUTH_SSO_TOKEN_NAME[0]];
+    const userCookie = cookies['user'];
 
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/ssoToken?action=validate`;
@@ -64,7 +65,7 @@ export const CAMAuthAdapter: AuthAdapter = {
       };
     }
 
-    const loginResp = await loginSSO(ssoToken);
+    const loginResp = await loginSSO(ssoToken, userCookie);
 
     return {
       message: 'valid SSO token',
@@ -76,7 +77,7 @@ export const CAMAuthAdapter: AuthAdapter = {
   },
 };
 
-export async function loginSSO(ssoToken: any): Promise<AuthResponse> {
+export async function loginSSO(ssoToken: string, userCookie?: string): Promise<AuthResponse> {
   const { AUTH_URL } = getEnv();
 
   try {
@@ -96,6 +97,15 @@ export async function loginSSO(ssoToken: any): Promise<AuthResponse> {
     }
 
     const { default_role, allowed_roles } = mapGroupsToRoles(groupList);
+
+    // if auth group mappings exist, the auth provider and mappings
+    // are the source of truth, so we need to upsert roles in the DB.
+    // We only do this when the user is logging in for the first time
+    // in a session (user cookie DNE) for DB performance reasons,
+    // and to avoid roles changing underneath the user during a session
+    if (!userCookie && authGroupMappingsExist()) {
+      await syncRolesToDB(userId, default_role, allowed_roles);
+    }
 
     const user_roles = await getUserRoles(userId, default_role, allowed_roles);
 
