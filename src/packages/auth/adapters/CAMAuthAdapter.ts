@@ -1,12 +1,5 @@
 import { getEnv } from '../../../env.js';
-import {
-  authGroupMappingsExist,
-  cookieIsValid,
-  generateJwt,
-  getUserRoles,
-  mapGroupsToRoles,
-  syncRolesToDB,
-} from '../functions.js';
+import { authGroupMappingsExist, generateJwt, getUserRoles, mapGroupsToRoles, syncRolesToDB } from '../functions.js';
 import fetch from 'node-fetch';
 import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
 
@@ -51,7 +44,6 @@ export const CAMAuthAdapter: AuthAdapter = {
 
     const cookies = req.cookies;
     const ssoToken = cookies[AUTH_SSO_TOKEN_NAME[0]];
-    const userCookie = cookies['user'];
 
     const body = JSON.stringify({ ssoToken });
     const url = `${AUTH_URL}/ssoToken?action=validate`;
@@ -72,7 +64,7 @@ export const CAMAuthAdapter: AuthAdapter = {
       };
     }
 
-    const loginResp = await loginSSO(ssoToken, userCookie);
+    const loginResp = await loginSSO(ssoToken);
 
     return {
       message: 'valid SSO token',
@@ -84,7 +76,7 @@ export const CAMAuthAdapter: AuthAdapter = {
   },
 };
 
-export async function loginSSO(ssoToken: string, userCookie?: string): Promise<AuthResponse> {
+export async function loginSSO(ssoToken: string): Promise<AuthResponse> {
   const { AUTH_URL } = getEnv();
 
   try {
@@ -105,19 +97,29 @@ export async function loginSSO(ssoToken: string, userCookie?: string): Promise<A
 
     const { default_role, allowed_roles } = mapGroupsToRoles(groupList);
 
-    // if auth group mappings exist, the auth provider and mappings
-    // are the source of truth, so we need to upsert roles in the DB.
-    // We only do this when the user is logging in for the first time
-    // in a session (user cookie DNE) for DB performance reasons,
-    // and to avoid roles changing underneath the user during a session
-    const isNewUserSession = !(userCookie && cookieIsValid(userCookie));
-    if (isNewUserSession && authGroupMappingsExist()) {
-      await syncRolesToDB(userId, default_role, allowed_roles);
+    // if mappings exist, we treat them as the source of truth
+    if (authGroupMappingsExist()) {
+      // get existing allowed_roles from DB
+      const existing_roles = await getUserRoles(userId, default_role, allowed_roles);
+
+      // calculate if allowed_roles in DB match our freshly calculated mapping
+      // these could differ if either AUTH_GROUP_ROLE_MAPPINGS changes, or if
+      // user's membership in external auth groups changes.
+      const existing_set = new Set(existing_roles.allowed_roles);
+      const mapped_roles_match_db =
+        allowed_roles.length == existing_roles.allowed_roles.length && allowed_roles.every(e => existing_set.has(e));
+
+      // if they are different, upsert roles from mapping (source of truth)
+      // we could do this every single time, but by only upserting when
+      // they actually differ, we save on DB trips
+      if (!mapped_roles_match_db) {
+        await syncRolesToDB(userId, default_role, allowed_roles);
+      }
     }
 
     const user_roles = await getUserRoles(userId, default_role, allowed_roles);
 
-    if (user_roles.allowed_roles.length == 0) {
+    if (user_roles.allowed_roles.length === 0) {
       return {
         message: `User ${userId} has no allowed roles`,
         success: false,
