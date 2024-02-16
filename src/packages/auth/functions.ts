@@ -98,8 +98,12 @@ export async function upsertUserRoles(username: string, default_role: string, al
 }
 
 export async function syncRolesToDB(username: string, default_role: string, allowed_roles: string[]) {
+  const db = DbMerlin.getDb();
+
+  await db.query('begin;');
   await deleteUserAllowedRoles(username);
   await upsertUserRoles(username, default_role, allowed_roles);
+  await db.query('commit;');
 }
 
 export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
