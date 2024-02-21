@@ -50,3 +50,10 @@ export interface AuthAdapter {
   validate(req: Request): Promise<ValidateResponse>;
   logout(req: Request): Promise<boolean>;
 }
+
+export type GroupRoleMapping = { [key: string]: string[] };
+
+export type UserRoles = {
+  default_role: string;
+  allowed_roles: string[];
+};

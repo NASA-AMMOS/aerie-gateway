@@ -1,13 +1,15 @@
 import type { Algorithm } from 'jsonwebtoken';
+import { GroupRoleMapping } from './packages/auth/types';
 
 export type Env = {
   ALLOWED_ROLES: string[];
   ALLOWED_ROLES_NO_AUTH: string[];
+  AUTH_GROUP_ROLE_MAPPINGS: GroupRoleMapping;
   AUTH_SSO_TOKEN_NAME: string[];
   AUTH_TYPE: string;
   AUTH_UI_URL: string;
   AUTH_URL: string;
-  DEFAULT_ROLE: string;
+  DEFAULT_ROLE: string[];
   DEFAULT_ROLE_NO_AUTH: string;
   GQL_API_URL: string;
   GQL_API_WS_URL: string;
@@ -30,11 +32,12 @@ export type Env = {
 export const defaultEnv: Env = {
   ALLOWED_ROLES: ['user', 'viewer'],
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
+  AUTH_GROUP_ROLE_MAPPINGS: {},
   AUTH_SSO_TOKEN_NAME: ['iPlanetDirectoryPro'], // default CAM token name
   AUTH_TYPE: 'cam',
   AUTH_UI_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui/',
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
-  DEFAULT_ROLE: 'user',
+  DEFAULT_ROLE: ['user'],
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
@@ -63,11 +66,28 @@ function parseArray<T = string>(value: string | undefined, defaultValue: T[]): T
     try {
       const parsedValue = JSON.parse(value);
       return parsedValue;
-    } catch {
+    } catch (e) {
+      console.error(e);
       return defaultValue;
     }
   }
   return defaultValue;
+}
+
+/**
+ * Parses a JSON env var string into a GroupRoleMapping object, which has dynamically named keys
+ */
+function parseGroupRoleMappings(value: string | undefined): GroupRoleMapping {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (e) {
+      console.error(e);
+      throw new Error('Fatal error parsing AUTH_GROUP_ROLE_MAPPINGS JSON, exiting...');
+    }
+  }
+  // if env var isn't set, return empty object
+  return defaultEnv.AUTH_GROUP_ROLE_MAPPINGS;
 }
 
 /**
@@ -92,8 +112,9 @@ export function getEnv(): Env {
   const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
   const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
   const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
+  const AUTH_GROUP_ROLE_MAPPINGS = parseGroupRoleMappings(env['AUTH_GROUP_ROLE_MAPPINGS']);
   const AUTH_SSO_TOKEN_NAME = parseArray(env['AUTH_SSO_TOKEN_NAME'], defaultEnv.AUTH_SSO_TOKEN_NAME);
-  const DEFAULT_ROLE = env['DEFAULT_ROLE'] ?? defaultEnv.DEFAULT_ROLE;
+  const DEFAULT_ROLE = parseArray(env['DEFAULT_ROLE'], defaultEnv.DEFAULT_ROLE);
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
@@ -115,6 +136,7 @@ export function getEnv(): Env {
   return {
     ALLOWED_ROLES,
     ALLOWED_ROLES_NO_AUTH,
+    AUTH_GROUP_ROLE_MAPPINGS,
     AUTH_SSO_TOKEN_NAME,
     AUTH_TYPE,
     AUTH_UI_URL,

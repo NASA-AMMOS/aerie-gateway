@@ -12,9 +12,11 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "rm -rf dist",
-    "format": "prettier --write ./src",
+    "format": "prettier --write ./src ./test",
+    "format:check": "prettier --check ./src ./test",
     "lint": "eslint ./src --ext .js,.ts",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "altair-express-middleware": "^5.2.11",
@@ -46,6 +48,7 @@
     "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.8.0",
     "prettier": "^3.0.0",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "vitest": "^1.2.2"
   }
 }
