@@ -1,4 +1,4 @@
-name: lint
+name: Lint
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - develop
 
 jobs:
-  list:
+  lint:
     runs-on: ubuntu-latest
     permissions:
       contents: read
