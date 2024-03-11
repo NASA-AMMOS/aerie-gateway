@@ -19,17 +19,18 @@ export type Env = {
   LOG_FILE: string;
   LOG_LEVEL: string;
   PORT: string;
-  POSTGRES_AERIE_MERLIN_DB: string;
-  POSTGRES_HOST: string;
-  POSTGRES_PASSWORD: string;
-  POSTGRES_PORT: string;
-  POSTGRES_USER: string;
+  AERIE_DB_HOST: string;
+  AERIE_DB_PORT: string;
+  GATEWAY_DB_USER: string;
+  GATEWAY_DB_PASSWORD: string;
   RATE_LIMITER_FILES_MAX: number;
   RATE_LIMITER_LOGIN_MAX: number;
   VERSION: string;
 };
 
 export const defaultEnv: Env = {
+  AERIE_DB_HOST: 'localhost',
+  AERIE_DB_PORT: '5432',
   ALLOWED_ROLES: ['user', 'viewer'],
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
   AUTH_GROUP_ROLE_MAPPINGS: {},
@@ -39,6 +40,8 @@ export const defaultEnv: Env = {
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
   DEFAULT_ROLE: ['user'],
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
+  GATEWAY_DB_PASSWORD: '',
+  GATEWAY_DB_USER: '',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_GRAPHQL_JWT_SECRET: '',
@@ -47,11 +50,6 @@ export const defaultEnv: Env = {
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
   PORT: '9000',
-  POSTGRES_AERIE_MERLIN_DB: 'aerie_merlin',
-  POSTGRES_HOST: 'localhost',
-  POSTGRES_PASSWORD: '',
-  POSTGRES_PORT: '5432',
-  POSTGRES_USER: '',
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
   VERSION: '2.7.0',
@@ -64,8 +62,7 @@ export const defaultEnv: Env = {
 function parseArray<T = string>(value: string | undefined, defaultValue: T[]): T[] {
   if (typeof value === 'string') {
     try {
-      const parsedValue = JSON.parse(value);
-      return parsedValue;
+      return JSON.parse(value);
     } catch (e) {
       console.error(e);
       return defaultValue;
@@ -124,16 +121,17 @@ export function getEnv(): Env {
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
-  const POSTGRES_AERIE_MERLIN_DB = env['POSTGRES_AERIE_MERLIN_DB'] ?? defaultEnv.POSTGRES_AERIE_MERLIN_DB;
-  const POSTGRES_HOST = env['POSTGRES_HOST'] ?? defaultEnv.POSTGRES_HOST;
-  const POSTGRES_PASSWORD = env['POSTGRES_PASSWORD'] ?? defaultEnv.POSTGRES_PASSWORD;
-  const POSTGRES_PORT = env['POSTGRES_PORT'] ?? defaultEnv.POSTGRES_PORT;
-  const POSTGRES_USER = env['POSTGRES_USER'] ?? defaultEnv.POSTGRES_USER;
+  const AERIE_DB_HOST = env['AERIE_DB_HOST'] ?? defaultEnv.AERIE_DB_HOST;
+  const AERIE_DB_PORT = env['AERIE_DB_PORT'] ?? defaultEnv.AERIE_DB_PORT;
+  const GATEWAY_DB_USER = env['GATEWAY_DB_USER'] ?? defaultEnv.GATEWAY_DB_USER;
+  const GATEWAY_DB_PASSWORD = env['GATEWAY_DB_PASSWORD'] ?? defaultEnv.GATEWAY_DB_PASSWORD;
   const RATE_LIMITER_FILES_MAX = parseNumber(env['RATE_LIMITER_FILES_MAX'], defaultEnv.RATE_LIMITER_FILES_MAX);
   const RATE_LIMITER_LOGIN_MAX = parseNumber(env['RATE_LIMITER_LOGIN_MAX'], defaultEnv.RATE_LIMITER_LOGIN_MAX);
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {
+    AERIE_DB_HOST,
+    AERIE_DB_PORT,
     ALLOWED_ROLES,
     ALLOWED_ROLES_NO_AUTH,
     AUTH_GROUP_ROLE_MAPPINGS,
@@ -143,6 +141,8 @@ export function getEnv(): Env {
     AUTH_URL,
     DEFAULT_ROLE,
     DEFAULT_ROLE_NO_AUTH,
+    GATEWAY_DB_PASSWORD,
+    GATEWAY_DB_USER,
     GQL_API_URL,
     GQL_API_WS_URL,
     HASURA_GRAPHQL_JWT_SECRET,
@@ -151,11 +151,6 @@ export function getEnv(): Env {
     LOG_FILE,
     LOG_LEVEL,
     PORT,
-    POSTGRES_AERIE_MERLIN_DB,
-    POSTGRES_HOST,
-    POSTGRES_PASSWORD,
-    POSTGRES_PORT,
-    POSTGRES_USER,
     RATE_LIMITER_FILES_MAX,
     RATE_LIMITER_LOGIN_MAX,
     VERSION,
