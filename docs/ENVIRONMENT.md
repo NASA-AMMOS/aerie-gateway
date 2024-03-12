@@ -12,7 +12,7 @@ This document provides detailed information about environment variables for the 
 | `AUTH_UI_URL`               | URL of Auth provider's login UI. Returned to the UI if SSO token is invalid, so user is redirected   | `string` | https://atb-ocio-12b.jpl.nasa.gov:8443/cam-ui  |
 | `AUTH_SSO_TOKEN_NAME`       | The name of the SSO tokens the Gateway should parse cookies for. Likely found in auth provider docs. | `array`  | ["iPlanetDirectoryPro"]                        |
 | `DEFAULT_ROLE`              | Default roles when authentication is enabled. See [SSO authorization docs][SSO authz] for details.   | `array`  | ["user"]                                       |
-| `DEFAULT_ROLE_NO_AUTH`      | Default role when authentication is disabled.                                                        | `array`  | aerie_admin                                    |
+| `DEFAULT_ROLE_NO_AUTH`      | Default role when authentication is disabled.                                                        | `string` | aerie_admin                                    |
 | `GQL_API_URL`               | URL of GraphQL API for the GraphQL Playground.                                                       | `string` | http://localhost:8080/v1/graphql               |
 | `GQL_API_WS_URL`            | URL of GraphQL WebSocket API for the GraphQL Playground.                                             | `string` | ws://localhost:8080/v1/graphql                 |
 | `HASURA_GRAPHQL_JWT_SECRET` | The JWT secret. Also in Hasura. **Required** even if auth off in Hasura.                             | `string` |                                                |
