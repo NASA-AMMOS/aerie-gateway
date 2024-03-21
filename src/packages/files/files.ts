@@ -69,7 +69,7 @@ export default (app: Express) => {
       const deleted_date = new Date();
       const { rowCount } = await db.query(
         `
-        update uploaded_file
+        update merlin.uploaded_file
         set deleted_date = $1
         where id = $2;
       `,
@@ -123,7 +123,7 @@ export default (app: Express) => {
     // twice so the query casts it appropriately to each type.
     const { rowCount, rows } = await db.query(
       `
-      insert into uploaded_file (name, path)
+      insert into merlin.uploaded_file (name, path)
       values ($1, $2)
       returning id;
     `,
