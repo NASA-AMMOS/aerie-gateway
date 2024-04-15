@@ -44,7 +44,7 @@ export async function getUserRoles(
   const { rows, rowCount } = await db.query(
     `
       select hasura_default_role, hasura_allowed_roles
-      from metadata.users_and_roles
+      from permissions.users_and_roles
       where username = $1;
     `,
     [username],
@@ -66,7 +66,7 @@ export async function deleteUserAllowedRoles(username: string) {
 
   await db.query(
     `
-      delete from metadata.users_allowed_roles
+      delete from permissions.users_allowed_roles
       where username = $1;
     `,
     [username],
@@ -78,7 +78,7 @@ export async function upsertUserRoles(username: string, default_role: string, al
 
   await db.query(
     `
-      insert into metadata.users (username, default_role)
+      insert into permissions.users (username, default_role)
       values ($1, $2)
       on conflict (username) do update
       set default_role = excluded.default_role;
@@ -89,7 +89,7 @@ export async function upsertUserRoles(username: string, default_role: string, al
   for (const allowed_role of allowed_roles) {
     await db.query(
       `
-        insert into metadata.users_allowed_roles (username, allowed_role)
+        insert into permissions.users_allowed_roles (username, allowed_role)
         values ($1, $2)
       `,
       [username, allowed_role],
