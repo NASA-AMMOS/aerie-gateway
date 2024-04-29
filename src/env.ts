@@ -52,7 +52,7 @@ export const defaultEnv: Env = {
   PORT: '9000',
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
-  VERSION: '2.8.0',
+  VERSION: '2.6.104',
 };
 
 /**
