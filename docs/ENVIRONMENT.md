@@ -15,6 +15,7 @@ This document provides detailed information about environment variables for the 
 | `DEFAULT_ROLE_NO_AUTH`      | Default role when authentication is disabled.                                                        | `string` | aerie_admin                                    |
 | `GQL_API_URL`               | URL of GraphQL API for the GraphQL Playground.                                                       | `string` | http://localhost:8080/v1/graphql               |
 | `GQL_API_WS_URL`            | URL of GraphQL WebSocket API for the GraphQL Playground.                                             | `string` | ws://localhost:8080/v1/graphql                 |
+| `HASURA_METADATA_API_URL`   | URL of Hasura Metadata API.                                                                          | `string` | http://hasura:8080/v1/metadata                 |
 | `HASURA_GRAPHQL_JWT_SECRET` | The JWT secret. Also in Hasura. **Required** even if auth off in Hasura.                             | `string` |                                                |
 | `JWT_ALGORITHMS`            | List of [JWT signing algorithms][algorithms]. Must include algorithm in `HASURA_GRAPHQL_JWT_SECRET`. | `array`  | ["HS256"]                                      |
 | `JWT_EXPIRATION`            | Amount of time until JWT expires.                                                                    | `string` | 36h                                            |
