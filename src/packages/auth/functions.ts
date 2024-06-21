@@ -129,11 +129,16 @@ export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
   }
 }
 
-export function generateJwt(username: string, defaultRole: string, allowedRoles: string[]): string | null {
+export function generateJwt(
+  username: string,
+  defaultRole: string,
+  allowedRoles: string[],
+  expiry: string = getEnv().JWT_EXPIRATION,
+): string | null {
   try {
-    const { HASURA_GRAPHQL_JWT_SECRET, JWT_EXPIRATION } = getEnv();
+    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
     const { key, type }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
-    const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: JWT_EXPIRATION };
+    const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: expiry };
     const payload: JwtPayload = {
       'https://hasura.io/jwt/claims': {
         'x-hasura-allowed-roles': allowedRoles,
