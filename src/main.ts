@@ -7,6 +7,7 @@ import initApiPlaygroundRoutes from './packages/api-playground/api-playground.js
 import initAuthRoutes from './packages/auth/routes.js';
 import { DbMerlin } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
+import initHasuraRoutes from './packages/hasura/hasura-events.js';
 import initHealthRoutes from './packages/health/health.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import cookieParser from 'cookie-parser';
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
   initAuthRoutes(app, authHandler);
   initFileRoutes(app);
   initHealthRoutes(app);
+  initHasuraRoutes(app);
   initSwaggerRoutes(app);
 
   app.listen(PORT, () => {
