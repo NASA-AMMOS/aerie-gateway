@@ -339,7 +339,7 @@ export default (app: Express) => {
    *                type: string
    *     responses:
    *       200:
-   *         description: ExtractionResponse
+   *         description: ImportResponse
    *       403:
    *         description: Unauthorized error
    *       401:
