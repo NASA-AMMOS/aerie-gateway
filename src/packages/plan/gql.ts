@@ -19,8 +19,9 @@ export default {
         owner
         revision
         start_time
-        updated_at
-        updated_by
+        simulations {
+          id
+        }
       }
     }
   `,
@@ -34,10 +35,38 @@ export default {
       }
     }
   `,
+  CREATE_TAGS: `#graphql
+    mutation CreateTags($tags: [tags_insert_input!]!) {
+      insert_tags(objects: $tags, on_conflict: {
+        constraint: tags_name_key,
+        update_columns: []
+      }) {
+        affected_rows
+        returning {
+          color
+          created_at
+          id
+          name
+          owner
+        }
+      }
+    }
+  `,
   DELETE_PLAN: `#graphql
     mutation DeletePlan($id: Int!) {
       deletePlan: delete_plan_by_pk(id: $id) {
         id
+      }
+    }
+  `,
+  GET_TAGS: `#graphql
+    query GetTags {
+      tags(order_by: { name: desc })  {
+        color
+        created_at
+        id
+        name
+        owner
       }
     }
   `,
@@ -48,6 +77,15 @@ export default {
       ) {
         anchor_id
         id
+      }
+    }
+  `,
+  UPDATE_SIMULATION: `#graphql
+    mutation InitialSimulationUpdate($plan_id: Int!, $simulation: simulation_set_input!) {
+      update_simulation(where: {plan_id: {_eq: $plan_id}}, _set: $simulation) {
+        returning {
+          id
+        }
       }
     }
   `,
