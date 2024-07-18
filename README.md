@@ -27,7 +27,7 @@ If you are running Aerie Gateway within a container (i.e. the docker-compose fro
 
 ```sh
 npm install
-npm build
+npm run build
 npm start
 ```
 
