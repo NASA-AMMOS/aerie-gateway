@@ -59,7 +59,7 @@ export default (app: Express) => {
     const { missionModelId } = body;
 
     // Invoke endpoints using the Hasura Metadata API
-    const { HASURA_METADATA_API_URL: metadataURL } = getEnv();
+    const { HASURA_API_URL: metadataURL } = getEnv();
 
     // Generate a temporary token that has Hasura Admin access
     const tempToken = generateJwt(username, 'admin', ['admin'], '10s');
@@ -82,7 +82,7 @@ export default (app: Express) => {
       });
 
     const extract = async (name: string) => {
-      return await fetch(metadataURL, {
+      return await fetch(`${metadataURL}/v1/metadata`, {
         body: generateBody(name),
         headers,
         method: 'POST',

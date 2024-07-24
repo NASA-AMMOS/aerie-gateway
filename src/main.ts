@@ -9,6 +9,7 @@ import { DbMerlin } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHasuraRoutes from './packages/hasura/hasura-events.js';
 import initHealthRoutes from './packages/health/health.js';
+import initPlanRoutes from './packages/plan/plan.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import cookieParser from 'cookie-parser';
 import { AuthAdapter } from './packages/auth/types.js';
@@ -46,6 +47,7 @@ async function main(): Promise<void> {
   initFileRoutes(app);
   initHealthRoutes(app);
   initHasuraRoutes(app);
+  initPlanRoutes(app);
   initSwaggerRoutes(app);
 
   app.listen(PORT, () => {

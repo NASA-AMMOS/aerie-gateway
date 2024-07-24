@@ -34,8 +34,10 @@ export type UserResponse = {
   user: User | null;
 };
 
+export type UserId = string;
+
 export type User = {
-  id: string;
+  id: UserId;
 };
 
 export type ValidateResponse = {

@@ -3,7 +3,7 @@
 This document provides detailed information about environment variables for the gateway.
 
 | Name                        | Description                                                                                          | Type     | Default                                        |
-|-----------------------------|------------------------------------------------------------------------------------------------------|----------|------------------------------------------------|
+| --------------------------- | ---------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------- |
 | `ALLOWED_ROLES`             | Allowed roles when authentication is enabled.                                                        | `array`  | ["user", "viewer"]                             |
 | `ALLOWED_ROLES_NO_AUTH`     | Allowed roles when authentication is disabled.                                                       | `array`  | ["aerie_admin", "user", "viewer"]              |
 | `AUTH_GROUP_ROLE_MAPPINGS`  | JSON object that maps auth provider groups to Aerie roles. See [SSO authentication docs][SSO authn]  | `JSON`   | {}                                             |
@@ -15,7 +15,7 @@ This document provides detailed information about environment variables for the 
 | `DEFAULT_ROLE_NO_AUTH`      | Default role when authentication is disabled.                                                        | `string` | aerie_admin                                    |
 | `GQL_API_URL`               | URL of GraphQL API for the GraphQL Playground.                                                       | `string` | http://localhost:8080/v1/graphql               |
 | `GQL_API_WS_URL`            | URL of GraphQL WebSocket API for the GraphQL Playground.                                             | `string` | ws://localhost:8080/v1/graphql                 |
-| `HASURA_METADATA_API_URL`   | URL of Hasura Metadata API.                                                                          | `string` | http://hasura:8080/v1/metadata                 |
+| `HASURA_API_URL`            | URL of Hasura APIs.                                                                                  | `string` | http://hasura:8080/                            |
 | `HASURA_GRAPHQL_JWT_SECRET` | The JWT secret. Also in Hasura. **Required** even if auth off in Hasura.                             | `string` |                                                |
 | `JWT_ALGORITHMS`            | List of [JWT signing algorithms][algorithms]. Must include algorithm in `HASURA_GRAPHQL_JWT_SECRET`. | `array`  | ["HS256"]                                      |
 | `JWT_EXPIRATION`            | Amount of time until JWT expires.                                                                    | `string` | 36h                                            |
