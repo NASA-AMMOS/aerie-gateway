@@ -295,7 +295,7 @@ export async function importPlan(req: Request, res: Response) {
         method: 'POST',
       });
     }
-    res.send(null);
+    res.send(500);
   }
 }
 
