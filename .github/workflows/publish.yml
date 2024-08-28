@@ -7,6 +7,10 @@ on:
       - dev-[0-9]+.[0-9]+.[0-9]+
     tags:
       - v*
+  pull_request:
+    types:
+      # publish images for PRs labeled "publish" whenever changed/labeled
+      [ opened, reopened, synchronize, labeled ]
   workflow_dispatch:
 
 env:
@@ -14,6 +18,8 @@ env:
 
 jobs:
   publish:
+    # for PRs, should only publish if it has "publish" label
+    if: ${{ (github.event_name != 'pull_request') || contains(github.event.pull_request.labels.*.name, 'publish') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
