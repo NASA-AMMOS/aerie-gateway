@@ -52,6 +52,7 @@ export async function importPlan(req: Request, res: Response) {
   };
 
   let createdPlan: PlanSchema | null = null;
+  let createdTags: Tag[] = [];
 
   try {
     const { activities, simulation_arguments }: PlanTransfer = await new Promise(resolve => {
@@ -143,7 +144,7 @@ export async function importPlan(req: Request, res: Response) {
           {},
         );
 
-        await fetch(GQL_API_URL, {
+        const createdTagsResponse = await fetch(GQL_API_URL, {
           body: JSON.stringify({
             query: gql.CREATE_TAGS,
             variables: { tags: Object.values(activityTags) },
@@ -151,6 +152,16 @@ export async function importPlan(req: Request, res: Response) {
           headers,
           method: 'POST',
         });
+
+        const { data } = (await createdTagsResponse.json()) as {
+          data: {
+            insert_tags: { returning: Tag[] };
+          };
+        };
+
+        if (data && data.insert_tags && data.insert_tags.returning.length) {
+          createdTags = data.insert_tags.returning;
+        }
 
         const tagsResponse = await fetch(GQL_API_URL, {
           body: JSON.stringify({
@@ -294,14 +305,23 @@ export async function importPlan(req: Request, res: Response) {
     logger.error(`POST /importPlan: Error occurred during plan ${name} import`);
     logger.error(error);
 
+    // cleanup the imported plan if it failed along the way
     if (createdPlan) {
+      // delete the plan - activities associated to the plan will be automatically cleaned up
       await fetch(GQL_API_URL, {
         body: JSON.stringify({ query: gql.DELETE_PLAN, variables: { id: createdPlan.id } }),
         headers,
         method: 'POST',
       });
+
+      // if any activity tags were created as a result of this import, remove them
+      await fetch(GQL_API_URL, {
+        body: JSON.stringify({ query: gql.DELETE_TAGS, variables: { tagIds: createdTags.map(({ id }) => id) } }),
+        headers,
+        method: 'POST',
+      });
     }
-    res.send(500);
+    res.sendStatus(500);
   }
 }
 

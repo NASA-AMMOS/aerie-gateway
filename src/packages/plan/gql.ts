@@ -61,6 +61,17 @@ export default {
       }
     }
   `,
+  DELETE_TAGS: `#graphql
+    mutation DeleteTags($tagIds: [Int!]! = []) {
+      delete_tags(
+        where: {
+          id: { _in: $tagIds }
+        }
+      ) {
+        affected_rows
+      }
+    }
+  `,
   GET_TAGS: `#graphql
     query GetTags {
       tags(order_by: { name: desc })  {
