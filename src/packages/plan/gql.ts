@@ -1,9 +1,11 @@
 export default {
-  CREATE_ACTIVITY_DIRECTIVE: `#graphql
-    mutation CreateActivityDirective($activityDirectiveInsertInput: activity_directive_insert_input!) {
-      insert_activity_directive_one(object: $activityDirectiveInsertInput) {
-        id
-        type
+  CREATE_ACTIVITY_DIRECTIVES: `#graphql
+    mutation CreateActivityDirectives($activityDirectivesInsertInput: [activity_directive_insert_input!]!) {
+      insert_activity_directive(objects: $activityDirectivesInsertInput) {
+        returning {
+          id
+          type
+        }
       }
     }
   `,
@@ -70,13 +72,12 @@ export default {
       }
     }
   `,
-  UPDATE_ACTIVITY_DIRECTIVE: `#graphql
-    mutation UpdateActivityDirective($id: Int!, $plan_id: Int!, $activityDirectiveSetInput: activity_directive_set_input!) {
-      update_activity_directive_by_pk(
-        pk_columns: { id: $id, plan_id: $plan_id }, _set: $activityDirectiveSetInput
+  UPDATE_ACTIVITY_DIRECTIVES: `#graphql
+    mutation UpdateActivityDirective($updates: [activity_directive_updates!]!) {
+      update_activity_directive_many(
+        updates: $updates
       ) {
-        anchor_id
-        id
+        affected_rows
       }
     }
   `,

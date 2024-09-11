@@ -8,7 +8,6 @@ import { auth } from '../auth/middleware.js';
 import type {
   ActivityDirective,
   ActivityDirectiveInsertInput,
-  ActivityDirectiveSetInput,
   ImportPlanPayload,
   PlanInsertInput,
   PlanSchema,
@@ -181,87 +180,94 @@ export async function importPlan(req: Request, res: Response) {
         }
 
         const activityRemap: Record<number, number> = {};
-        await Promise.all(
-          activities.map(
-            async ({
+        const activityDirectivesInsertInput = activities.map(
+          ({
+            anchored_to_start: anchoredToStart,
+            arguments: activityArguments,
+            metadata,
+            name: activityName,
+            start_offset: startOffset,
+            tags,
+            type,
+          }) => {
+            const activityDirectiveInsertInput: ActivityDirectiveInsertInput = {
+              anchor_id: null,
               anchored_to_start: anchoredToStart,
               arguments: activityArguments,
-              id,
               metadata,
               name: activityName,
+              plan_id: (createdPlan as PlanSchema).id,
               start_offset: startOffset,
-              tags,
+              tags: {
+                data:
+                  tags?.map(({ tag: { name } }) => ({
+                    tag_id: tagsMap[name].id,
+                  })) ?? [],
+              },
               type,
-            }) => {
-              const activityDirectiveInsertInput: ActivityDirectiveInsertInput = {
-                anchor_id: null,
-                anchored_to_start: anchoredToStart,
-                arguments: activityArguments,
-                metadata,
-                name: activityName,
-                plan_id: (createdPlan as PlanSchema).id,
-                start_offset: startOffset,
-                tags: {
-                  data:
-                    tags?.map(({ tag: { name } }) => ({
-                      tag_id: tagsMap[name].id,
-                    })) ?? [],
-                },
-                type,
-              };
+            };
 
-              const createdActivityDirectiveResponse = await fetch(GQL_API_URL, {
-                body: JSON.stringify({
-                  query: gql.CREATE_ACTIVITY_DIRECTIVE,
-                  variables: { activityDirectiveInsertInput },
-                }),
-                headers,
-                method: 'POST',
-              });
-
-              const createdActivityDirectiveData = (await createdActivityDirectiveResponse.json()) as {
-                data: {
-                  insert_activity_directive_one: ActivityDirective;
-                };
-              } | null;
-
-              if (createdActivityDirectiveData) {
-                const {
-                  data: { insert_activity_directive_one: createdActivityDirective },
-                } = createdActivityDirectiveData;
-                activityRemap[id] = createdActivityDirective.id;
-              }
-            },
-          ),
+            return activityDirectiveInsertInput;
+          },
         );
+
+        const createdActivitiesResponse = await fetch(GQL_API_URL, {
+          body: JSON.stringify({
+            query: gql.CREATE_ACTIVITY_DIRECTIVES,
+            variables: {
+              activityDirectivesInsertInput,
+            },
+          }),
+          headers,
+          method: 'POST',
+        });
+
+        const createdActivityDirectivesData = (await createdActivitiesResponse.json()) as {
+          data: {
+            insert_activity_directive: {
+              returning: ActivityDirective[];
+            };
+          };
+        } | null;
+
+        if (createdActivityDirectivesData) {
+          const {
+            data: {
+              insert_activity_directive: { returning: createdActivityDirectives },
+            },
+          } = createdActivityDirectivesData;
+
+          if (createdActivityDirectives.length === activities.length) {
+            createdActivityDirectives.forEach((createdActivityDirective, index) => {
+              const { id } = activities[index];
+
+              activityRemap[id] = createdActivityDirective.id;
+            });
+          } else {
+            throw new Error('Activity insertion failed.');
+          }
+        }
 
         // remap all the anchor ids to the newly created activity directives
         logger.info(`POST /importPlan: Re-assigning anchors: ${name}`);
-        await Promise.all(
-          activities.map(async ({ anchor_id: anchorId, id }) => {
-            if (anchorId !== null && activityRemap[anchorId] != null && activityRemap[id] != null) {
-              logger.info(
-                `POST /importPlan: Re-assigning anchor ${anchorId} to ${activityRemap[anchorId]} for activity ${activityRemap[id]}: ${name}`,
-              );
-              const activityDirectiveSetInput: ActivityDirectiveSetInput = {
-                anchor_id: activityRemap[anchorId],
-              };
 
-              return fetch(GQL_API_URL, {
-                body: JSON.stringify({
-                  query: gql.UPDATE_ACTIVITY_DIRECTIVE,
-                  variables: {
-                    activityDirectiveSetInput,
-                    id: activityRemap[id],
-                    plan_id: (createdPlan as PlanSchema).id,
-                  },
-                }),
-                headers,
-                method: 'POST',
-              });
-            }
+        const activityDirectivesSetInput = activities
+          .filter(({ anchor_id: anchorId }) => anchorId !== null)
+          .map(({ anchor_id: anchorId, id }) => ({
+            _set: { anchor_id: activityRemap[anchorId as number] },
+            where: { id: { _eq: activityRemap[id] }, plan_id: { _eq: (createdPlan as PlanSchema).id } },
+          }));
+
+        await fetch(GQL_API_URL, {
+          body: JSON.stringify({
+            query: gql.UPDATE_ACTIVITY_DIRECTIVES,
+            variables: {
+              updates: activityDirectivesSetInput,
+            },
           }),
-        );
+          headers,
+          method: 'POST',
+        });
 
         // associate the tags with the newly created plan
         logger.info(`POST /importPlan: Importing plan tags: ${name}`);
