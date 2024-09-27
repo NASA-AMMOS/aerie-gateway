@@ -2,7 +2,7 @@ import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getEnv } from '../../env.js';
 import { login, session } from './functions.js';
-import { AuthAdapter } from './types.js';
+import { AuthAdapter } from '../../types/auth.js';
 
 export default (app: Express, auth: AuthAdapter) => {
   const { RATE_LIMITER_LOGIN_MAX } = getEnv();

@@ -1,10 +1,13 @@
 import type { Express, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
-import { JSONParser } from '@streamparser/json';
+import { parse } from 'csv-parse';
 import fetch from 'node-fetch';
+import { Readable } from 'stream';
 
 import { auth } from '../auth/middleware.js';
+import { parseJSONFile } from '../../util/fileParser.js';
+import { convertDateToDoy, convertDoyToYmd } from '../../util/time.js';
 import type {
   ActivityDirective,
   ActivityDirectiveInsertInput,
@@ -14,7 +17,8 @@ import type {
   PlanTagsInsertInput,
   PlanTransfer,
   Tag,
-} from './types.js';
+} from '../../types/plan.js';
+import { ProfileSet, UploadPlanDatasetJSON, UploadPlanDatasetPayload } from '../../types/dataset.js';
 import gql from './gql.js';
 import getLogger from '../../logger.js';
 import { getEnv } from '../../env.js';
@@ -32,7 +36,9 @@ const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
 });
 
-export async function importPlan(req: Request, res: Response) {
+const timeColumnKey = 'time_utc';
+
+async function importPlan(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
 
   const {
@@ -55,30 +61,7 @@ export async function importPlan(req: Request, res: Response) {
   let createdTags: Tag[] = [];
 
   try {
-    const { activities, simulation_arguments }: PlanTransfer = await new Promise(resolve => {
-      const jsonParser = new JSONParser({ paths: ['$.*'], stringBufferSize: undefined });
-      let finalJSON: any;
-      jsonParser.onToken = ({ value }) => {
-        if (finalJSON === undefined) {
-          if (value === '[') finalJSON = [];
-          else if (value === '{') finalJSON = {};
-        }
-      };
-      jsonParser.onValue = ({ parent }) => {
-        finalJSON = parent;
-      };
-      jsonParser.onEnd = () => {
-        resolve(finalJSON);
-      };
-
-      if (file?.buffer) {
-        try {
-          jsonParser.write(file.buffer);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    });
+    const { activities, simulation_arguments }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);
 
     // create the new plan first
     logger.info(`POST /importPlan: Creating new plan: ${name}`);
@@ -343,6 +326,180 @@ export async function importPlan(req: Request, res: Response) {
   }
 }
 
+async function uploadDataset(req: Request, res: Response) {
+  const authorizationHeader = req.get('authorization');
+
+  const {
+    headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
+  } = req;
+
+  const { body, file } = req;
+  const { plan_id: planIdString, simulation_dataset_id: simulationDatasetIdString } = body as UploadPlanDatasetPayload;
+  try {
+    const planId: number = parseInt(planIdString);
+    const simulationDatasetId: number | undefined =
+      simulationDatasetIdString != null ? parseInt(simulationDatasetIdString) : undefined;
+    const matches = file?.originalname?.match(/[a-zA-Z0-9-_]+.(?<extension>\w+)/);
+
+    if (file && matches != null) {
+      const { groups: { extension = '' } = {} } = matches;
+
+      logger.info(`POST /uploadDataset: Uploading plan dataset`);
+
+      const headers: HeadersInit = {
+        Authorization: authorizationHeader ?? '',
+        'Content-Type': 'application/json',
+        'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+        'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+      };
+
+      let uploadedPlanDataset: UploadPlanDatasetJSON;
+      switch (extension) {
+        case 'json':
+          uploadedPlanDataset = await parseJSONFile<UploadPlanDatasetJSON>(file);
+          break;
+        case 'csv':
+        case 'txt': {
+          const parsedCSV: string[][] = [];
+          await new Promise((resolve, reject) => {
+            const parser = parse({
+              delimiter: ',',
+            });
+
+            parser.on('readable', () => {
+              let record;
+              while ((record = parser.read()) !== null) {
+                parsedCSV.push(record);
+              }
+            });
+            parser.on('error', error => {
+              reject(error);
+            });
+            parser.on('end', () => {
+              resolve(parsedCSV);
+            });
+
+            const fileStream = Readable.from(file.buffer);
+            fileStream.pipe(parser);
+          });
+
+          let timeColumnIndex = -1;
+          const headerIndexMap: Record<string, number> = parsedCSV[0].reduce(
+            (prevHeaderIndexMap: Record<string, number>, header: string, headerIndex: number) => {
+              if (header === timeColumnKey) {
+                timeColumnIndex = headerIndex;
+
+                return prevHeaderIndexMap;
+              } else {
+                return {
+                  ...prevHeaderIndexMap,
+                  [header]: headerIndex,
+                };
+              }
+            },
+            {},
+          );
+
+          if (timeColumnIndex === -1) {
+            throw new Error(`CSV file does not contain a "${timeColumnKey}" column.`);
+          }
+
+          const parsedSegments: string[][] = parsedCSV.slice(1);
+
+          const startTime = convertDateToDoy(parsedSegments[0][timeColumnIndex]);
+          const parsedProfiles: Record<string, ProfileSet> = Object.keys(headerIndexMap).reduce(
+            (previousProfileSet: Record<string, ProfileSet>, header) => {
+              return {
+                ...previousProfileSet,
+                [header]: {
+                  schema: { type: 'real' },
+                  segments: [],
+                  type: 'discrete',
+                },
+              };
+            },
+            {},
+          );
+
+          uploadedPlanDataset = parsedSegments.reduce(
+            (
+              previousPlanDataset: UploadPlanDatasetJSON,
+              parsedSegment: string[],
+              parsedSegmentIndex,
+              parsedSegmentsArray,
+            ) => {
+              const nextParsedSegment = parsedSegmentsArray[parsedSegmentIndex + 1];
+
+              if (nextParsedSegment) {
+                const dateString = convertDoyToYmd(parsedSegment[timeColumnIndex]);
+                const nextDateString = convertDoyToYmd(nextParsedSegment[timeColumnIndex]);
+
+                const duration =
+                  new Date(nextDateString as string).getTime() - new Date(dateString as string).getTime();
+
+                const profileSet: Record<string, ProfileSet> = Object.entries(headerIndexMap).reduce(
+                  (previousProfileSet: Record<string, ProfileSet>, [header, index]) => {
+                    const previousSegments = previousProfileSet[header].segments;
+                    const value = parsedSegment[index];
+                    return {
+                      ...previousProfileSet,
+                      [header]: {
+                        ...previousProfileSet[header],
+                        segments: [
+                          ...previousSegments,
+                          { duration, ...(value !== undefined ? { dynamics: parseFloat(value) } : {}) },
+                        ],
+                      },
+                    };
+                  },
+                  previousPlanDataset.profileSet,
+                );
+
+                return {
+                  ...previousPlanDataset,
+                  profileSet,
+                } as UploadPlanDatasetJSON;
+              }
+              return previousPlanDataset;
+            },
+            { datasetStart: startTime, profileSet: parsedProfiles } as UploadPlanDatasetJSON,
+          );
+
+          break;
+        }
+        default:
+          throw new Error('File extension not supported');
+      }
+
+      const { datasetStart, profileSet } = uploadedPlanDataset;
+      const response = await fetch(GQL_API_URL, {
+        body: JSON.stringify({
+          query: gql.ADD_EXTERNAL_DATASET,
+          variables: { datasetStart, planId, profileSet, simulationDatasetId },
+        }),
+        headers,
+        method: 'POST',
+      });
+
+      const addExternalDatasetResponse = await response.json();
+
+      const { data } = addExternalDatasetResponse as { data: { addExternalDataset: { datasetId: number } | null } };
+
+      if (data?.addExternalDataset != null) {
+        logger.info(`POST /uploadDataset: Uploaded plan dataset`);
+        res.json(data.addExternalDataset?.datasetId);
+      } else {
+        throw new Error('Plan dataset upload unsuccessful.');
+      }
+    } else {
+      throw new Error('File extension not supported');
+    }
+  } catch (error) {
+    res.status(500);
+    res.send(error);
+  }
+}
+
 export default (app: Express) => {
   /**
    * @swagger
@@ -393,4 +550,46 @@ export default (app: Express) => {
    *       - Hasura
    */
   app.post('/importPlan', upload.single('plan_file'), refreshLimiter, auth, importPlan);
+
+  /**
+   * @swagger
+   * /uploadDataset:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     consumes:
+   *       - multipart/form-data
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *      - in: header
+   *        name: x-hasura-role
+   *        schema:
+   *          type: string
+   *          required: false
+   *     requestBody:
+   *       content:
+   *         multipart/form-data:
+   *          schema:
+   *            type: object
+   *            properties:
+   *              external_dataset:
+   *                format: binary
+   *                type: string
+   *              plan_id:
+   *                type: long
+   *              simulation_dataset_id:
+   *                type: integer
+   *     responses:
+   *       200:
+   *         description: ImportResponse
+   *       403:
+   *         description: Unauthorized error
+   *       401:
+   *         description: Unauthenticated error
+   *     summary: Upload an external dataset to a plan
+   *     tags:
+   *       - Hasura
+   */
+  app.post('/uploadDataset', upload.single('external_dataset'), refreshLimiter, auth, uploadDataset);
 };

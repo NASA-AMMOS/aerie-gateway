@@ -1,4 +1,19 @@
 export default {
+  ADD_EXTERNAL_DATASET: `#graphql
+    mutation AddExternalDataset(
+      $planId: Int!,
+      $simulationDatasetId: Int,
+      $datasetStart: String!,
+      $profileSet: ProfileSet!) {
+        addExternalDataset(
+          planId: $planId,
+          simulationDatasetId: $simulationDatasetId,
+          datasetStart: $datasetStart,
+          profileSet: $profileSet) {
+          datasetId
+        }
+    }
+  `,
   CREATE_ACTIVITY_DIRECTIVES: `#graphql
     mutation CreateActivityDirectives($activityDirectivesInsertInput: [activity_directive_insert_input!]!) {
       insert_activity_directive(objects: $activityDirectivesInsertInput) {

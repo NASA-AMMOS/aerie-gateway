@@ -1,4 +1,4 @@
-import type { AuthAdapter, ValidateResponse } from '../types.js';
+import type { AuthAdapter, ValidateResponse } from '../../../types/auth.js';
 
 export const NoAuthAdapter: AuthAdapter = {
   logout: async (): Promise<boolean> => true,

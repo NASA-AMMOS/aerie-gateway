@@ -1,5 +1,5 @@
 import type { Algorithm } from 'jsonwebtoken';
-import { GroupRoleMapping } from './packages/auth/types';
+import { GroupRoleMapping } from './types/auth';
 
 export type Env = {
   ALLOWED_ROLES: string[];
