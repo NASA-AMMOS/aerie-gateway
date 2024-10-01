@@ -331,7 +331,8 @@ async function importPlan(req: Request, res: Response) {
         method: 'POST',
       });
     }
-    res.sendStatus(500);
+    res.status(500);
+    res.send(error);
   }
 }
 
@@ -359,6 +360,16 @@ async function uploadDataset(req: Request, res: Response) {
 
   const { body, file } = req;
   const { plan_id: planIdString, simulation_dataset_id: simulationDatasetIdString } = body as UploadPlanDatasetPayload;
+
+  const headers: HeadersInit = {
+    Authorization: authorizationHeader ?? '',
+    'Content-Type': 'application/json',
+    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+  };
+
+  let createdDatasetId: number | undefined;
+
   try {
     const planId: number = parseInt(planIdString);
     const simulationDatasetId: number | undefined =
@@ -369,13 +380,6 @@ async function uploadDataset(req: Request, res: Response) {
       const { groups: { extension = '' } = {} } = matches;
 
       logger.info(`POST /uploadDataset: Uploading plan dataset`);
-
-      const headers: HeadersInit = {
-        Authorization: authorizationHeader ?? '',
-        'Content-Type': 'application/json',
-        'x-hasura-role': roleHeader ? `${roleHeader}` : '',
-        'x-hasura-user-id': userHeader ? `${userHeader}` : '',
-      };
 
       let uploadedPlanDataset: UploadPlanDatasetJSON;
       switch (extension) {
@@ -532,7 +536,7 @@ async function uploadDataset(req: Request, res: Response) {
       if (data?.addExternalDataset != null) {
         logger.info(`POST /uploadDataset: Uploaded initial plan dataset`);
 
-        const datasetId = data.addExternalDataset?.datasetId;
+        createdDatasetId = data.addExternalDataset?.datasetId;
 
         // Repeat as long as the is at least one profile with a segment left
         while (profileHasSegments(profileSet)) {
@@ -575,20 +579,20 @@ async function uploadDataset(req: Request, res: Response) {
             }
           }
 
-          logger.info(`POST /uploadDataset: Uploading extended plan dataset to dataset: ${datasetId}`);
+          logger.info(`POST /uploadDataset: Uploading extended plan dataset to dataset: ${createdDatasetId}`);
 
           await fetch(GQL_API_URL, {
             body: JSON.stringify({
               query: gql.EXTEND_EXTERNAL_DATASET,
-              variables: { datasetId, profileSet: currentProfileSet },
+              variables: { datasetId: createdDatasetId, profileSet: currentProfileSet },
             }),
             headers,
             method: 'POST',
           });
-          logger.info(`POST /uploadDataset: Uploaded extended plan dataset to dataset: ${datasetId}`);
+          logger.info(`POST /uploadDataset: Uploaded extended plan dataset to dataset: ${createdDatasetId}`);
         }
 
-        res.json(data.addExternalDataset?.datasetId);
+        res.json(createdDatasetId);
       } else {
         throw new Error('Plan dataset upload unsuccessful.');
       }
@@ -598,6 +602,17 @@ async function uploadDataset(req: Request, res: Response) {
   } catch (error) {
     logger.error(`POST /uploadDataset: Error occurred during plan dataset upload`);
     logger.error(error);
+
+    // cleanup the plan dataset if it failed along the way
+    if (createdDatasetId !== undefined) {
+      // delete the dataset - profiles associated to the plan will be automatically cleaned up
+      await fetch(GQL_API_URL, {
+        body: JSON.stringify({ query: gql.DELETE_EXTERNAL_DATASET, variables: { id: createdDatasetId } }),
+        headers,
+        method: 'POST',
+      });
+    }
+
     res.status(500);
     res.send(error);
   }

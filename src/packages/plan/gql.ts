@@ -65,6 +65,13 @@ export default {
       }
     }
   `,
+  DELETE_EXTERNAL_DATASET: `#graphql
+    mutation DeleteExternalDataset($id: Int!) {
+      delete_dataset_by_pk(id: $id) {
+        id
+      }
+    }
+  `,
   DELETE_PLAN: `#graphql
     mutation DeletePlan($id: Int!) {
       deletePlan: delete_plan_by_pk(id: $id) {
