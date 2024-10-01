@@ -83,6 +83,13 @@ export default {
       }
     }
   `,
+  EXTEND_EXTERNAL_DATASET: `#graphql
+    mutation ExtendExternalDataset($datasetId: Int!, $profileSet: ProfileSet!) {
+      extendExternalDataset(datasetId: $datasetId, profileSet: $profileSet) {
+        datasetId
+      }
+    }
+  `,
   GET_TAGS: `#graphql
     query GetTags {
       tags(order_by: { name: desc })  {

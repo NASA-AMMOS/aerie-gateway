@@ -7,7 +7,7 @@ import { Readable } from 'stream';
 
 import { auth } from '../auth/middleware.js';
 import { parseJSONFile } from '../../util/fileParser.js';
-import { convertDateToDoy, convertDoyToYmd } from '../../util/time.js';
+import { convertDateToDoy, getTimeDifference } from '../../util/time.js';
 import type {
   ActivityDirective,
   ActivityDirectiveInsertInput,
@@ -18,7 +18,13 @@ import type {
   PlanTransfer,
   Tag,
 } from '../../types/plan.js';
-import { ProfileSet, UploadPlanDatasetJSON, UploadPlanDatasetPayload } from '../../types/dataset.js';
+import {
+  ProfileSegment,
+  ProfileSet,
+  ProfileSets,
+  UploadPlanDatasetJSON,
+  UploadPlanDatasetPayload,
+} from '../../types/dataset.js';
 import gql from './gql.js';
 import getLogger from '../../logger.js';
 import { getEnv } from '../../env.js';
@@ -28,6 +34,9 @@ const logger = getLogger('packages/plan/plan');
 const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
 
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
+
+// Limit imposed by Jetty server
+const EXTERNAL_DATASET_MAX_SIZE = 1024;
 
 const refreshLimiter = rateLimit({
   legacyHeaders: false,
@@ -326,6 +335,21 @@ async function importPlan(req: Request, res: Response) {
   }
 }
 
+function profileHasSegments(profileSets: ProfileSets): boolean {
+  const profileKeys = Object.keys(profileSets);
+  for (let i = 0; i < profileKeys.length; i++) {
+    if (profileSets[profileKeys[i]].segments.length) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getSegmentByteSize(segment: ProfileSegment): number {
+  return Buffer.byteLength(JSON.stringify(segment));
+}
+
 async function uploadDataset(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
 
@@ -383,10 +407,13 @@ async function uploadDataset(req: Request, res: Response) {
             fileStream.pipe(parser);
           });
 
+          // Keep track of the time column's index separately since the name of the column is static
           let timeColumnIndex = -1;
+
+          // Create a lookup for the profile name's index in each CSV row
           const headerIndexMap: Record<string, number> = parsedCSV[0].reduce(
             (prevHeaderIndexMap: Record<string, number>, header: string, headerIndex: number) => {
-              if (header === timeColumnKey) {
+              if (new RegExp(timeColumnKey).test(header)) {
                 timeColumnIndex = headerIndex;
 
                 return prevHeaderIndexMap;
@@ -406,12 +433,14 @@ async function uploadDataset(req: Request, res: Response) {
 
           const parsedSegments: string[][] = parsedCSV.slice(1);
 
+          // Use the first entry's time value in the CSV as the dataset start time
           const startTime = convertDateToDoy(parsedSegments[0][timeColumnIndex]);
-          const parsedProfiles: Record<string, ProfileSet> = Object.keys(headerIndexMap).reduce(
-            (previousProfileSet: Record<string, ProfileSet>, header) => {
+          const parsedProfiles: ProfileSets = Object.keys(headerIndexMap).reduce(
+            (previousProfileSet: ProfileSets, header) => {
               return {
                 ...previousProfileSet,
                 [header]: {
+                  // default CSV profile schemas to `real` and type `discrete`
                   schema: { type: 'real' },
                   segments: [],
                   type: 'discrete',
@@ -420,7 +449,6 @@ async function uploadDataset(req: Request, res: Response) {
             },
             {},
           );
-
           uploadedPlanDataset = parsedSegments.reduce(
             (
               previousPlanDataset: UploadPlanDatasetJSON,
@@ -430,41 +458,39 @@ async function uploadDataset(req: Request, res: Response) {
             ) => {
               const nextParsedSegment = parsedSegmentsArray[parsedSegmentIndex + 1];
 
+              // Only process entries that have an entry after it.
+              // The last entry is ignored on purpose as it is only used to get the duration of the previous entry
               if (nextParsedSegment) {
-                const dateString = convertDoyToYmd(parsedSegment[timeColumnIndex]);
-                const nextDateString = convertDoyToYmd(nextParsedSegment[timeColumnIndex]);
+                const duration = getTimeDifference(parsedSegment[timeColumnIndex], nextParsedSegment[timeColumnIndex]);
+                if (duration) {
+                  const profileSet: ProfileSets = Object.entries(headerIndexMap).reduce(
+                    (previousProfileSet: ProfileSets, [header, index]) => {
+                      const previousSegments = previousProfileSet[header].segments;
+                      const value = parsedSegment[index];
+                      return {
+                        ...previousProfileSet,
+                        [header]: {
+                          ...previousProfileSet[header],
+                          segments: [
+                            ...previousSegments,
+                            { duration, ...(value !== undefined ? { dynamics: parseFloat(value) } : {}) },
+                          ],
+                        },
+                      };
+                    },
+                    previousPlanDataset.profileSet,
+                  );
 
-                const duration =
-                  new Date(nextDateString as string).getTime() - new Date(dateString as string).getTime();
-
-                const profileSet: Record<string, ProfileSet> = Object.entries(headerIndexMap).reduce(
-                  (previousProfileSet: Record<string, ProfileSet>, [header, index]) => {
-                    const previousSegments = previousProfileSet[header].segments;
-                    const value = parsedSegment[index];
-                    return {
-                      ...previousProfileSet,
-                      [header]: {
-                        ...previousProfileSet[header],
-                        segments: [
-                          ...previousSegments,
-                          { duration, ...(value !== undefined ? { dynamics: parseFloat(value) } : {}) },
-                        ],
-                      },
-                    };
-                  },
-                  previousPlanDataset.profileSet,
-                );
-
-                return {
-                  ...previousPlanDataset,
-                  profileSet,
-                } as UploadPlanDatasetJSON;
+                  return {
+                    ...previousPlanDataset,
+                    profileSet,
+                  } as UploadPlanDatasetJSON;
+                }
               }
               return previousPlanDataset;
             },
             { datasetStart: startTime, profileSet: parsedProfiles } as UploadPlanDatasetJSON,
           );
-
           break;
         }
         default:
@@ -472,10 +498,27 @@ async function uploadDataset(req: Request, res: Response) {
       }
 
       const { datasetStart, profileSet } = uploadedPlanDataset;
+
+      const profileNames = Object.keys(profileSet);
+
+      // Insert an initial set of profiles that have empty segments
+      const initialProfileSet: ProfileSets = profileNames.reduce(
+        (currentProfileSet: ProfileSets, profileName: string) => {
+          return {
+            ...currentProfileSet,
+            [profileName]: {
+              ...profileSet[profileName],
+              segments: [],
+            },
+          };
+        },
+        {},
+      );
+
       const response = await fetch(GQL_API_URL, {
         body: JSON.stringify({
           query: gql.ADD_EXTERNAL_DATASET,
-          variables: { datasetStart, planId, profileSet, simulationDatasetId },
+          variables: { datasetStart, planId, profileSet: initialProfileSet, simulationDatasetId },
         }),
         headers,
         method: 'POST',
@@ -485,8 +528,66 @@ async function uploadDataset(req: Request, res: Response) {
 
       const { data } = addExternalDatasetResponse as { data: { addExternalDataset: { datasetId: number } | null } };
 
+      // If the initial insert was successful, follow-up with multiple inserts to add the segments to each profile
       if (data?.addExternalDataset != null) {
-        logger.info(`POST /uploadDataset: Uploaded plan dataset`);
+        logger.info(`POST /uploadDataset: Uploaded initial plan dataset`);
+
+        const datasetId = data.addExternalDataset?.datasetId;
+
+        // Repeat as long as the is at least one profile with a segment left
+        while (profileHasSegments(profileSet)) {
+          // Initialize profile payload
+          let currentProfileSet: ProfileSets = initialProfileSet;
+
+          // Get the initial profile payload byte size
+          let currentProfileSize: number = Buffer.byteLength(JSON.stringify(currentProfileSet));
+
+          let isMaxSizeReached: boolean = false;
+
+          // Repeat until the maximum payload size is reached or there are no more segments left within the profile to send
+          while (profileHasSegments(profileSet) && !isMaxSizeReached) {
+            for (let i = 0; i < profileNames.length; i++) {
+              const profileName = profileNames[i];
+              const profileSegments = profileSet[profileName].segments;
+              const nextProfileSegment = profileSegments[0];
+              const nextProfileSegmentSize = nextProfileSegment ? getSegmentByteSize(nextProfileSegment) : 0;
+
+              if (nextProfileSegment !== undefined) {
+                // Check to see if including the next segment will be under the maximum payload size
+                if (currentProfileSize + nextProfileSegmentSize < EXTERNAL_DATASET_MAX_SIZE) {
+                  // Add the next segment to the current profile set
+                  currentProfileSet = {
+                    ...currentProfileSet,
+                    [profileName]: {
+                      ...currentProfileSet[profileName],
+                      segments: [...currentProfileSet[profileName].segments, nextProfileSegment],
+                    } as ProfileSet,
+                  };
+                  // Mutate the array to remove the segment that we just copied
+                  profileSegments.shift();
+
+                  currentProfileSize += nextProfileSegmentSize;
+                } else {
+                  isMaxSizeReached = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          logger.info(`POST /uploadDataset: Uploading extended plan dataset to dataset: ${datasetId}`);
+
+          await fetch(GQL_API_URL, {
+            body: JSON.stringify({
+              query: gql.EXTEND_EXTERNAL_DATASET,
+              variables: { datasetId, profileSet: currentProfileSet },
+            }),
+            headers,
+            method: 'POST',
+          });
+          logger.info(`POST /uploadDataset: Uploaded extended plan dataset to dataset: ${datasetId}`);
+        }
+
         res.json(data.addExternalDataset?.datasetId);
       } else {
         throw new Error('Plan dataset upload unsuccessful.');
@@ -495,6 +596,8 @@ async function uploadDataset(req: Request, res: Response) {
       throw new Error('File extension not supported');
     }
   } catch (error) {
+    logger.error(`POST /uploadDataset: Error occurred during plan dataset upload`);
+    logger.error(error);
     res.status(500);
     res.send(error);
   }

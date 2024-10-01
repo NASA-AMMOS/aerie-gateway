@@ -35,17 +35,6 @@ function getDOY(date: Date) {
   return padDoy(Math.floor(diff / oneDay));
 }
 
-export function isDoyTime(dateString: string, numDecimals = 6) {
-  const matches = (dateString != null ? dateString : '').match(
-    new RegExp(
-      `^(?<year>\\d{4})-(?<doy>\\d{1,3})(T(?<time>(?<hour>[0-9]|[0-2][0-9])(:(?<min>[0-9]|([0-5][0-9])))?(:(?<sec>[0-9]|([0-5][0-9]))(\\.(?<dec>\\d{1,${numDecimals}}))?)?))?$`,
-      'i',
-    ),
-  );
-
-  return !!matches;
-}
-
 /**
  * Parses a date string (YYYY-MM-DDTHH:mm:ss) or DOY string (YYYY-DDDDTHH:mm:ss) into its separate components
  */
@@ -88,18 +77,23 @@ export function parseDoyOrYmdTime(dateString: string, numDecimals = 6): null | P
   return null;
 }
 
-export function convertDateToDoy(dateString: string, numDecimals = 6): string {
-  if (isDoyTime(dateString, numDecimals)) {
-    return dateString;
+export function convertDateToDoy(dateString: string, numDecimals = 6): string | null {
+  const parsedTime = parseDoyOrYmdTime(dateString, numDecimals);
+
+  if (parsedTime) {
+    if ((parsedTime as ParsedDoyString).doy) {
+      return dateString;
+    }
+
+    const { year, month, day, time } = parsedTime as ParsedYmdString;
+    return `${year}-${getDOY(new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)))}T${time}`;
   }
 
-  const { year, month, day, time } = parseDoyOrYmdTime(dateString) as ParsedYmdString;
-
-  return `${year}-${getDOY(new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)))}T${time}`;
+  return null;
 }
 
-export function convertDoyToYmd(doyString: string, includeMsecs = true): string | null {
-  const parsedDoy: ParsedDoyString = parseDoyOrYmdTime(doyString) as ParsedDoyString;
+function convertDoyToYmd(doyString: string, numDecimals = 6, includeMsecs = true): string | null {
+  const parsedDoy: ParsedDoyString = parseDoyOrYmdTime(doyString, numDecimals) as ParsedDoyString;
 
   if (parsedDoy !== null) {
     if (parsedDoy.doy !== undefined) {
@@ -119,5 +113,18 @@ export function convertDoyToYmd(doyString: string, includeMsecs = true): string 
     }
   }
 
+  return null;
+}
+
+export function getTimeDifference(dateString1: string, dateString2: string, numDecimals = 6): number | null {
+  const dateString = convertDoyToYmd(dateString1, numDecimals, true);
+  const nextDateString = convertDoyToYmd(dateString2, numDecimals, true);
+
+  if (dateString && nextDateString) {
+    const date = new Date(dateString);
+    const nextDate = new Date(nextDateString);
+
+    return Math.abs(date.getTime() * 1000 - nextDate.getTime() * 1000);
+  }
   return null;
 }

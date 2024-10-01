@@ -1,11 +1,15 @@
+export type ProfileSegment = {
+  duration: number;
+  dynamics?: number | string | boolean | object; // `dynamics` should match `schema`
+};
+
 export type ProfileSet = {
   type: 'discrete' | 'real';
   schema: object; // ValueSchema type
-  segments: {
-    duration: number;
-    dynamics?: number | string | boolean | object; // `dynamics` should match `schema`
-  }[];
+  segments: ProfileSegment[];
 };
+
+export type ProfileSets = Record<string, ProfileSet>;
 
 export type UploadPlanDatasetPayload = {
   plan_id: string;
@@ -14,5 +18,5 @@ export type UploadPlanDatasetPayload = {
 
 export type UploadPlanDatasetJSON = {
   datasetStart: string;
-  profileSet: Record<string, ProfileSet>;
+  profileSet: ProfileSets;
 };

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { convertDateToDoy, isDoyTime, parseDoyOrYmdTime } from './time';
+import { convertDateToDoy, getTimeDifference, parseDoyOrYmdTime } from './time';
 
-describe('Time utilility function tests', () => {
+describe('Time utility function tests', () => {
   test('parseDoyOrYmdTime', () => {
     expect(parseDoyOrYmdTime('2019-365T08:00:00.1234')).toEqual({
       doy: 365,
@@ -39,17 +39,17 @@ describe('Time utilility function tests', () => {
     expect(parseDoyOrYmdTime('2022-20-2T00:00:00')).toEqual(null);
   });
 
-  test('isDoyTime', () => {
-    expect(isDoyTime('2024-100T00:00:00')).toBeTruthy();
-    expect(isDoyTime('2024-110T00:00:00.000')).toBeTruthy();
-
-    expect(isDoyTime('2024-03-10T00:00:00')).toBeFalsy();
-    expect(isDoyTime('2024-110T')).toBeFalsy();
-  });
-
   test('convertDateToDoy', () => {
     expect(convertDateToDoy('2024-01-01T00:10:00')).toEqual('2024-001T00:10:00');
     expect(convertDateToDoy('2024-04-09T00:10:00')).toEqual('2024-100T00:10:00');
     expect(convertDateToDoy('2024-09-27T00:10:00')).toEqual('2024-271T00:10:00');
+  });
+
+  test('getTimeDifference', () => {
+    expect(getTimeDifference('2024-01-01T00:10:00', '2024-01-01T00:11:00', 6)).toEqual(60000000);
+    expect(getTimeDifference('2024-01-01T00:01:00', '2024-01-01T00:11:00', 6)).toEqual(600000000);
+    expect(getTimeDifference('2024-245T00:01:00.0', '2024-245T00:02:00.0', 6)).toEqual(60000000);
+    expect(getTimeDifference('2024-245T00:01:00.0', '2024-245T12:02:00.0', 6)).toEqual(43260000000);
+    expect(getTimeDifference('2024-243T00:01:00.0', '2024-245T12:02:00.0', 6)).toEqual(216060000000);
   });
 });
