@@ -39,11 +39,7 @@ export default {
   `,
   CREATE_TAGS: `#graphql
     mutation CreateTags($tags: [tags_insert_input!]!) {
-      insert_tags(objects: $tags, on_conflict: {
-        constraint: tags_name_key,
-        update_columns: []
-      }) {
-        affected_rows
+      insert_tags(objects: $tags) {
         returning {
           color
           created_at

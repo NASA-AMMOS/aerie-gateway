@@ -123,46 +123,6 @@ export async function importPlan(req: Request, res: Response) {
         // insert all the imported activities into the plan
         logger.info(`POST /importPlan: Importing activities: ${name}`);
 
-        const activityTags = activities.reduce(
-          (prevActivitiesTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tags }) => {
-            const tagsMap =
-              tags?.reduce((prevTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tag }) => {
-                return {
-                  ...prevTagsMap,
-                  [tag.name]: {
-                    color: tag.color,
-                    name: tag.name,
-                  },
-                };
-              }, {}) ?? {};
-
-            return {
-              ...prevActivitiesTagsMap,
-              ...tagsMap,
-            };
-          },
-          {},
-        );
-
-        const createdTagsResponse = await fetch(GQL_API_URL, {
-          body: JSON.stringify({
-            query: gql.CREATE_TAGS,
-            variables: { tags: Object.values(activityTags) },
-          }),
-          headers,
-          method: 'POST',
-        });
-
-        const { data } = (await createdTagsResponse.json()) as {
-          data: {
-            insert_tags: { returning: Tag[] };
-          };
-        };
-
-        if (data && data.insert_tags && data.insert_tags.returning.length) {
-          createdTags = data.insert_tags.returning;
-        }
-
         const tagsResponse = await fetch(GQL_API_URL, {
           body: JSON.stringify({
             query: gql.GET_TAGS,
@@ -189,6 +149,64 @@ export async function importPlan(req: Request, res: Response) {
             };
           }, {});
         }
+
+        // derive a map of uniquely named tags from the list of activities that doesn't already exist in the database
+        const activityTags = activities.reduce(
+          (prevActivitiesTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tags }) => {
+            const currentTagsMap =
+              tags?.reduce(
+                (prevTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tag: { name: tagName, color } }) => {
+                  // If the tag doesn't exist already, add it
+                  if (tagsMap[tagName] === undefined) {
+                    return {
+                      ...prevTagsMap,
+                      [tagName]: {
+                        color,
+                        name: tagName,
+                      },
+                    };
+                  }
+                  return prevTagsMap;
+                },
+                {},
+              ) ?? {};
+
+            return {
+              ...prevActivitiesTagsMap,
+              ...currentTagsMap,
+            };
+          },
+          {},
+        );
+
+        const createdTagsResponse = await fetch(GQL_API_URL, {
+          body: JSON.stringify({
+            query: gql.CREATE_TAGS,
+            variables: { tags: Object.values(activityTags) },
+          }),
+          headers,
+          method: 'POST',
+        });
+
+        const { data } = (await createdTagsResponse.json()) as {
+          data: {
+            insert_tags: { returning: Tag[] };
+          };
+        };
+
+        if (data && data.insert_tags && data.insert_tags.returning.length) {
+          // track the newly created tags for cleanup if an error occurs during plan import
+          createdTags = data.insert_tags.returning;
+        }
+
+        // add the newly created tags to the `tagsMap`
+        tagsMap = createdTags.reduce(
+          (prevTagsMap: Record<string, Tag>, tag) => ({
+            ...prevTagsMap,
+            [tag.name]: tag,
+          }),
+          tagsMap,
+        );
 
         const activityRemap: Record<number, number> = {};
         const activityDirectivesInsertInput = activities.map(
