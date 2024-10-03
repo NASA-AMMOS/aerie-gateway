@@ -8,7 +8,6 @@ import { auth } from '../auth/middleware.js';
 import type {
   ActivityDirective,
   ActivityDirectiveInsertInput,
-  ActivityDirectiveSetInput,
   ImportPlanPayload,
   PlanInsertInput,
   PlanSchema,
@@ -53,6 +52,7 @@ export async function importPlan(req: Request, res: Response) {
   };
 
   let createdPlan: PlanSchema | null = null;
+  let createdTags: Tag[] = [];
 
   try {
     const { activities, simulation_arguments }: PlanTransfer = await new Promise(resolve => {
@@ -123,36 +123,6 @@ export async function importPlan(req: Request, res: Response) {
         // insert all the imported activities into the plan
         logger.info(`POST /importPlan: Importing activities: ${name}`);
 
-        const activityTags = activities.reduce(
-          (prevActivitiesTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tags }) => {
-            const tagsMap =
-              tags?.reduce((prevTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tag }) => {
-                return {
-                  ...prevTagsMap,
-                  [tag.name]: {
-                    color: tag.color,
-                    name: tag.name,
-                  },
-                };
-              }, {}) ?? {};
-
-            return {
-              ...prevActivitiesTagsMap,
-              ...tagsMap,
-            };
-          },
-          {},
-        );
-
-        await fetch(GQL_API_URL, {
-          body: JSON.stringify({
-            query: gql.CREATE_TAGS,
-            variables: { tags: Object.values(activityTags) },
-          }),
-          headers,
-          method: 'POST',
-        });
-
         const tagsResponse = await fetch(GQL_API_URL, {
           body: JSON.stringify({
             query: gql.GET_TAGS,
@@ -180,88 +150,153 @@ export async function importPlan(req: Request, res: Response) {
           }, {});
         }
 
+        // derive a map of uniquely named tags from the list of activities that doesn't already exist in the database
+        const activityTags = activities.reduce(
+          (prevActivitiesTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tags }) => {
+            const currentTagsMap =
+              tags?.reduce(
+                (prevTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tag: { name: tagName, color } }) => {
+                  // If the tag doesn't exist already, add it
+                  if (tagsMap[tagName] === undefined) {
+                    return {
+                      ...prevTagsMap,
+                      [tagName]: {
+                        color,
+                        name: tagName,
+                      },
+                    };
+                  }
+                  return prevTagsMap;
+                },
+                {},
+              ) ?? {};
+
+            return {
+              ...prevActivitiesTagsMap,
+              ...currentTagsMap,
+            };
+          },
+          {},
+        );
+
+        const createdTagsResponse = await fetch(GQL_API_URL, {
+          body: JSON.stringify({
+            query: gql.CREATE_TAGS,
+            variables: { tags: Object.values(activityTags) },
+          }),
+          headers,
+          method: 'POST',
+        });
+
+        const { data } = (await createdTagsResponse.json()) as {
+          data: {
+            insert_tags: { returning: Tag[] };
+          };
+        };
+
+        if (data && data.insert_tags && data.insert_tags.returning.length) {
+          // track the newly created tags for cleanup if an error occurs during plan import
+          createdTags = data.insert_tags.returning;
+        }
+
+        // add the newly created tags to the `tagsMap`
+        tagsMap = createdTags.reduce(
+          (prevTagsMap: Record<string, Tag>, tag) => ({
+            ...prevTagsMap,
+            [tag.name]: tag,
+          }),
+          tagsMap,
+        );
+
         const activityRemap: Record<number, number> = {};
-        await Promise.all(
-          activities.map(
-            async ({
+        const activityDirectivesInsertInput = activities.map(
+          ({
+            anchored_to_start: anchoredToStart,
+            arguments: activityArguments,
+            metadata,
+            name: activityName,
+            start_offset: startOffset,
+            tags,
+            type,
+          }) => {
+            const activityDirectiveInsertInput: ActivityDirectiveInsertInput = {
+              anchor_id: null,
               anchored_to_start: anchoredToStart,
               arguments: activityArguments,
-              id,
               metadata,
               name: activityName,
+              plan_id: (createdPlan as PlanSchema).id,
               start_offset: startOffset,
-              tags,
+              tags: {
+                data:
+                  tags?.map(({ tag: { name } }) => ({
+                    tag_id: tagsMap[name].id,
+                  })) ?? [],
+              },
               type,
-            }) => {
-              const activityDirectiveInsertInput: ActivityDirectiveInsertInput = {
-                anchor_id: null,
-                anchored_to_start: anchoredToStart,
-                arguments: activityArguments,
-                metadata,
-                name: activityName,
-                plan_id: (createdPlan as PlanSchema).id,
-                start_offset: startOffset,
-                tags: {
-                  data:
-                    tags?.map(({ tag: { name } }) => ({
-                      tag_id: tagsMap[name].id,
-                    })) ?? [],
-                },
-                type,
-              };
+            };
 
-              const createdActivityDirectiveResponse = await fetch(GQL_API_URL, {
-                body: JSON.stringify({
-                  query: gql.CREATE_ACTIVITY_DIRECTIVE,
-                  variables: { activityDirectiveInsertInput },
-                }),
-                headers,
-                method: 'POST',
-              });
-
-              const createdActivityDirectiveData = (await createdActivityDirectiveResponse.json()) as {
-                data: {
-                  insert_activity_directive_one: ActivityDirective;
-                };
-              } | null;
-
-              if (createdActivityDirectiveData) {
-                const {
-                  data: { insert_activity_directive_one: createdActivityDirective },
-                } = createdActivityDirectiveData;
-                activityRemap[id] = createdActivityDirective.id;
-              }
-            },
-          ),
+            return activityDirectiveInsertInput;
+          },
         );
+
+        const createdActivitiesResponse = await fetch(GQL_API_URL, {
+          body: JSON.stringify({
+            query: gql.CREATE_ACTIVITY_DIRECTIVES,
+            variables: {
+              activityDirectivesInsertInput,
+            },
+          }),
+          headers,
+          method: 'POST',
+        });
+
+        const createdActivityDirectivesData = (await createdActivitiesResponse.json()) as {
+          data: {
+            insert_activity_directive: {
+              returning: ActivityDirective[];
+            };
+          };
+        } | null;
+
+        if (createdActivityDirectivesData) {
+          const {
+            data: {
+              insert_activity_directive: { returning: createdActivityDirectives },
+            },
+          } = createdActivityDirectivesData;
+
+          if (createdActivityDirectives.length === activities.length) {
+            createdActivityDirectives.forEach((createdActivityDirective, index) => {
+              const { id } = activities[index];
+
+              activityRemap[id] = createdActivityDirective.id;
+            });
+          } else {
+            throw new Error('Activity insertion failed.');
+          }
+        }
 
         // remap all the anchor ids to the newly created activity directives
         logger.info(`POST /importPlan: Re-assigning anchors: ${name}`);
-        await Promise.all(
-          activities.map(async ({ anchor_id: anchorId, id }) => {
-            if (anchorId !== null && activityRemap[anchorId] != null && activityRemap[id] != null) {
-              logger.info(
-                `POST /importPlan: Re-assigning anchor ${anchorId} to ${activityRemap[anchorId]} for activity ${activityRemap[id]}: ${name}`,
-              );
-              const activityDirectiveSetInput: ActivityDirectiveSetInput = {
-                anchor_id: activityRemap[anchorId],
-              };
 
-              return fetch(GQL_API_URL, {
-                body: JSON.stringify({
-                  query: gql.UPDATE_ACTIVITY_DIRECTIVE,
-                  variables: {
-                    activityDirectiveSetInput,
-                    id: activityRemap[id],
-                    plan_id: (createdPlan as PlanSchema).id,
-                  },
-                }),
-                headers,
-                method: 'POST',
-              });
-            }
+        const activityDirectivesSetInput = activities
+          .filter(({ anchor_id: anchorId }) => anchorId !== null)
+          .map(({ anchor_id: anchorId, id }) => ({
+            _set: { anchor_id: activityRemap[anchorId as number] },
+            where: { id: { _eq: activityRemap[id] }, plan_id: { _eq: (createdPlan as PlanSchema).id } },
+          }));
+
+        await fetch(GQL_API_URL, {
+          body: JSON.stringify({
+            query: gql.UPDATE_ACTIVITY_DIRECTIVES,
+            variables: {
+              updates: activityDirectivesSetInput,
+            },
           }),
-        );
+          headers,
+          method: 'POST',
+        });
 
         // associate the tags with the newly created plan
         logger.info(`POST /importPlan: Importing plan tags: ${name}`);
@@ -288,14 +323,23 @@ export async function importPlan(req: Request, res: Response) {
     logger.error(`POST /importPlan: Error occurred during plan ${name} import`);
     logger.error(error);
 
+    // cleanup the imported plan if it failed along the way
     if (createdPlan) {
+      // delete the plan - activities associated to the plan will be automatically cleaned up
       await fetch(GQL_API_URL, {
         body: JSON.stringify({ query: gql.DELETE_PLAN, variables: { id: createdPlan.id } }),
         headers,
         method: 'POST',
       });
+
+      // if any activity tags were created as a result of this import, remove them
+      await fetch(GQL_API_URL, {
+        body: JSON.stringify({ query: gql.DELETE_TAGS, variables: { tagIds: createdTags.map(({ id }) => id) } }),
+        headers,
+        method: 'POST',
+      });
     }
-    res.send(500);
+    res.sendStatus(500);
   }
 }
 

@@ -1,9 +1,11 @@
 export default {
-  CREATE_ACTIVITY_DIRECTIVE: `#graphql
-    mutation CreateActivityDirective($activityDirectiveInsertInput: activity_directive_insert_input!) {
-      insert_activity_directive_one(object: $activityDirectiveInsertInput) {
-        id
-        type
+  CREATE_ACTIVITY_DIRECTIVES: `#graphql
+    mutation CreateActivityDirectives($activityDirectivesInsertInput: [activity_directive_insert_input!]!) {
+      insert_activity_directive(objects: $activityDirectivesInsertInput) {
+        returning {
+          id
+          type
+        }
       }
     }
   `,
@@ -37,11 +39,7 @@ export default {
   `,
   CREATE_TAGS: `#graphql
     mutation CreateTags($tags: [tags_insert_input!]!) {
-      insert_tags(objects: $tags, on_conflict: {
-        constraint: tags_name_key,
-        update_columns: []
-      }) {
-        affected_rows
+      insert_tags(objects: $tags) {
         returning {
           color
           created_at
@@ -59,6 +57,17 @@ export default {
       }
     }
   `,
+  DELETE_TAGS: `#graphql
+    mutation DeleteTags($tagIds: [Int!]! = []) {
+      delete_tags(
+        where: {
+          id: { _in: $tagIds }
+        }
+      ) {
+        affected_rows
+      }
+    }
+  `,
   GET_TAGS: `#graphql
     query GetTags {
       tags(order_by: { name: desc })  {
@@ -70,13 +79,12 @@ export default {
       }
     }
   `,
-  UPDATE_ACTIVITY_DIRECTIVE: `#graphql
-    mutation UpdateActivityDirective($id: Int!, $plan_id: Int!, $activityDirectiveSetInput: activity_directive_set_input!) {
-      update_activity_directive_by_pk(
-        pk_columns: { id: $id, plan_id: $plan_id }, _set: $activityDirectiveSetInput
+  UPDATE_ACTIVITY_DIRECTIVES: `#graphql
+    mutation UpdateActivityDirective($updates: [activity_directive_updates!]!) {
+      update_activity_directive_many(
+        updates: $updates
       ) {
-        anchor_id
-        id
+        affected_rows
       }
     }
   `,
