@@ -332,7 +332,7 @@ async function importPlan(req: Request, res: Response) {
       });
     }
     res.status(500);
-    res.send(error);
+    res.send((error as Error).message);
   }
 }
 
@@ -374,7 +374,7 @@ async function uploadDataset(req: Request, res: Response) {
     const planId: number = parseInt(planIdString);
     const simulationDatasetId: number | undefined =
       simulationDatasetIdString != null ? parseInt(simulationDatasetIdString) : undefined;
-    const matches = file?.originalname?.match(/[a-zA-Z0-9-_]+.(?<extension>\w+)/);
+    const matches = file?.originalname?.match(/\.(?<extension>\w+)$/);
 
     if (file && matches != null) {
       const { groups: { extension = '' } = {} } = matches;
@@ -614,7 +614,7 @@ async function uploadDataset(req: Request, res: Response) {
     }
 
     res.status(500);
-    res.send(error);
+    res.send((error as Error).message);
   }
 }
 
