@@ -8,6 +8,7 @@ import { Readable } from 'stream';
 import { auth } from '../auth/middleware.js';
 import { parseJSONFile } from '../../util/fileParser.js';
 import { convertDateToDoy, getTimeDifference } from '../../util/time.js';
+import { HasuraError } from '../../types/hasura.js';
 import type {
   ActivityDirective,
   ActivityDirectiveInsertInput,
@@ -528,15 +529,16 @@ async function uploadDataset(req: Request, res: Response) {
         method: 'POST',
       });
 
-      const addExternalDatasetResponse = await response.json();
-
-      const { data } = addExternalDatasetResponse as { data: { addExternalDataset: { datasetId: number } | null } };
+      type AddExternalDatasetResponse = { data: { addExternalDataset: { datasetId: number } | null } };
+      const jsonResponse = await response.json();
+      const addExternalDatasetResponse = jsonResponse as AddExternalDatasetResponse | HasuraError;
 
       // If the initial insert was successful, follow-up with multiple inserts to add the segments to each profile
-      if (data?.addExternalDataset != null) {
+      if ((addExternalDatasetResponse as AddExternalDatasetResponse).data?.addExternalDataset != null) {
         logger.info(`POST /uploadDataset: Uploaded initial plan dataset`);
 
-        createdDatasetId = data.addExternalDataset?.datasetId;
+        createdDatasetId = (addExternalDatasetResponse as AddExternalDatasetResponse).data.addExternalDataset
+          ?.datasetId;
 
         // Repeat as long as the is at least one profile with a segment left
         while (profileHasSegments(profileSet)) {
@@ -593,6 +595,8 @@ async function uploadDataset(req: Request, res: Response) {
         }
 
         res.json(createdDatasetId);
+      } else if ((addExternalDatasetResponse as HasuraError).errors) {
+        throw new Error(JSON.stringify((addExternalDatasetResponse as HasuraError).errors));
       } else {
         throw new Error('Plan dataset upload unsuccessful.');
       }
