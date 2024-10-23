@@ -1,7 +1,7 @@
 import { getEnv } from '../../../env.js';
 import { authGroupMappingsExist, generateJwt, getUserRoles, mapGroupsToRoles, syncRolesToDB } from '../functions.js';
 import fetch from 'node-fetch';
-import type { AuthAdapter, AuthResponse, ValidateResponse } from '../types.js';
+import type { AuthAdapter, AuthResponse, ValidateResponse } from '../../../types/auth.js';
 
 import { Request } from 'express';
 

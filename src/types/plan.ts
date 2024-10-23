@@ -1,4 +1,4 @@
-import type { UserId } from '../auth/types';
+import type { UserId } from './auth';
 
 export type PlanSchema = {
   created_at: string;

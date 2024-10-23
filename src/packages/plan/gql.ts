@@ -1,4 +1,19 @@
 export default {
+  ADD_EXTERNAL_DATASET: `#graphql
+    mutation AddExternalDataset(
+      $planId: Int!,
+      $simulationDatasetId: Int,
+      $datasetStart: String!,
+      $profileSet: ProfileSet!) {
+        addExternalDataset(
+          planId: $planId,
+          simulationDatasetId: $simulationDatasetId,
+          datasetStart: $datasetStart,
+          profileSet: $profileSet) {
+          datasetId
+        }
+    }
+  `,
   CREATE_ACTIVITY_DIRECTIVES: `#graphql
     mutation CreateActivityDirectives($activityDirectivesInsertInput: [activity_directive_insert_input!]!) {
       insert_activity_directive(objects: $activityDirectivesInsertInput) {
@@ -50,6 +65,13 @@ export default {
       }
     }
   `,
+  DELETE_EXTERNAL_DATASET: `#graphql
+    mutation DeleteExternalDataset($id: Int!) {
+      delete_dataset_by_pk(id: $id) {
+        id
+      }
+    }
+  `,
   DELETE_PLAN: `#graphql
     mutation DeletePlan($id: Int!) {
       deletePlan: delete_plan_by_pk(id: $id) {
@@ -65,6 +87,13 @@ export default {
         }
       ) {
         affected_rows
+      }
+    }
+  `,
+  EXTEND_EXTERNAL_DATASET: `#graphql
+    mutation ExtendExternalDataset($datasetId: Int!, $profileSet: ProfileSet!) {
+      extendExternalDataset(datasetId: $datasetId, profileSet: $profileSet) {
+        datasetId
       }
     }
   `,

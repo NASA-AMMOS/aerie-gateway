@@ -12,7 +12,7 @@ import type {
   JwtSecret,
   SessionResponse,
   UserRoles,
-} from './types.js';
+} from '../../types/auth.js';
 import { loginSSO } from './adapters/CAMAuthAdapter.js';
 
 const logger = getLogger('packages/auth/functions');

@@ -12,7 +12,7 @@ import initHealthRoutes from './packages/health/health.js';
 import initPlanRoutes from './packages/plan/plan.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import cookieParser from 'cookie-parser';
-import { AuthAdapter } from './packages/auth/types.js';
+import { AuthAdapter } from './types/auth.js';
 import { NoAuthAdapter } from './packages/auth/adapters/NoAuthAdapter.js';
 import { CAMAuthAdapter } from './packages/auth/adapters/CAMAuthAdapter.js';
 import { validateGroupRoleMappings } from './packages/auth/functions.js';
