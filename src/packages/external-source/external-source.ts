@@ -11,6 +11,7 @@ import { HasuraError } from '../../types/hasura.js';
 type CreateExternalSourceResponse = { data: { createExternalSource: { name: string } | null } };
 type CreateExternalSourceTypeResponse = { data: { createExternalSourceType: { attribute_schema: object, name: string } | null } };
 type ExistingTypesResponse = { data: {existingEventTypes: { name: string }[]}};
+type AssociatedTypesResponse = { data: {existingEventTypes: { external_event_type: string }[]}};
 type GetExternalSourceTypeAttributeSchemaResponse = { data: { external_source_type_by_pk: { attribute_schema: object } | null } };
 type GetExternalEventTypeAttributeSchemaResponse = { data: { external_event_type_by_pk: { attribute_schema: object } | null } };
 
@@ -29,8 +30,6 @@ async function uploadExternalSourceType(req: Request, res: Response) {
 
   const { body } = req;
   const { external_source_type_name, attribute_schema, allowed_event_types } = body;
-
-  console.log(body)
 
   const allowed_event_types_parsed = allowed_event_types as string[];
 
@@ -183,15 +182,19 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   // check
-  const allowedEventTypes = await allowedExternalEventTypes.json() as ExistingTypesResponse;
+  const allowedEventTypesStruct: AssociatedTypesResponse = await allowedExternalEventTypes.json();
+  const allowedEventTypes = allowedEventTypesStruct.data.existingEventTypes.map(eventType => eventType.external_event_type);
+
   for (const event_type of usedExternalEventTypes) {
-    if (!allowedEventTypes.data.existingEventTypes.includes(event_type)) {
+    if (!allowedEventTypes.includes(event_type)) {
       logger.error(`POST /uploadExternalSourceType: An event uses event type ${event_type}, which is not defined for source type ${source_type_name}.`);
       res.status(500);
       res.send(`POST /uploadExternalSourceType: An event uses event type ${event_type}, which is not defined for source type ${source_type_name}.`);
       return;
     }
   }
+
+  logger.info(`POST /uploadExternalSource: Source's included events' types are valid.`);
 
   // Get the attribute schema(s) for all external event types used by the source's events
   const usedExternalEventTypesAttributesSchemas = await usedExternalEventTypes.reduce(async (acc: Record<string, Ajv.ValidateFunction>, eventType: string) => {

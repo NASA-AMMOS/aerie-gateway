@@ -46,8 +46,8 @@ export default {
     }
   `,
   GET_EXTERNAL_EVENT_TYPES_FOR_SOURCE_TYPE: `#graphql
-    query ExistingEventTypesForSourceType($sourceType: string!) {
-      existingEventTypesForSourceType: external_source_type_allowed_event_types(where: {name: {_eq: $sourceType}}) {
+    query ExistingEventTypesForSourceType($sourceType: String!) {
+      existingEventTypes: external_source_type_allowed_event_types(where: {external_source_type: {_eq: $sourceType}}) {
         external_event_type
       }
     }
