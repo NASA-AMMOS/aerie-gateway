@@ -27,9 +27,9 @@ async function uploadExternalEventType(req: Request, res: Response) {
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
     'Content-Type': 'application/json',
+    'x-hasura-admin-secret': 'aerie', // HACK, TODO: FIX
     'x-hasura-role': roleHeader ? `${roleHeader}` : '',
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
-
   };
 
   // Validate schema is valid JSON Schema
