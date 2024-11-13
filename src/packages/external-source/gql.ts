@@ -25,10 +25,30 @@ export default {
     }
   `,
   CREATE_EXTERNAL_SOURCE_TYPE: `#graphql
-    mutation CreateExternalSourceType($sourceType: external_source_type_insert_input!) {
+    mutation CreateExternalSourceType($sourceType: external_source_type_insert_input!, $allowedTypes: [external_source_type_allowed_event_types_insert_input!]!) {
       createExternalSourceType: insert_external_source_type_one(object: $sourceType) {
         name
         attribute_schema
+      }
+      defineAllowedTypes: insert_external_source_type_allowed_event_types(objects: $allowedTypes) {
+        returning {
+          external_source_type
+          external_event_type
+        }
+      }
+    }
+  `,
+  GET_EXTERNAL_EVENT_TYPES: `#graphql
+    query ExistingEventTypes {
+      existingEventTypes: external_event_type {
+        name
+      }
+    }
+  `,
+  GET_EXTERNAL_EVENT_TYPES_FOR_SOURCE_TYPE: `#graphql
+    query ExistingEventTypesForSourceType($sourceType: string!) {
+      existingEventTypesForSourceType: external_source_type_allowed_event_types(where: {name: {_eq: $sourceType}}) {
+        external_event_type
       }
     }
   `,
