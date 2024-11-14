@@ -32,6 +32,8 @@ async function uploadExternalEventType(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
+  console.log("\n\n", JSON.stringify(attribute_schema), "\n\n")
+
   // Validate schema is valid JSON Schema
   try {
     const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);

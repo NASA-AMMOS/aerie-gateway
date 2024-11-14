@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from 'express';
 import type { DerivationGroupInsertInput, ExternalSourceInsertInput, ExternalSourceTypeInsertInput } from '../../types/external-source.js';
-import type { ExternalEvent, ExternalEventInsertInput } from '../../types/external-event.js';
+import type { ExternalEventInsertInput } from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
@@ -151,7 +151,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   if ((getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data?.external_source_type_by_pk?.attribute_schema !== null) {
     const { data: { external_source_type_by_pk: sourceAttributeSchema } } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
     if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
-      const sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
+      const sourceSchema: Ajv.ValidateFunction = ajv.compile(sourceAttributeSchema.attribute_schema);
       sourceAttributesAreValid = await sourceSchema(attributes);
     }
   }
@@ -159,6 +159,9 @@ async function uploadExternalSource(req: Request, res: Response) {
     logger.info(`POST /uploadExternalSource: Source's attributes are valid`);
   } else {
     logger.error(`POST /uploadExternalSource: Source's attributes are invalid`);
+    res.status(500);
+    res.send(`POST /uploadExternalSource: Source's attributes are invalid:\n${JSON.stringify(ajv.errors)}`);
+    return;
   }
 
   // TODO: verify events are all of allowed type
@@ -197,7 +200,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   logger.info(`POST /uploadExternalSource: Source's included events' types are valid.`);
 
   // Get the attribute schema(s) for all external event types used by the source's events
-  const usedExternalEventTypesAttributesSchemas = await usedExternalEventTypes.reduce(async (acc: Record<string, Ajv.ValidateFunction>, eventType: string) => {
+  const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = await usedExternalEventTypes.reduce(async (acc: Record<string, Ajv.ValidateFunction>, eventType: string) => {
     const eventAttributeSchema = await fetch(GQL_API_URL, {
       body: JSON.stringify({
         query: gql.GET_EXTERNAL_EVENT_TYPE_ATTRIBUTE_SCHEMA,
@@ -212,31 +215,29 @@ async function uploadExternalSource(req: Request, res: Response) {
     const getExternalEventTypeAttributeSchemaResponse = eventTypeJSONResponse as GetExternalEventTypeAttributeSchemaResponse | HasuraError;
 
     if ((getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data?.external_event_type_by_pk?.attribute_schema !== null) {
-      console.log(getExternalEventTypeAttributeSchemaResponse);
       const { data: { external_event_type_by_pk: eventAttributeSchema } } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
       if (eventAttributeSchema !== undefined && eventAttributeSchema !== null) {
-        acc[eventType] = ajv.compile(eventAttributeSchema);
+        acc[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
       }
     }
 
     return acc;
   }, {} as Record<string, Ajv.ValidateFunction>)
 
-  // Validate all the event's attributes
-  try {
-    external_events.data.forEach(async (externalEvent: ExternalEvent) => {
+  for (const externalEvent of external_events.data) {
+    try {
       const currentEventType = externalEvent.event_type_name;
-      const currentEventSchema = usedExternalEventTypesAttributesSchemas[currentEventType];
+      const currentEventSchema: Ajv.ValidateFunction  = usedExternalEventTypesAttributesSchemas[currentEventType];
       const eventAttributesAreValid = await currentEventSchema(externalEvent.attributes);
       if (!eventAttributesAreValid) {
         throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema.`);
       }
-    });
-  } catch (e) {
-    logger.error(`POST /uploadExternalSource: ${(e as Error).message}`);
-    res.status(500);
-    res.send((e as Error).message);
-    return;
+    } catch (e) {
+      logger.error(`POST /uploadExternalSource: ${(e as Error).message}`);
+      res.status(500);
+      res.send((e as Error).message);
+      return;
+    }
   }
 
   console.log("VALID!");
