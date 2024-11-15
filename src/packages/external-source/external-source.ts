@@ -299,7 +299,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   const jsonResponse = await response.json();
   console.log(jsonResponse);
   const createExternalSourceResponse = jsonResponse as CreateExternalSourceResponse | HasuraError;
-
+  
 
   res.json(createExternalSourceResponse);
 }
