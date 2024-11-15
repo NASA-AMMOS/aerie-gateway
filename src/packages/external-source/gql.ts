@@ -1,4 +1,4 @@
-export default {
+export default { // TODO: discuss upset for derivation group
   CREATE_EXTERNAL_SOURCE: `#graphql
     mutation CreateExternalSource(
       $derivation_group: derivation_group_insert_input!,
