@@ -21,6 +21,7 @@ export default { // TODO: discuss upset for derivation group
         source_type_name,
         start_time,
         valid_at,
+        attributes
       }
     }
   `,
