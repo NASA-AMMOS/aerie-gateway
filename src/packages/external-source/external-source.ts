@@ -10,8 +10,6 @@ import { HasuraError } from '../../types/hasura.js';
 
 type CreateExternalSourceResponse = { data: { createExternalSource: { name: string } | null } };
 type CreateExternalSourceTypeResponse = { data: { createExternalSourceType: { attribute_schema: object, name: string } | null } };
-type ExistingTypesResponse = { data: {existingEventTypes: { name: string }[]}};
-type AssociatedTypesResponse = { data: {existingEventTypes: { external_event_type: string }[]}};
 type GetExternalSourceTypeAttributeSchemaResponse = { data: { external_source_type_by_pk: { attribute_schema: object } | null } };
 type GetExternalEventTypeAttributeSchemaResponse = { data: { external_event_type_by_pk: { attribute_schema: object } | null } };
 
@@ -30,9 +28,7 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   } = req;
 
   const { body } = req;
-  const { external_source_type_name, attribute_schema, allowed_event_types } = body;
-
-  const allowed_event_types_parsed = allowed_event_types as string[];
+  const { external_source_type_name, attribute_schema } = body;
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -57,7 +53,7 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     return;
   }
 
-  logger.info(`POST /uploadExternalSourceType: Attribute schema was VALID!`);
+  logger.info(`POST /uploadExternalSourceType: Attribute schema was VALID! Calling Hasura mutation...`);
 
   // Make sure name in schema (title) and provided name match
   try {
@@ -70,29 +66,6 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     res.send(`POST /uploadExternalSourceType: ${(e as Error).message}`);
     return;
   }
-
-  // Check the list of allowed event types are all defined
-  // QUESTION: only do this check in the UI? The database ultimately checks these things.
-  const existingTypesResponse = await fetch(GQL_API_URL, {
-    body: JSON.stringify({
-      query: gql.GET_EXTERNAL_EVENT_TYPES,
-      variables: {}
-    }),
-    headers,
-    method: 'POST'
-  });
-  const existingTypesStruct: ExistingTypesResponse = await existingTypesResponse.json();
-  const existingTypes: string[] = existingTypesStruct.data.existingEventTypes.map(entry => entry.name);
-  for (const event_type of allowed_event_types_parsed) {
-    if (!existingTypes.includes(event_type)) {
-      logger.error(`POST /uploadExternalSourceType: Event type ${event_type} is not defined.`);
-      res.status(500);
-      res.send(`POST /uploadExternalSourceType: Event type ${event_type} is not defined.`);
-      return;
-    }
-  }
-
-  logger.info(`POST /uploadExternalSourceType: Successfully checked event types valid! Calling Hasura mutation...`);
   
   // Run the Hasura migration for creating an external source type (and inserting allowed event types)
   const externalSourceTypeInput: ExternalSourceTypeInsertInput = {
@@ -100,15 +73,10 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     name: external_source_type_name,
   }
 
-  const allowedTypes: { external_event_type: string, external_source_type: string }[] = allowed_event_types_parsed.map(external_event_type => {
-    return { external_event_type, external_source_type: external_source_type_name };
-  })
-
-
   const response = await fetch(GQL_API_URL, { 
     body: JSON.stringify({
       query: gql.CREATE_EXTERNAL_SOURCE_TYPE,
-      variables: { allowedTypes, sourceType: externalSourceTypeInput },
+      variables: { sourceType: externalSourceTypeInput },
     }),
     headers,
     method: 'POST',
@@ -209,7 +177,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  // Verify events are all of allowed type
+  // Get the attribute schema(s) for all external event types used by the source's events
   // get list of all used event types
   const usedExternalEventTypes = external_events.map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name).reduce(
     (acc: string[], externalEventType: string) => {
@@ -219,32 +187,6 @@ async function uploadExternalSource(req: Request, res: Response) {
       return acc;
     }, []);
 
-  // get allowed event types
-  const allowedExternalEventTypes = await fetch(GQL_API_URL, {
-    body: JSON.stringify({
-      query: gql.GET_EXTERNAL_EVENT_TYPES_FOR_SOURCE_TYPE,
-      variables: { sourceType: source_type_name }
-    }),
-    headers,
-    method: 'POST'
-  });
-
-  // check
-  const allowedEventTypesStruct: AssociatedTypesResponse = await allowedExternalEventTypes.json();
-  const allowedEventTypes = allowedEventTypesStruct.data.existingEventTypes.map(eventType => eventType.external_event_type);
-
-  for (const event_type of usedExternalEventTypes) {
-    if (!allowedEventTypes.includes(event_type)) {
-      logger.error(`POST /uploadExternalSourceType: An event uses event type ${event_type}, which is not defined for source type ${source_type_name}.`);
-      res.status(500);
-      res.send(`POST /uploadExternalSourceType: An event uses event type ${event_type}, which is not defined for source type ${source_type_name}.`);
-      return;
-    }
-  }
-
-  logger.info(`POST /uploadExternalSource: Source's included events' types are valid.`);
-
-  // Get the attribute schema(s) for all external event types used by the source's events
   const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = await usedExternalEventTypes.reduce(async (acc: Record<string, Ajv.ValidateFunction>, eventType: string) => {
     const eventAttributeSchema = await fetch(GQL_API_URL, {
       body: JSON.stringify({
