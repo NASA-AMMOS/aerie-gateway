@@ -116,13 +116,9 @@ async function uploadExternalSource(req: Request, res: Response) {
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
     'Content-Type': 'application/json',
-    'x-hasura-admin-secret': 'aerie', // HACK, TODO: FIX
     'x-hasura-role': roleHeader ? `${roleHeader}` : '',
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
-
-
-  console.log("\n\n", body, "\n\n");
 
   // Verify that this is a valid external source!
   let sourceIsValid: boolean = false;
@@ -154,7 +150,6 @@ async function uploadExternalSource(req: Request, res: Response) {
   const sourceTypeResponseJSON  = await sourceAttributeSchema.json();
   const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON as GetExternalSourceTypeAttributeSchemaResponse | HasuraError;
   if ((getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data?.external_source_type_by_pk?.attribute_schema !== null) {
-    console.log(sourceTypeResponseJSON, source_type_name)
     const { data: { external_source_type_by_pk: sourceAttributeSchema } } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
     if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
       sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
@@ -191,8 +186,6 @@ async function uploadExternalSource(req: Request, res: Response) {
       };
       return acc;
     }, []);
-    
-  console.log("usedExternalEventTypes", usedExternalEventTypes)
 
   const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = {};
   for (const eventType of usedExternalEventTypes) {
@@ -211,20 +204,16 @@ async function uploadExternalSource(req: Request, res: Response) {
 
     if ((getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data?.external_event_type_by_pk?.attribute_schema !== null) {
       const { data: { external_event_type_by_pk: eventAttributeSchema } } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
-      console.log("BINGO!", eventType, eventAttributeSchema)
       if (eventAttributeSchema !== undefined && eventAttributeSchema !== null) {
         usedExternalEventTypesAttributesSchemas[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
       }
     }
   }
 
-  console.log("usedExternalEventTypesAttributesSchemas", usedExternalEventTypesAttributesSchemas)
-
   for (const externalEvent of external_events) {
     try {
       const currentEventType = externalEvent.event_type_name;
       const currentEventSchema: Ajv.ValidateFunction  = usedExternalEventTypesAttributesSchemas[currentEventType];
-      console.log("CURRENT EVENT SCHEMA:", currentEventType, externalEvent.attributes, currentEventSchema)
       const eventAttributesAreValid = await currentEventSchema(externalEvent.attributes);
       if (!eventAttributesAreValid) {
         throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(currentEventSchema.errors)}`);
@@ -236,8 +225,6 @@ async function uploadExternalSource(req: Request, res: Response) {
       return;
     }
   }
-
-  console.log("VALID!");
 
   // Run the Hasura migration for creating an external source
   const derivationGroupInsert: DerivationGroupInsertInput = {
@@ -271,7 +258,6 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   const jsonResponse = await response.json();
-  console.log(jsonResponse);
   const createExternalSourceResponse = jsonResponse as CreateExternalSourceResponse | HasuraError;
 
 
