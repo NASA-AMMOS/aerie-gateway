@@ -43,6 +43,8 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   };
 
   // Validate schema is valid JSON Schema
+  // NOTE: this does not check that all required attributes are included. technically, you could upload a schema for an event type,
+  //        and only really get punished for it when validating a source.
   try {
     const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
     if (!schemaIsValid) {
@@ -51,13 +53,25 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   } catch (e) {
     logger.error(`POST /uploadExternalSourceType: ${(e as Error).message}`);
     res.status(500);
-    res.send((e as Error).message);
+    res.send(`POST /uploadExternalSourceType: ${(e as Error).message}`);
     return;
   }
 
   logger.info(`POST /uploadExternalSourceType: Attribute schema was VALID!`);
 
-  // TODO: Check the list of allowed event types are all defined
+  // Make sure name in schema (title) and provided name match
+  try {
+    if (attribute_schema["title"] === undefined || attribute_schema.title !== external_source_type_name) {
+      throw new Error("Schema title does not match provided external source type name.")
+    }
+  } catch (e) {
+    logger.error(`POST /uploadExternalSourceType: ${(e as Error).message}`);
+    res.status(500);
+    res.send(`POST /uploadExternalSourceType: ${(e as Error).message}`);
+    return;
+  }
+
+  // Check the list of allowed event types are all defined
   // QUESTION: only do this check in the UI? The database ultimately checks these things.
   const existingTypesResponse = await fetch(GQL_API_URL, {
     body: JSON.stringify({
@@ -91,7 +105,7 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   })
 
 
-  const response = await fetch(GQL_API_URL, { // TODO: update
+  const response = await fetch(GQL_API_URL, { 
     body: JSON.stringify({
       query: gql.CREATE_EXTERNAL_SOURCE_TYPE,
       variables: { allowedTypes, sourceType: externalSourceTypeInput },
@@ -177,7 +191,15 @@ async function uploadExternalSource(req: Request, res: Response) {
       const sourceSchema: Ajv.ValidateFunction = ajv.compile(sourceAttributeSchema.attribute_schema);
       sourceAttributesAreValid = await sourceSchema(attributes);
     }
+    else {
+      // source type does not exist!
+      logger.error(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
+      res.status(500);
+      res.send(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
+      return;
+    }
   }
+
   if (sourceAttributesAreValid) {
     logger.info(`POST /uploadExternalSource: Source's attributes are valid`);
   } else {
@@ -187,7 +209,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  // TODO: verify events are all of allowed type
+  // Verify events are all of allowed type
   // get list of all used event types
   const usedExternalEventTypes = external_events.map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name).reduce(
     (acc: string[], externalEventType: string) => {
@@ -299,7 +321,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   const jsonResponse = await response.json();
   console.log(jsonResponse);
   const createExternalSourceResponse = jsonResponse as CreateExternalSourceResponse | HasuraError;
-  
+
 
   res.json(createExternalSourceResponse);
 }
