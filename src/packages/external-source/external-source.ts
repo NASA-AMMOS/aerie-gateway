@@ -150,13 +150,14 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   // Validate the attributes on the External Source
   let sourceAttributesAreValid: boolean = false;
+  let sourceSchema: Ajv.ValidateFunction | undefined = undefined;
   const sourceTypeResponseJSON  = await sourceAttributeSchema.json();
   const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON as GetExternalSourceTypeAttributeSchemaResponse | HasuraError;
   if ((getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data?.external_source_type_by_pk?.attribute_schema !== null) {
     console.log(sourceTypeResponseJSON, source_type_name)
     const { data: { external_source_type_by_pk: sourceAttributeSchema } } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
     if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
-      const sourceSchema: Ajv.ValidateFunction = ajv.compile(sourceAttributeSchema.attribute_schema);
+      sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
       sourceAttributesAreValid = await sourceSchema(attributes);
     }
     else {
@@ -173,7 +174,11 @@ async function uploadExternalSource(req: Request, res: Response) {
   } else {
     logger.error(`POST /uploadExternalSource: Source's attributes are invalid`);
     res.status(500);
-    res.send(`POST /uploadExternalSource: Source's attributes are invalid:\n${JSON.stringify(ajv.errors)}`);
+    if (sourceSchema !== undefined) {
+      res.send(`POST /uploadExternalSource: Source's attributes are invalid:\n${JSON.stringify(sourceSchema.errors)}`);
+    } else {
+      res.send(`POST /uploadExternalSource: Source's attributes are invalid`);
+    }
     return;
   }
 
@@ -186,8 +191,11 @@ async function uploadExternalSource(req: Request, res: Response) {
       };
       return acc;
     }, []);
+    
+  console.log("usedExternalEventTypes", usedExternalEventTypes)
 
-  const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = await usedExternalEventTypes.reduce(async (acc: Record<string, Ajv.ValidateFunction>, eventType: string) => {
+  const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = {};
+  for (const eventType of usedExternalEventTypes) {
     const eventAttributeSchema = await fetch(GQL_API_URL, {
       body: JSON.stringify({
         query: gql.GET_EXTERNAL_EVENT_TYPE_ATTRIBUTE_SCHEMA,
@@ -203,18 +211,20 @@ async function uploadExternalSource(req: Request, res: Response) {
 
     if ((getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data?.external_event_type_by_pk?.attribute_schema !== null) {
       const { data: { external_event_type_by_pk: eventAttributeSchema } } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
+      console.log("BINGO!", eventType, eventAttributeSchema)
       if (eventAttributeSchema !== undefined && eventAttributeSchema !== null) {
-        acc[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
+        usedExternalEventTypesAttributesSchemas[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
       }
     }
+  }
 
-    return acc;
-  }, {} as Record<string, Ajv.ValidateFunction>)
+  console.log("usedExternalEventTypesAttributesSchemas", usedExternalEventTypesAttributesSchemas)
 
   for (const externalEvent of external_events) {
     try {
       const currentEventType = externalEvent.event_type_name;
       const currentEventSchema: Ajv.ValidateFunction  = usedExternalEventTypesAttributesSchemas[currentEventType];
+      console.log("CURRENT EVENT SCHEMA:", currentEventType, externalEvent.attributes, currentEventSchema)
       const eventAttributesAreValid = await currentEventSchema(externalEvent.attributes);
       if (!eventAttributesAreValid) {
         throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(currentEventSchema.errors)}`);
