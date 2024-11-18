@@ -42,7 +42,20 @@ async function uploadExternalEventType(req: Request, res: Response) {
     }
   } catch (e) {
     logger.error(`POST /uploadExternalEventType: ${(e as Error).message}`);
-    res.json({ created: false });
+    res.status(500);
+    res.send(`POST /uploadExternalEventType: ${(e as Error).message}`);
+    return;
+  }
+
+  // Make sure name in schema (title) and provided name match
+  try {
+    if (attribute_schema["title"] === undefined || attribute_schema.title !== external_event_type_name) {
+      throw new Error("Schema title does not match provided external event type name.")
+    }
+  } catch (e) {
+    logger.error(`POST /uploadExternalEventType: ${(e as Error).message}`);
+    res.status(500);
+    res.send(`POST /uploadExternalEventType: ${(e as Error).message}`);
     return;
   }
 
