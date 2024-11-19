@@ -15,6 +15,7 @@ export default { // TODO: discuss upset for derivation group
       createExternalSource: insert_external_source_one (
         object: $source
       ) {
+        attributes
         derivation_group_name,
         end_time,
         key,

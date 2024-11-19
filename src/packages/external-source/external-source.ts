@@ -46,10 +46,9 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     if (!schemaIsValid) {
       throw new Error("Schema was not a valid JSON Schema.");
     }
-  } catch (e) {
-    logger.error(`POST /uploadExternalSourceType: ${(e as Error).message}`);
+  } catch (error) {
     res.status(500);
-    res.send(`POST /uploadExternalSourceType: ${(e as Error).message}`);
+    res.send((error as Error).message);
     return;
   }
 
@@ -60,20 +59,19 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     if (attribute_schema["title"] === undefined || attribute_schema.title !== external_source_type_name) {
       throw new Error("Schema title does not match provided external source type name.")
     }
-  } catch (e) {
-    logger.error(`POST /uploadExternalSourceType: ${(e as Error).message}`);
+  } catch (error) {
     res.status(500);
-    res.send(`POST /uploadExternalSourceType: ${(e as Error).message}`);
+    res.send((error as Error).message);
     return;
   }
-  
+
   // Run the Hasura migration for creating an external source type (and inserting allowed event types)
   const externalSourceTypeInput: ExternalSourceTypeInsertInput = {
     attribute_schema: attribute_schema,
     name: external_source_type_name,
   }
 
-  const response = await fetch(GQL_API_URL, { 
+  const response = await fetch(GQL_API_URL, {
     body: JSON.stringify({
       query: gql.CREATE_EXTERNAL_SOURCE_TYPE,
       variables: { sourceType: externalSourceTypeInput },
@@ -126,9 +124,9 @@ async function uploadExternalSource(req: Request, res: Response) {
   if (sourceIsValid) {
     logger.info(`POST /uploadExternalSource: Source's formatting is valid per basic schema validation.`);
   } else {
-    logger.error(`POST /uploadExternalSource: Source's formatting is invalid per basic schema validation:\n${JSON.stringify(compiledExternalSourceSchema.errors)}`);
+    logger.error("POST /uploadExternalSource: Source's formatting is invalid per basic schema validation");
     res.status(500);
-    res.send(`POST /uploadExternalSource: Source's formatting is invalid per basic schema validation:\n${JSON.stringify(compiledExternalSourceSchema.errors)}`);
+    res.send("Source's formatting is invalid per basic schema validation");
     return;
   }
 
@@ -159,7 +157,7 @@ async function uploadExternalSource(req: Request, res: Response) {
       // source type does not exist!
       logger.error(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
       res.status(500);
-      res.send(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
+      res.send(`Source type ${source_type_name} does not exist!`);
       return;
     }
   }
@@ -172,7 +170,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     if (sourceSchema !== undefined) {
       res.send(`POST /uploadExternalSource: Source's attributes are invalid:\n${JSON.stringify(sourceSchema.errors)}`);
     } else {
-      res.send(`POST /uploadExternalSource: Source's attributes are invalid`);
+      res.send(`Source's attributes are invalid`);
     }
     return;
   }
@@ -218,10 +216,9 @@ async function uploadExternalSource(req: Request, res: Response) {
       if (!eventAttributesAreValid) {
         throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(currentEventSchema.errors)}`);
       }
-    } catch (e) {
-      logger.error(`POST /uploadExternalSource: ${(e as Error).message}`);
+    } catch (error) {
       res.status(500);
-      res.send((e as Error).message);
+      res.send((error as Error).message);
       return;
     }
   }

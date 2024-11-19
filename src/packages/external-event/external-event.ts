@@ -37,10 +37,10 @@ async function uploadExternalEventType(req: Request, res: Response) {
     if (!schemaIsValid) {
       throw new Error("Schema was not a valid JSON Schema.");
     }
-  } catch (e) {
-    logger.error(`POST /uploadExternalEventType: ${(e as Error).message}`);
+  } catch (error) {
+    logger.error((error as Error).message);
     res.status(500);
-    res.send(`POST /uploadExternalEventType: ${(e as Error).message}`);
+    res.send((error as Error).message);
     return;
   }
 
@@ -49,10 +49,10 @@ async function uploadExternalEventType(req: Request, res: Response) {
     if (attribute_schema["title"] === undefined || attribute_schema.title !== external_event_type_name) {
       throw new Error("Schema title does not match provided external event type name.")
     }
-  } catch (e) {
-    logger.error(`POST /uploadExternalEventType: ${(e as Error).message}`);
+  } catch (error) {
+    logger.error((error as Error).message);
     res.status(500);
-    res.send(`POST /uploadExternalEventType: ${(e as Error).message}`);
+    res.send((error as Error).message);
     return;
   }
 
