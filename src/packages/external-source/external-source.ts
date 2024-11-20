@@ -5,7 +5,7 @@ import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import gql from './gql.js';
-import { externalSourceSchema } from '../schemas/external-event-validation-schemata.js';
+import { baseExternalSourceSchema } from '../schemas/external-event-validation-schemata.js';
 import { HasuraError } from '../../types/hasura.js';
 
 type CreateExternalSourceResponse = { data: { createExternalSource: { name: string } | null } };
@@ -16,8 +16,73 @@ type GetExternalEventTypeAttributeSchemaResponse = { data: { external_event_type
 const logger = getLogger('packages/external-source/external-source');
 const { HASURA_API_URL } = getEnv();
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
-const ajv = new Ajv();
-const compiledExternalSourceSchema = ajv.compile(externalSourceSchema);
+const ajv = new Ajv(); // TODO: remove. now created in updateSchemaWithDefs
+const compiledExternalSourceSchema = ajv.compile(baseExternalSourceSchema); // TODO: fix
+
+export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_types: object, source_type: object } }): Ajv.ValidateFunction | undefined {
+  // get $id
+  const defId = defs.$id;
+
+  // build if statement
+  const ifThenElse: { [key: string]: any }  = {
+
+  }
+
+  let ifThenElsePointer = ifThenElse;
+
+  const keys = Object.keys(defs.definitions.event_types);
+  console.log(keys)
+
+  // TODO: handling if there's only 1 event type
+
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    console.log("NOW ON:", key);
+    ifThenElsePointer["if"] = {
+      properties: {
+        event_type_name: {
+          const: key
+        }
+      }
+    };
+    ifThenElsePointer["then"] = {
+      properties: {
+        attributes: { // TODO: change the #
+          $ref: `${defId}#/definitions/event_types/${key}` // TODO: use $id from defs instead of "#"
+        }
+      }
+    };
+    ifThenElsePointer["else"] = {
+
+    };
+    ifThenElsePointer = ifThenElsePointer["else"];
+  }
+
+  // fill in the final else with the last element
+  const key = keys[keys.length - 1];
+  ifThenElsePointer["properties"] = {
+    attributes: {
+      $ref: `${defId}#/definitions/event_types/${key}`
+    }
+  }
+
+  // insert if statement into local copy of baseExternalSourceSchema
+  // TODO: handling if there's only 1 event type
+  const localSchemaCopy = structuredClone(baseExternalSourceSchema);
+  localSchemaCopy.properties.external_events.items["if"] = ifThenElse["if"];
+  localSchemaCopy.properties.external_events.items["then"] = ifThenElse["then"];
+  localSchemaCopy.properties.external_events.items["else"] = ifThenElse["else"];
+
+  // insert def for "source" attributes
+  const sourceTypeKey = Object.keys(defs.definitions.source_type)[0];
+  localSchemaCopy.properties.source.properties.attributes = { $ref: `${defId}#/definitions/source_type/${sourceTypeKey}`}
+
+  // compile with defs, return
+  // const localAjv = new Ajv({schemas: [defs, localSchemaCopy]});
+  // return localAjv.getSchema("source_schema");
+  const localAjv = new Ajv();
+  return localAjv.addSchema(defs).compile(localSchemaCopy);
+}
 
 async function uploadExternalSourceType(req: Request, res: Response) {
   logger.info(`POST /uploadExternalSourceType: Entering function...`);
@@ -193,7 +258,7 @@ async function uploadExternalSource(req: Request, res: Response) {
       body: JSON.stringify({
         query: gql.GET_EXTERNAL_EVENT_TYPE_ATTRIBUTE_SCHEMA,
         variables: {
-          name: eventType
+          name: eventType // TODO: make this 1 query lol
         }
       }),
       headers,
