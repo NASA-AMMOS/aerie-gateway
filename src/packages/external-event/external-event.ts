@@ -31,15 +31,11 @@ async function uploadExternalEventType(req: Request, res: Response) {
   };
 
   // Validate schema is valid JSON Schema
-  try {
-    const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
-    if (!schemaIsValid) {
-      throw new Error("Schema was not a valid JSON Schema.");
-    }
-  } catch (error) {
-    logger.error(`POST /uploadExternalEventType: Error occurred during External Event Type ${external_event_type_name} upload`);
-    logger.error((error as Error).message);
-    res.status(500).send({ message: (error as Error).message });
+  const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
+  if (!schemaIsValid) {
+    logger.error(`POST /uploadExternalEventType: Schema validation failed for External Event Type ${external_event_type_name}`);
+    ajv.errors?.forEach(ajvError => logger.error(ajvError));
+    res.status(500).send({ message: ajv.errors });
     return;
   }
 

@@ -42,13 +42,11 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   // Validate schema is valid JSON Schema
   // NOTE: this does not check that all required attributes are included. technically, you could upload a schema for an event type,
   //        and only really get punished for it when validating a source.
-  try {
-    const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
-    if (!schemaIsValid) {
-      throw new Error("Schema was not a valid JSON Schema.");
-    }
-  } catch (error) {
-    res.status(500).send({ message: (error as Error).message });
+  const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
+  if (!schemaIsValid) {
+    logger.error(`POST /uploadExternalSourceType: Schema validation failed for External Source Type ${external_source_type_name}`);
+    ajv.errors?.forEach(ajvError => logger.error(ajvError));
+    res.status(500).send({ message: ajv.errors });
     return;
   }
 
