@@ -20,7 +20,6 @@ const ajv = new Ajv();
 const compiledExternalSourceSchema = ajv.compile(externalSourceSchema);
 
 async function uploadExternalSourceType(req: Request, res: Response) {
-  logger.info(`POST /uploadExternalSourceType: Entering function...`);
   const authorizationHeader = req.get('authorization');
 
   const {
@@ -29,6 +28,8 @@ async function uploadExternalSourceType(req: Request, res: Response) {
 
   const { body } = req;
   const { external_source_type_name, attribute_schema } = body;
+  logger.info(`POST /uploadExternalSourceType: Uploading External Source Type: ${external_source_type_name}`);
+
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -47,21 +48,19 @@ async function uploadExternalSourceType(req: Request, res: Response) {
       throw new Error("Schema was not a valid JSON Schema.");
     }
   } catch (error) {
-    res.status(500);
-    res.send((error as Error).message);
+    res.status(500).send({ message: (error as Error).message });
     return;
   }
 
-  logger.info(`POST /uploadExternalSourceType: Attribute schema was VALID! Calling Hasura mutation...`);
+  logger.info(`POST /uploadExternalSourceType: ${external_source_type_name} attribute schema was VALID`);
 
   // Make sure name in schema (title) and provided name match
   try {
     if (attribute_schema["title"] === undefined || attribute_schema.title !== external_source_type_name) {
-      throw new Error("Schema title does not match provided external source type name.")
+      throw new Error(`${external_source_type_name} attribute schema title does not match provided external source type name.`)
     }
   } catch (error) {
-    res.status(500);
-    res.send((error as Error).message);
+    res.status(500).send({ message: (error as Error).message });
     return;
   }
 
@@ -83,13 +82,10 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   const jsonResponse = await response.json();
   const createExternalSourceTypeResponse = jsonResponse as CreateExternalSourceTypeResponse | HasuraError;
 
-  logger.info(`POST /uploadExternalSourceType: Successfully uploaded new type and event type associations!`);
-
   res.json(createExternalSourceTypeResponse);
 }
 
 async function uploadExternalSource(req: Request, res: Response) {
-  logger.info(`POST /uploadExternalSource: Entering function...`);
   const authorizationHeader = req.get('authorization');
   const {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
@@ -118,15 +114,16 @@ async function uploadExternalSource(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
+  logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`)
+
   // Verify that this is a valid external source!
   let sourceIsValid: boolean = false;
   sourceIsValid = await compiledExternalSourceSchema(body);
   if (sourceIsValid) {
-    logger.info(`POST /uploadExternalSource: Source's formatting is valid per basic schema validation.`);
+    logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
   } else {
-    logger.error("POST /uploadExternalSource: Source's formatting is invalid per basic schema validation");
-    res.status(500);
-    res.send("Source's formatting is invalid per basic schema validation");
+    logger.error(`POST /uploadExternalSource: External Source ${key}'s formatting is invalid`);
+    res.status(500).send({ message: `External Source ${key}'s formatting is invalid` });
     return;
   }
 
@@ -155,22 +152,21 @@ async function uploadExternalSource(req: Request, res: Response) {
     }
     else {
       // source type does not exist!
-      logger.error(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
-      res.status(500);
-      res.send(`Source type ${source_type_name} does not exist!`);
+      logger.error(`POST /uploadExternalSource: External Source Type ${source_type_name} does not exist!`);
+      res.status(500).send({ message: `External Source Type ${source_type_name} does not exist!`});
       return;
     }
   }
 
   if (sourceAttributesAreValid) {
-    logger.info(`POST /uploadExternalSource: Source's attributes are valid`);
+    logger.info(`POST /uploadExternalSource: External Source ${key}'s attributes are valid`);
   } else {
-    logger.error(`POST /uploadExternalSource: Source's attributes are invalid`);
+    logger.error(`POST /uploadExternalSource: External Source ${key}'s attributes are invalid`);
     res.status(500);
     if (sourceSchema !== undefined) {
-      res.send(`POST /uploadExternalSource: Source's attributes are invalid:\n${JSON.stringify(sourceSchema.errors)}`);
+      res.send({ message: `External Source ${key}'s attributes are invalid:\n${JSON.stringify(sourceSchema.errors)}` });
     } else {
-      res.send(`Source's attributes are invalid`);
+      res.send({ message: `External Source ${key}'s attributes are invalid` });
     }
     return;
   }
@@ -217,8 +213,7 @@ async function uploadExternalSource(req: Request, res: Response) {
         throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(currentEventSchema.errors)}`);
       }
     } catch (error) {
-      res.status(500);
-      res.send((error as Error).message);
+      res.status(500).send({ message: (error as Error).message });
       return;
     }
   }
@@ -256,7 +251,6 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   const jsonResponse = await response.json();
   const createExternalSourceResponse = jsonResponse as CreateExternalSourceResponse | HasuraError;
-
 
   res.json(createExternalSourceResponse);
 }

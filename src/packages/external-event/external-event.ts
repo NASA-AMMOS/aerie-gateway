@@ -13,9 +13,7 @@ const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
 const ajv = new Ajv();
 
 async function uploadExternalEventType(req: Request, res: Response) {
-  logger.info(`POST /uploadExternalEventType: Entering function...`);
   const authorizationHeader = req.get('authorization');
-  logger.info(`POST /uploadExternalEventType: ${authorizationHeader}`);
 
   const {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
@@ -23,6 +21,7 @@ async function uploadExternalEventType(req: Request, res: Response) {
 
   const { body } = req;
   const { external_event_type_name, attribute_schema } = body;
+  logger.info(`POST /uploadExternalEventType: Uploading External Event Type: ${external_event_type_name}`);
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -38,9 +37,9 @@ async function uploadExternalEventType(req: Request, res: Response) {
       throw new Error("Schema was not a valid JSON Schema.");
     }
   } catch (error) {
+    logger.error(`POST /uploadExternalEventType: Error occurred during External Event Type ${external_event_type_name} upload`);
     logger.error((error as Error).message);
-    res.status(500);
-    res.send((error as Error).message);
+    res.status(500).send({ message: (error as Error).message });
     return;
   }
 
@@ -50,20 +49,19 @@ async function uploadExternalEventType(req: Request, res: Response) {
       throw new Error("Schema title does not match provided external event type name.")
     }
   } catch (error) {
+    logger.error(`POST /uploadExternalEventType: Error occurred during External Event Type ${external_event_type_name} upload`);
     logger.error((error as Error).message);
-    res.status(500);
-    res.send((error as Error).message);
+    res.status(500).send({ message: (error as Error).message });
     return;
   }
 
-  logger.info(`POST /uploadExternalEventType: Attribute schema was VALID! Calling Hasura mutation...`);
+  logger.info(`POST /uploadExternalEventType: Attribute schema was VALID`);
 
   // Run the Hasura migration for creating an external event
   const externalEventTypeInsertInput: ExternalEventTypeInsertInput = {
     attribute_schema: attribute_schema,
     name: external_event_type_name,
   }
-
 
   const response = await fetch(GQL_API_URL, {
     body: JSON.stringify({
