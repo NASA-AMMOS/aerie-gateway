@@ -33,7 +33,9 @@ async function uploadExternalEventType(req: Request, res: Response) {
   // Validate schema is valid JSON Schema
   const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
   if (!schemaIsValid) {
-    logger.error(`POST /uploadExternalEventType: Schema validation failed for External Event Type ${external_event_type_name}`);
+    logger.error(
+      `POST /uploadExternalEventType: Schema validation failed for External Event Type ${external_event_type_name}`,
+    );
     ajv.errors?.forEach(ajvError => logger.error(ajvError));
     res.status(500).send({ message: ajv.errors });
     return;
@@ -41,11 +43,13 @@ async function uploadExternalEventType(req: Request, res: Response) {
 
   // Make sure name in schema (title) and provided name match
   try {
-    if (attribute_schema["title"] === undefined || attribute_schema.title !== external_event_type_name) {
-      throw new Error("Schema title does not match provided external event type name.")
+    if (attribute_schema['title'] === undefined || attribute_schema.title !== external_event_type_name) {
+      throw new Error('Schema title does not match provided external event type name.');
     }
   } catch (error) {
-    logger.error(`POST /uploadExternalEventType: Error occurred during External Event Type ${external_event_type_name} upload`);
+    logger.error(
+      `POST /uploadExternalEventType: Error occurred during External Event Type ${external_event_type_name} upload`,
+    );
     logger.error((error as Error).message);
     res.status(500).send({ message: (error as Error).message });
     return;
@@ -57,7 +61,7 @@ async function uploadExternalEventType(req: Request, res: Response) {
   const externalEventTypeInsertInput: ExternalEventTypeInsertInput = {
     attribute_schema: attribute_schema,
     name: external_event_type_name,
-  }
+  };
 
   const response = await fetch(GQL_API_URL, {
     body: JSON.stringify({
@@ -68,7 +72,9 @@ async function uploadExternalEventType(req: Request, res: Response) {
     method: 'POST',
   });
 
-  type CreateExternalEventTypeResponse = { data: { createExternalEventType: { attribute_schema: object, name: string } | null } };
+  type CreateExternalEventTypeResponse = {
+    data: { createExternalEventType: { attribute_schema: object; name: string } | null };
+  };
   const jsonResponse = await response.json();
   const createExternalEventTypeResponse = jsonResponse as CreateExternalEventTypeResponse | HasuraError;
 

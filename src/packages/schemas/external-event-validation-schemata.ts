@@ -2,7 +2,6 @@
 //          Currently, we do the latter but the former doesn't seem like a bad idea!
 //          The main argument against the former is what we have works and introducing new schemas could be a rabbit hole.
 
-
 // export const externalEventTypeSchema = {
 //     additionalProperties: false,
 //     properties: {
@@ -77,64 +76,67 @@
 // };
 
 export const externalSourceSchema = {
-    additionalProperties: false,
-    properties: {
-        external_events: {
-            items: {
-                additionalProperties: false,
-                properties: {
-                    attributes: {
-                        additionalProperties: true,
-                        properties: {},
-                        required: [],
-                        type: 'object'
-                    },
-                    duration: { type: 'string' },
-                    event_type_name: { type: 'string' },
-                    key: { type: 'string' },
-                    start_time: { type: 'string' },
-                },
-                required: ['duration', 'event_type_name', 'key', 'attributes', 'start_time'],
-                type: 'object'
-            },
-            type: 'array'
+  additionalProperties: false,
+  properties: {
+    external_events: {
+      items: {
+        additionalProperties: false,
+        properties: {
+          attributes: {
+            additionalProperties: true,
+            properties: {},
+            required: [],
+            type: 'object',
+          },
+          duration: { type: 'string' },
+          event_type_name: { type: 'string' },
+          key: { type: 'string' },
+          start_time: { type: 'string' },
         },
-        source: {
-            additionalProperties: false,
-            properties: {
-                attributes: {
-                    additionalProperties: true,
-                    properties: {}, // constrained by type, checked by DB trigger on upload. TODO: CHECK LOCALLY?
-                    required: [],
-                    type: 'object'
-                },
-                derivation_group_name: { type: 'string' },
-                key: { type: 'string' },
-                period:  {
-                    additionalProperties: false,
-                    properties: {
-                        end_time: {
-                            pattern: '^(\\d){4}-([0-3][0-9])-([0-9][0-9])T([0-1][0-9]):([0-5][0-9]):([0-5][0-9])(\\+|-)([0-1][0-9]):([0-5][0-9])$',
-                            type: 'string'
-                        },
-                        start_time: {
-                            pattern: '^(\\d){4}-([0-3][0-9])-([0-9][0-9])T([0-1][0-9]):([0-5][0-9]):([0-5][0-9])(\\+|-)([0-1][0-9]):([0-5][0-9])$',
-                            type: 'string'
-                        }
-                    },
-                    required: ['start_time', 'end_time'],
-                    type: 'object'
-                },
-                source_type_name: { type: "string" },
-                valid_at: {
-                    pattern: '^(\\d){4}-([0-3][0-9])-([0-9][0-9])T([0-1][0-9]):([0-5][0-9]):([0-5][0-9])(\\+|-)([0-1][0-9]):([0-5][0-9])$',
-                    type: "string"
-                }
-            },
-            required: ["key", "source_type_name", "valid_at", "period", "attributes"],
-            type: 'object'
-        }
+        required: ['duration', 'event_type_name', 'key', 'attributes', 'start_time'],
+        type: 'object',
+      },
+      type: 'array',
     },
-    required: ['source', 'external_events'],
-    type: 'object' 
-}
+    source: {
+      additionalProperties: false,
+      properties: {
+        attributes: {
+          additionalProperties: true,
+          properties: {}, // constrained by type, checked by DB trigger on upload. TODO: CHECK LOCALLY?
+          required: [],
+          type: 'object',
+        },
+        derivation_group_name: { type: 'string' },
+        key: { type: 'string' },
+        period: {
+          additionalProperties: false,
+          properties: {
+            end_time: {
+              pattern:
+                '^(\\d){4}-([0-3][0-9])-([0-9][0-9])T([0-1][0-9]):([0-5][0-9]):([0-5][0-9])(\\+|-)([0-1][0-9]):([0-5][0-9])$',
+              type: 'string',
+            },
+            start_time: {
+              pattern:
+                '^(\\d){4}-([0-3][0-9])-([0-9][0-9])T([0-1][0-9]):([0-5][0-9]):([0-5][0-9])(\\+|-)([0-1][0-9]):([0-5][0-9])$',
+              type: 'string',
+            },
+          },
+          required: ['start_time', 'end_time'],
+          type: 'object',
+        },
+        source_type_name: { type: 'string' },
+        valid_at: {
+          pattern:
+            '^(\\d){4}-([0-3][0-9])-([0-9][0-9])T([0-1][0-9]):([0-5][0-9]):([0-5][0-9])(\\+|-)([0-1][0-9]):([0-5][0-9])$',
+          type: 'string',
+        },
+      },
+      required: ['key', 'source_type_name', 'valid_at', 'period', 'attributes'],
+      type: 'object',
+    },
+  },
+  required: ['source', 'external_events'],
+  type: 'object',
+};

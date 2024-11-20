@@ -4,12 +4,12 @@ export type ExternalEventInsertInput = {
   duration: string;
   event_type_name: string;
   key: string;
-}
+};
 
 export type ExternalEventTypeInsertInput = {
   name: string;
   attribute_schema: object;
-}
+};
 
 export type ExternalEvent = {
   key: string;
@@ -17,4 +17,4 @@ export type ExternalEvent = {
   start_time: string;
   duration: string;
   attributes: object;
-}
+};

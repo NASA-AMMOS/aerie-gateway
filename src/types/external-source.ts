@@ -1,12 +1,12 @@
 export type DerivationGroupInsertInput = {
   name: string;
   source_type_name: string;
-}
+};
 
 export type ExternalSourceTypeInsertInput = {
   name: string;
   attribute_schema: object;
-}
+};
 
 export type ExternalSourceInsertInput = {
   attributes: object;
@@ -19,9 +19,9 @@ export type ExternalSourceInsertInput = {
       event_type_name: string;
       key: string;
     }[];
-  }
+  };
   key: string;
   source_type_name: string;
   start_time: string;
   valid_at: string;
-}
+};

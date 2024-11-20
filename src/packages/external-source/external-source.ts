@@ -1,5 +1,9 @@
 import type { Express, Request, Response } from 'express';
-import type { DerivationGroupInsertInput, ExternalSourceInsertInput, ExternalSourceTypeInsertInput } from '../../types/external-source.js';
+import type {
+  DerivationGroupInsertInput,
+  ExternalSourceInsertInput,
+  ExternalSourceTypeInsertInput,
+} from '../../types/external-source.js';
 import type { ExternalEventInsertInput } from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
@@ -9,9 +13,15 @@ import { externalSourceSchema } from '../schemas/external-event-validation-schem
 import { HasuraError } from '../../types/hasura.js';
 
 type CreateExternalSourceResponse = { data: { createExternalSource: { name: string } | null } };
-type CreateExternalSourceTypeResponse = { data: { createExternalSourceType: { attribute_schema: object, name: string } | null } };
-type GetExternalSourceTypeAttributeSchemaResponse = { data: { external_source_type_by_pk: { attribute_schema: object } | null } };
-type GetExternalEventTypeAttributeSchemaResponse = { data: { external_event_type_by_pk: { attribute_schema: object } | null } };
+type CreateExternalSourceTypeResponse = {
+  data: { createExternalSourceType: { attribute_schema: object; name: string } | null };
+};
+type GetExternalSourceTypeAttributeSchemaResponse = {
+  data: { external_source_type_by_pk: { attribute_schema: object } | null };
+};
+type GetExternalEventTypeAttributeSchemaResponse = {
+  data: { external_event_type_by_pk: { attribute_schema: object } | null };
+};
 
 const logger = getLogger('packages/external-source/external-source');
 const { HASURA_API_URL } = getEnv();
@@ -30,7 +40,6 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   const { external_source_type_name, attribute_schema } = body;
   logger.info(`POST /uploadExternalSourceType: Uploading External Source Type: ${external_source_type_name}`);
 
-
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
     'Content-Type': 'application/json',
@@ -44,7 +53,9 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   //        and only really get punished for it when validating a source.
   const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
   if (!schemaIsValid) {
-    logger.error(`POST /uploadExternalSourceType: Schema validation failed for External Source Type ${external_source_type_name}`);
+    logger.error(
+      `POST /uploadExternalSourceType: Schema validation failed for External Source Type ${external_source_type_name}`,
+    );
     ajv.errors?.forEach(ajvError => logger.error(ajvError));
     res.status(500).send({ message: ajv.errors });
     return;
@@ -54,8 +65,10 @@ async function uploadExternalSourceType(req: Request, res: Response) {
 
   // Make sure name in schema (title) and provided name match
   try {
-    if (attribute_schema["title"] === undefined || attribute_schema.title !== external_source_type_name) {
-      throw new Error(`${external_source_type_name} attribute schema title does not match provided external source type name.`)
+    if (attribute_schema['title'] === undefined || attribute_schema.title !== external_source_type_name) {
+      throw new Error(
+        `${external_source_type_name} attribute schema title does not match provided external source type name.`,
+      );
     }
   } catch (error) {
     res.status(500).send({ message: (error as Error).message });
@@ -66,7 +79,7 @@ async function uploadExternalSourceType(req: Request, res: Response) {
   const externalSourceTypeInput: ExternalSourceTypeInsertInput = {
     attribute_schema: attribute_schema,
     name: external_source_type_name,
-  }
+  };
 
   const response = await fetch(GQL_API_URL, {
     body: JSON.stringify({
@@ -89,22 +102,9 @@ async function uploadExternalSource(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
   const { body } = req;
-  const {
-    external_events,
-    source
-  } = body;
-  const {
-    attributes,
-    derivation_group_name,
-    key,
-    source_type_name,
-    period,
-    valid_at
-  } = source;
-  const {
-    end_time,
-    start_time
-  } = period;
+  const { external_events, source } = body;
+  const { attributes, derivation_group_name, key, source_type_name, period, valid_at } = source;
+  const { end_time, start_time } = period;
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
     'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
-  logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`)
+  logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`);
 
   // Verify that this is a valid external source!
   let sourceIsValid: boolean = false;
@@ -130,28 +130,34 @@ async function uploadExternalSource(req: Request, res: Response) {
     body: JSON.stringify({
       query: gql.GET_EXTERNAL_SOURCE_TYPE_ATTRIBUTE_SCHEMA,
       variables: {
-        name: source_type_name
-      }
+        name: source_type_name,
+      },
     }),
     headers,
-    method: 'POST'
+    method: 'POST',
   });
 
   // Validate the attributes on the External Source
   let sourceAttributesAreValid: boolean = false;
   let sourceSchema: Ajv.ValidateFunction | undefined = undefined;
-  const sourceTypeResponseJSON  = await sourceAttributeSchema.json();
-  const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON as GetExternalSourceTypeAttributeSchemaResponse | HasuraError;
-  if ((getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data?.external_source_type_by_pk?.attribute_schema !== null) {
-    const { data: { external_source_type_by_pk: sourceAttributeSchema } } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
+  const sourceTypeResponseJSON = await sourceAttributeSchema.json();
+  const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON as
+    | GetExternalSourceTypeAttributeSchemaResponse
+    | HasuraError;
+  if (
+    (getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data
+      ?.external_source_type_by_pk?.attribute_schema !== null
+  ) {
+    const {
+      data: { external_source_type_by_pk: sourceAttributeSchema },
+    } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
     if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
       sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
       sourceAttributesAreValid = await sourceSchema(attributes);
-    }
-    else {
+    } else {
       // source type does not exist!
       logger.error(`POST /uploadExternalSource: External Source Type ${source_type_name} does not exist!`);
-      res.status(500).send({ message: `External Source Type ${source_type_name} does not exist!`});
+      res.status(500).send({ message: `External Source Type ${source_type_name} does not exist!` });
       return;
     }
   }
@@ -171,11 +177,12 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   // Get the attribute schema(s) for all external event types used by the source's events
   // get list of all used event types
-  const usedExternalEventTypes = external_events.map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name).reduce(
-    (acc: string[], externalEventType: string) => {
+  const usedExternalEventTypes = external_events
+    .map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name)
+    .reduce((acc: string[], externalEventType: string) => {
       if (!acc.includes(externalEventType)) {
-        acc.push(externalEventType)
-      };
+        acc.push(externalEventType);
+      }
       return acc;
     }, []);
 
@@ -185,17 +192,24 @@ async function uploadExternalSource(req: Request, res: Response) {
       body: JSON.stringify({
         query: gql.GET_EXTERNAL_EVENT_TYPE_ATTRIBUTE_SCHEMA,
         variables: {
-          name: eventType
-        }
+          name: eventType,
+        },
       }),
       headers,
-      method: 'POST'
+      method: 'POST',
     });
-    const eventTypeJSONResponse  = await eventAttributeSchema.json();
-    const getExternalEventTypeAttributeSchemaResponse = eventTypeJSONResponse as GetExternalEventTypeAttributeSchemaResponse | HasuraError;
+    const eventTypeJSONResponse = await eventAttributeSchema.json();
+    const getExternalEventTypeAttributeSchemaResponse = eventTypeJSONResponse as
+      | GetExternalEventTypeAttributeSchemaResponse
+      | HasuraError;
 
-    if ((getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data?.external_event_type_by_pk?.attribute_schema !== null) {
-      const { data: { external_event_type_by_pk: eventAttributeSchema } } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
+    if (
+      (getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data
+        ?.external_event_type_by_pk?.attribute_schema !== null
+    ) {
+      const {
+        data: { external_event_type_by_pk: eventAttributeSchema },
+      } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
       if (eventAttributeSchema !== undefined && eventAttributeSchema !== null) {
         usedExternalEventTypesAttributesSchemas[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
       }
@@ -205,10 +219,16 @@ async function uploadExternalSource(req: Request, res: Response) {
   for (const externalEvent of external_events) {
     try {
       const currentEventType = externalEvent.event_type_name;
-      const currentEventSchema: Ajv.ValidateFunction  = usedExternalEventTypesAttributesSchemas[currentEventType];
+      const currentEventSchema: Ajv.ValidateFunction = usedExternalEventTypesAttributesSchemas[currentEventType];
       const eventAttributesAreValid = await currentEventSchema(externalEvent.attributes);
       if (!eventAttributesAreValid) {
-        throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(currentEventSchema.errors)}`);
+        throw new Error(
+          `External Event '${
+            externalEvent.key
+          }' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(
+            currentEventSchema.errors,
+          )}`,
+        );
       }
     } catch (error) {
       res.status(500).send({ message: (error as Error).message });
@@ -219,21 +239,21 @@ async function uploadExternalSource(req: Request, res: Response) {
   // Run the Hasura migration for creating an external source
   const derivationGroupInsert: DerivationGroupInsertInput = {
     name: derivation_group_name,
-    source_type_name: source_type_name
-  }
+    source_type_name: source_type_name,
+  };
 
   const externalSourceInsert: ExternalSourceInsertInput = {
     attributes: attributes,
     derivation_group_name: derivation_group_name,
     end_time: end_time,
     external_events: {
-      data: external_events
+      data: external_events,
     },
     key: key,
     source_type_name: source_type_name,
     start_time: start_time,
-    valid_at: valid_at
-  }
+    valid_at: valid_at,
+  };
 
   const response = await fetch(GQL_API_URL, {
     body: JSON.stringify({
