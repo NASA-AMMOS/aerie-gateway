@@ -1,25 +1,23 @@
 import type { Express, Request, Response } from 'express';
 import type { DerivationGroupInsertInput, ExternalSourceInsertInput, ExternalSourceTypeInsertInput } from '../../types/external-source.js';
-import type { ExternalEventInsertInput } from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import gql from './gql.js';
-import { baseExternalSourceSchema } from '../schemas/external-event-validation-schemata.js';
+import { baseExternalSourceSchema, defsSchema } from '../schemas/external-event-validation-schemata.js';
 import { HasuraError } from '../../types/hasura.js';
 
 type CreateExternalSourceResponse = { data: { createExternalSource: { name: string } | null } };
 type CreateExternalSourceTypeResponse = { data: { createExternalSourceType: { attribute_schema: object, name: string } | null } };
-type GetExternalSourceTypeAttributeSchemaResponse = { data: { external_source_type_by_pk: { attribute_schema: object } | null } };
-type GetExternalEventTypeAttributeSchemaResponse = { data: { external_event_type_by_pk: { attribute_schema: object } | null } };
+type GetExternalSourceTypeAttributeSchemaResponse = { data: { external_source_type_by_pk: { attribute_schema: { $id: string, definitions: { event_types: object, source_type: object } } } } };
 
 const logger = getLogger('packages/external-source/external-source');
 const { HASURA_API_URL } = getEnv();
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
-const ajv = new Ajv(); // TODO: remove. now created in updateSchemaWithDefs
-const compiledExternalSourceSchema = ajv.compile(baseExternalSourceSchema); // TODO: fix
+const ajv = new Ajv();
+const compiledDefsVerificationSchema = ajv.compile(defsSchema);
 
-export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_types: object, source_type: object } }): Ajv.ValidateFunction | undefined {
+export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_types: any, source_type: any } }): Ajv.ValidateFunction | undefined {
   // get $id
   const defId = defs.$id;
 
@@ -29,12 +27,26 @@ export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_t
   }
 
   let ifThenElsePointer = ifThenElse;
-
   const keys = Object.keys(defs.definitions.event_types);
-  console.log(keys)
+  
+  // handling if there's only 1 event type
+  if (keys.length === 1) {
+    // no need for ifThenElse, simply create localSchemaCopy and update properties.external_events.items.properties.attributes 
+    //   to match the event type in defs, and verify the event_type_name matches the def name
+    const localSchemaCopy = structuredClone(baseExternalSourceSchema);
+    const event_type_name = keys[0];
+    const event_type_schema = defs.definitions.event_types[event_type_name];
 
-  // TODO: handling if there's only 1 event type
+    localSchemaCopy.properties.external_events.items.properties.attributes = event_type_schema;
+    localSchemaCopy.properties.external_events.items.properties.event_type_name = { "const": event_type_name };
 
+    console.log(JSON.stringify(localSchemaCopy))
+
+    const localAjv = new Ajv();
+    return localAjv.addSchema(defs).compile(localSchemaCopy);
+  }
+
+  // handle n event types
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
     console.log("NOW ON:", key);
@@ -47,8 +59,8 @@ export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_t
     };
     ifThenElsePointer["then"] = {
       properties: {
-        attributes: { // TODO: change the #
-          $ref: `${defId}#/definitions/event_types/${key}` // TODO: use $id from defs instead of "#"
+        attributes: {
+          $ref: `${defId}#/definitions/event_types/${key}`
         }
       }
     };
@@ -67,7 +79,6 @@ export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_t
   }
 
   // insert if statement into local copy of baseExternalSourceSchema
-  // TODO: handling if there's only 1 event type
   const localSchemaCopy = structuredClone(baseExternalSourceSchema);
   localSchemaCopy.properties.external_events.items["if"] = ifThenElse["if"];
   localSchemaCopy.properties.external_events.items["then"] = ifThenElse["then"];
@@ -78,8 +89,6 @@ export function updateSchemaWithDefs(defs: { $id: string, definitions: { event_t
   localSchemaCopy.properties.source.properties.attributes = { $ref: `${defId}#/definitions/source_type/${sourceTypeKey}`}
 
   // compile with defs, return
-  // const localAjv = new Ajv({schemas: [defs, localSchemaCopy]});
-  // return localAjv.getSchema("source_schema");
   const localAjv = new Ajv();
   return localAjv.addSchema(defs).compile(localSchemaCopy);
 }
@@ -103,13 +112,11 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
-  // Validate schema is valid JSON Schema
-  // NOTE: this does not check that all required attributes are included. technically, you could upload a schema for an event type,
-  //        and only really get punished for it when validating a source.
+  // Validate $defs schema is valid
   try {
-    const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
+    const schemaIsValid: boolean = await compiledDefsVerificationSchema(attribute_schema);
     if (!schemaIsValid) {
-      throw new Error("Schema was not a valid JSON Schema.");
+      throw new Error(`$defs schema was invalid:\n${compiledDefsVerificationSchema.errors}`);
     }
   } catch (e) {
     logger.error(`POST /uploadExternalSourceType: ${(e as Error).message}`);
@@ -120,10 +127,13 @@ async function uploadExternalSourceType(req: Request, res: Response) {
 
   logger.info(`POST /uploadExternalSourceType: Attribute schema was VALID! Calling Hasura mutation...`);
 
-  // Make sure name in schema (title) and provided name match
+  // Make sure name in schema (title) and provided name match. 
+  //    We know for a fact schema[definitions][source_type] exist and its only 1 from the schema validation earlier, so we
+  //    can skip some steps.
   try {
-    if (attribute_schema["title"] === undefined || attribute_schema.title !== external_source_type_name) {
-      throw new Error("Schema title does not match provided external source type name.")
+    const keys = Object.keys(attribute_schema["definitions"]["source_type"]);
+    if (keys[0] !== external_source_type_name) {
+      throw new Error("File-provided source type name does not match query-provided external source type name.");
     }
   } catch (e) {
     logger.error(`POST /uploadExternalSourceType: ${(e as Error).message}`);
@@ -185,20 +195,8 @@ async function uploadExternalSource(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
-  // Verify that this is a valid external source!
-  let sourceIsValid: boolean = false;
-  sourceIsValid = await compiledExternalSourceSchema(body);
-  if (sourceIsValid) {
-    logger.info(`POST /uploadExternalSource: Source's formatting is valid per basic schema validation.`);
-  } else {
-    logger.error(`POST /uploadExternalSource: Source's formatting is invalid per basic schema validation:\n${JSON.stringify(compiledExternalSourceSchema.errors)}`);
-    res.status(500);
-    res.send(`POST /uploadExternalSource: Source's formatting is invalid per basic schema validation:\n${JSON.stringify(compiledExternalSourceSchema.errors)}`);
-    return;
-  }
-
-  // Get the attribute schema for the source's external source type
-  const sourceAttributeSchema = await fetch(GQL_API_URL, {
+  // Get the attribute/def schema for the source's external source type (and contained event types)
+  const sourceTypeDefsResponse = await fetch(GQL_API_URL, {
     body: JSON.stringify({
       query: gql.GET_EXTERNAL_SOURCE_TYPE_ATTRIBUTE_SCHEMA,
       variables: {
@@ -209,86 +207,37 @@ async function uploadExternalSource(req: Request, res: Response) {
     method: 'POST'
   });
 
-  // Validate the attributes on the External Source
-  let sourceAttributesAreValid: boolean = false;
-  let sourceSchema: Ajv.ValidateFunction | undefined = undefined;
-  const sourceTypeResponseJSON  = await sourceAttributeSchema.json();
-  const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON as GetExternalSourceTypeAttributeSchemaResponse | HasuraError;
-  if ((getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data?.external_source_type_by_pk?.attribute_schema !== null) {
-    const { data: { external_source_type_by_pk: sourceAttributeSchema } } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
-    if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
-      sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
-      sourceAttributesAreValid = await sourceSchema(attributes);
-    }
-    else {
-      // source type does not exist!
-      logger.error(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
-      res.status(500);
-      res.send(`POST /uploadExternalSource: Source type ${source_type_name} does not exist!`);
-      return;
-    }
-  }
+  const sourceTypeDefsJson: GetExternalSourceTypeAttributeSchemaResponse = await sourceTypeDefsResponse.json()
 
-  if (sourceAttributesAreValid) {
-    logger.info(`POST /uploadExternalSource: Source's attributes are valid`);
-  } else {
-    logger.error(`POST /uploadExternalSource: Source's attributes are invalid`);
+  // create a merged schema with the new attribute/def schema
+  let compiledExternalSourceSchema: Ajv.ValidateFunction | undefined = undefined;
+  try {
+    compiledExternalSourceSchema = updateSchemaWithDefs(sourceTypeDefsJson.data.external_source_type_by_pk.attribute_schema);
+  }
+  catch (e) {
+    logger.error(`POST /uploadExternalSource: Error handling attribute schema:\n${e as Error}`);
     res.status(500);
-    if (sourceSchema !== undefined) {
-      res.send(`POST /uploadExternalSource: Source's attributes are invalid:\n${JSON.stringify(sourceSchema.errors)}`);
-    } else {
-      res.send(`POST /uploadExternalSource: Source's attributes are invalid`);
-    }
+    res.send(`POST /uploadExternalSource: Error handling attribute schema:\n${e as Error}`);
+    return;
+
+  }
+  if (compiledExternalSourceSchema === undefined) {
+    logger.error(`POST /uploadExternalSource: Source type attribute definition schema is invalid.`);
+    res.status(500);
+    res.send(`POST /uploadExternalSource: Source type attribute definition schema is invalid.`);
     return;
   }
 
-  // Get the attribute schema(s) for all external event types used by the source's events
-  // get list of all used event types
-  const usedExternalEventTypes = external_events.map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name).reduce(
-    (acc: string[], externalEventType: string) => {
-      if (!acc.includes(externalEventType)) {
-        acc.push(externalEventType)
-      };
-      return acc;
-    }, []);
-
-  const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = {};
-  for (const eventType of usedExternalEventTypes) {
-    const eventAttributeSchema = await fetch(GQL_API_URL, {
-      body: JSON.stringify({
-        query: gql.GET_EXTERNAL_EVENT_TYPE_ATTRIBUTE_SCHEMA,
-        variables: {
-          name: eventType // TODO: make this 1 query lol
-        }
-      }),
-      headers,
-      method: 'POST'
-    });
-    const eventTypeJSONResponse  = await eventAttributeSchema.json();
-    const getExternalEventTypeAttributeSchemaResponse = eventTypeJSONResponse as GetExternalEventTypeAttributeSchemaResponse | HasuraError;
-
-    if ((getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data?.external_event_type_by_pk?.attribute_schema !== null) {
-      const { data: { external_event_type_by_pk: eventAttributeSchema } } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
-      if (eventAttributeSchema !== undefined && eventAttributeSchema !== null) {
-        usedExternalEventTypesAttributesSchemas[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
-      }
-    }
-  }
-
-  for (const externalEvent of external_events) {
-    try {
-      const currentEventType = externalEvent.event_type_name;
-      const currentEventSchema: Ajv.ValidateFunction  = usedExternalEventTypesAttributesSchemas[currentEventType];
-      const eventAttributesAreValid = await currentEventSchema(externalEvent.attributes);
-      if (!eventAttributesAreValid) {
-        throw new Error(`External Event '${externalEvent.key}' does not have a valid set of attributes, per it's type's schema:\n${JSON.stringify(currentEventSchema.errors)}`);
-      }
-    } catch (e) {
-      logger.error(`POST /uploadExternalSource: ${(e as Error).message}`);
-      res.status(500);
-      res.send((e as Error).message);
-      return;
-    }
+  // Verify that this is a valid external source!
+  let sourceIsValid: boolean = false;
+  sourceIsValid = await compiledExternalSourceSchema(body);
+  if (sourceIsValid) {
+    logger.info(`POST /uploadExternalSource: Source's formatting is valid per attribute schema validation.`);
+  } else {
+    logger.error(`POST /uploadExternalSource: Source's formatting is invalid per attribute schema validation:\n${JSON.stringify(compiledExternalSourceSchema.errors)}`);
+    res.status(500);
+    res.send(`POST /uploadExternalSource: Source's formatting is invalid per basic attribute validation:\n${JSON.stringify(compiledExternalSourceSchema.errors)}`);
+    return;
   }
 
   // Run the Hasura migration for creating an external source

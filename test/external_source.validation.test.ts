@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import { describe, expect, test } from 'vitest';
-import { baseExternalSourceSchema } from '../src/packages/schemas/external-event-validation-schemata';
+import { baseExternalSourceSchema, defsSchema } from '../src/packages/schemas/external-event-validation-schemata';
 import { updateSchemaWithDefs } from '../src/packages/external-source/external-source';
 
 const ajv = Ajv();
@@ -116,6 +116,228 @@ const invalidEventAttributes = {
 
 
 describe('validation tests', () => {
+
+  test('verifyDefsCorrect', () => {
+    const defs = {
+      "$id": "defs",
+      "definitions": {
+        "event_types": {
+          "EventTypeA": {
+            "properties": {
+              "series": {
+                "properties": {
+                  "iteration": { "type": "number" },
+                  "make": { "type": "string" },
+                  "type": { "type": "string" },
+                },
+                "required": ["type", "make", "iteration"],
+                "type": "object",
+              }
+            },
+            "required": ["series"],
+            "type": "object",
+          },
+          "EventTypeB": {
+            "type": "object",
+            "required": ["projectUser", "tick"],
+            "properties": {
+              "projectUser": {
+                "type": "string"
+              },
+              "tick": {
+                "type": "number"
+              }
+            }
+          },
+          "EventTypeC": {
+            "type": "object",
+            "required": ["aperture", "subduration"],
+            "properties": {
+              "aperture": {
+                "type": "string"
+              },
+              "subduration": {
+                "type": "string",
+                "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?$"
+              }
+            }
+          }
+        },
+        "source_type": {
+          "SourceTypeA": {
+            "type": "object",
+            "required": ["version", "wrkcat"],
+            "properties": {
+              "version": {
+                "type": "number"
+              },
+              "wrkcat": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // missing required for one event type spec
+    const badDefs = {
+      "$id": "defs",
+      "definitions": {
+        "event_types": {
+          "EventTypeA": {
+            "properties": {
+              "series": {
+                "properties": {
+                  "iteration": { "type": "number" },
+                  "make": { "type": "string" },
+                  "type": { "type": "string" },
+                },
+                "required": ["type", "make", "iteration"],
+                "type": "object",
+              }
+            },
+            "required": ["series"],
+            "type": "object",
+          },
+          "EventTypeB": {
+            "type": "object",
+            "required": ["projectUser", "tick"],
+            "properties": {
+              "projectUser": {
+                "type": "string"
+              },
+              "tick": {
+                "type": "number"
+              }
+            }
+          },
+          "EventTypeC": {
+            "type": "object",
+            "properties": {
+              "aperture": {
+                "type": "string"
+              },
+              "subduration": {
+                "type": "string",
+                "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?$"
+              }
+            }
+          }
+        },
+        "source_type": {
+          "SourceTypeA": {
+            "type": "object",
+            "required": ["version", "wrkcat"],
+            "properties": {
+              "version": {
+                "type": "number"
+              },
+              "wrkcat": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    };
+
+    // extra source type
+    const badDefs2 = {
+      "$id": "defs",
+      "definitions": {
+        "event_types": {
+          "EventTypeA": {
+            "properties": {
+              "series": {
+                "properties": {
+                  "iteration": { "type": "number" },
+                  "make": { "type": "string" },
+                  "type": { "type": "string" },
+                },
+                "required": ["type", "make", "iteration"],
+                "type": "object",
+              }
+            },
+            "required": ["series"],
+            "type": "object",
+          },
+          "EventTypeB": {
+            "type": "object",
+            "required": ["projectUser", "tick"],
+            "properties": {
+              "projectUser": {
+                "type": "string"
+              },
+              "tick": {
+                "type": "number"
+              }
+            }
+          },
+          "EventTypeC": {
+            "type": "object",
+            "required": ["aperture", "subduration"],
+            "properties": {
+              "aperture": {
+                "type": "string"
+              },
+              "subduration": {
+                "type": "string",
+                "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?$"
+              }
+            }
+          }
+        },
+        "source_type": {
+          "SourceTypeA": {
+            "type": "object",
+            "required": ["version", "wrkcat"],
+            "properties": {
+              "version": {
+                "type": "number"
+              },
+              "wrkcat": {
+                "type": "string"
+              }
+            }
+          },
+          "SourceTypeB": {
+            "type": "object",
+            "required": ["version", "wrkcat"],
+            "properties": {
+              "version": {
+                "type": "number"
+              },
+              "wrkcat": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const validator = ajv.compile(defsSchema);
+    if(validator !== undefined) {
+      let result = validator(defs);
+      console.log(result);
+      if (!result) {
+        console.log(validator.errors)
+      }
+
+      result = validator(badDefs);
+      console.log(result);
+      if (!result) {
+        console.log(validator.errors)
+      }
+
+      result = validator(badDefs2);
+      console.log(result);
+      if (!result) {
+        console.log(validator.errors)
+      }
+    }
+  })
 
   test('if statement schema stuff', () => {
     const defs = {
