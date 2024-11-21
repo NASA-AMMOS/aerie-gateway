@@ -16,13 +16,12 @@ import getLogger from '../../logger.js';
 import gql from './gql.js';
 import { externalSourceSchema } from '../schemas/external-event-validation-schemata.js';
 import { HasuraError } from '../../types/hasura.js';
-import rateLimit from 'express-rate-limit';
 import { auth } from '../auth/middleware.js';
+import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { parseJSONFile } from '../../util/fileParser.js';
-import { convertDoyToYmd, getIntervalInMs } from '../../util/time.js';
 
-const upload = multer();
+const upload = multer({ limits: { fieldSize: 25 * 1024 * 1024 } });
 const logger = getLogger('packages/external-source/external-source');
 const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
@@ -33,7 +32,7 @@ const refreshLimiter = rateLimit({
   max: RATE_LIMITER_LOGIN_MAX,
   standardHeaders: true,
   windowMs: 15 * 60 * 1000, // 15 minutes
-});
+})
 
 async function uploadExternalSourceType(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
@@ -113,10 +112,26 @@ async function uploadExternalSource(req: Request, res: Response) {
   const {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
-  const { body, file } = req;
-  const { external_events, source } = body;
-  const { attributes, derivation_group_name, key, source_type_name, period, valid_at } = source;
-  const { end_time, start_time } = period;
+  const { body } = req;
+  const { attributes, derivation_group_name, key, end_time, start_time, source_type_name, valid_at, external_events } = body;
+  const parsedAttributes = JSON.parse(attributes);
+  const parsedExternalEvents = JSON.parse(external_events);
+
+  // Re-package the fields as a JSON object to be validated by the meta-schema
+  const externalSourceJson = {
+    external_events: parsedExternalEvents,
+    source: {
+      attributes: parsedAttributes,
+      derivation_group_name: derivation_group_name,
+      key: key,
+      period: {
+        end_time: end_time,
+        start_time: start_time,
+      },
+      source_type_name: source_type_name,
+      valid_at: valid_at
+    },
+  }
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -153,7 +168,7 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   // Verify that this is a valid external source
   let sourceIsValid: boolean = false;
-  sourceIsValid = await compiledExternalSourceSchema(body);
+  sourceIsValid = await compiledExternalSourceSchema(externalSourceJson);
   if (sourceIsValid) {
     logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
   } else {
@@ -189,7 +204,7 @@ async function uploadExternalSource(req: Request, res: Response) {
       getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
     if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
       sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
-      sourceAttributesAreValid = await sourceSchema(attributes);
+      sourceAttributesAreValid = await sourceSchema(parsedAttributes);
     } else {
       // source type does not exist!
       logger.error(`POST /uploadExternalSource: External Source Type ${source_type_name} does not exist!`);
@@ -211,40 +226,13 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  // Create External Event inputs
-  const externalEventsCreated: ExternalEventInsertInput[] = [];
-  const usedExternalEventTypes: string[] = [];
-  for (const externalEvent of uploadedExternalSource.events) {
-    // Ensure the duration is valid
-    try {
-      getIntervalInMs(externalEvent.duration);
-    } catch (error) {
-      const errorMsg = `Event duration has invalid format: ${externalEvent.key}\n${(error as Error).message}`;
-      res.status(500).send({ message: errorMsg });
-    }
-
-    // Validate external event is in the external source's start/stop bounds
-    const externalEventStart = Date.parse(convertDoyToYmd(externalEvent.start_time.replace('Z', '')) ?? '');
-    const externalEventEnd = externalEventStart + getIntervalInMs(externalEvent.duration);
-    if (!(externalEventStart >= Date.parse(startTimeFormatted) && externalEventEnd <= Date.parse(endTimeFormatted))) {
-      const errorMsg = `Upload failed. Event (${
-        externalEvent.key
-      }) not in bounds of source start and end: occurs from [${new Date(externalEventStart)},${new Date(
-        externalEventEnd,
-      )}], not subset of [${new Date(startTimeFormatted)},${new Date(endTimeFormatted)}].\n`;
-      res.status(500).send(errorMsg);
-      return;
-    }
-
-    // If the event is valid...
-    if (
-      externalEvent.event_type !== undefined &&
-      externalEvent.start_time !== undefined &&
-      externalEvent.duration !== undefined
-    ) {
-      // Add event type to usedExternalEventTypes for validation later
-      if (!usedExternalEventTypes.includes(externalEvent.event_type)) {
-        usedExternalEventTypes.push(externalEvent.event_type);
+  // Get the attribute schema(s) for all external event types used by the source's events
+  // get list of all used event types
+  const usedExternalEventTypes = parsedExternalEvents
+    .map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name)
+    .reduce((acc: string[], externalEventType: string) => {
+      if (!acc.includes(externalEventType)) {
+        acc.push(externalEventType);
       }
       externalEventsCreated.push({
         attributes: externalEvent.attributes,
@@ -285,7 +273,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     }
   }
 
-  for (const externalEvent of external_events) {
+  for (const externalEvent of parsedExternalEvents) {
     try {
       const currentEventType = externalEvent.event_type_name;
       const currentEventSchema: Ajv.ValidateFunction = usedExternalEventTypesAttributesSchemas[currentEventType];
@@ -300,6 +288,7 @@ async function uploadExternalSource(req: Request, res: Response) {
         );
       }
     } catch (error) {
+      logger.error(`POST /uploadExternalSource: External Event ${externalEvent.key}'s attributes are invalid`);
       res.status(500).send({ message: (error as Error).message });
       return;
     }
@@ -312,11 +301,11 @@ async function uploadExternalSource(req: Request, res: Response) {
   };
 
   const externalSourceInsert: ExternalSourceInsertInput = {
-    attributes: attributes,
+    attributes: parsedAttributes,
     derivation_group_name: derivation_group_name,
     end_time: end_time,
     external_events: {
-      data: externalEventsCreated,
+      data: parsedExternalEvents,
     },
     key: key,
     source_type_name: source_type_name,
@@ -471,5 +460,5 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post('/uploadExternalSource', upload.single('external_source'), refreshLimiter, auth, uploadExternalSource);
+  app.post('/uploadExternalSource', upload.any(), refreshLimiter, auth, uploadExternalSource);
 };
