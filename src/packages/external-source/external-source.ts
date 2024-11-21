@@ -3,31 +3,37 @@ import type {
   DerivationGroupInsertInput,
   ExternalSourceInsertInput,
   ExternalSourceTypeInsertInput,
+  CreateExternalSourceResponse,
+  CreateExternalSourceTypeResponse,
+  GetExternalSourceTypeAttributeSchemaResponse,
+  GetExternalEventTypeAttributeSchemaResponse,
+  UploadExternalSourceJSON,
 } from '../../types/external-source.js';
-import type { ExternalEventInsertInput } from '../../types/external-event.js';
+import type { ExternalEventInsertInput, UploadAttributeJSON } from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import gql from './gql.js';
 import { externalSourceSchema } from '../schemas/external-event-validation-schemata.js';
 import { HasuraError } from '../../types/hasura.js';
+import rateLimit from 'express-rate-limit';
+import { auth } from '../auth/middleware.js';
+import multer from 'multer';
+import { parseJSONFile } from '../../util/fileParser.js';
+import { convertDoyToYmd, getIntervalInMs } from '../../util/time.js';
 
-type CreateExternalSourceResponse = { data: { createExternalSource: { name: string } | null } };
-type CreateExternalSourceTypeResponse = {
-  data: { createExternalSourceType: { attribute_schema: object; name: string } | null };
-};
-type GetExternalSourceTypeAttributeSchemaResponse = {
-  data: { external_source_type_by_pk: { attribute_schema: object } | null };
-};
-type GetExternalEventTypeAttributeSchemaResponse = {
-  data: { external_event_type_by_pk: { attribute_schema: object } | null };
-};
-
+const upload = multer();
 const logger = getLogger('packages/external-source/external-source');
-const { HASURA_API_URL } = getEnv();
+const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
 const ajv = new Ajv();
 const compiledExternalSourceSchema = ajv.compile(externalSourceSchema);
+const refreshLimiter = rateLimit({
+  legacyHeaders: false,
+  max: RATE_LIMITER_LOGIN_MAX,
+  standardHeaders: true,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});
 
 async function uploadExternalSourceType(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
@@ -36,8 +42,8 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  const { body } = req;
-  const { external_source_type_name, attribute_schema } = body;
+  const { body, file } = req;
+  const { external_source_type_name } = body;
   logger.info(`POST /uploadExternalSourceType: Uploading External Source Type: ${external_source_type_name}`);
 
   const headers: HeadersInit = {
@@ -48,10 +54,12 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
+  const uploadedExternalSourceTypeAttributeSchema = await parseJSONFile<UploadAttributeJSON>(file);
+
   // Validate schema is valid JSON Schema
   // NOTE: this does not check that all required attributes are included. technically, you could upload a schema for an event type,
   //        and only really get punished for it when validating a source.
-  const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
+  const schemaIsValid: boolean = ajv.validateSchema(uploadedExternalSourceTypeAttributeSchema);
   if (!schemaIsValid) {
     logger.error(
       `POST /uploadExternalSourceType: Schema validation failed for External Source Type ${external_source_type_name}`,
@@ -61,23 +69,27 @@ async function uploadExternalSourceType(req: Request, res: Response) {
     return;
   }
 
-  logger.info(`POST /uploadExternalSourceType: ${external_source_type_name} attribute schema was VALID`);
+  logger.info(`POST /uploadExternalSourceType: ${external_source_type_name} attribute schema is VALID`);
 
   // Make sure name in schema (title) and provided name match
-  try {
-    if (attribute_schema['title'] === undefined || attribute_schema.title !== external_source_type_name) {
-      throw new Error(
-        `${external_source_type_name} attribute schema title does not match provided external source type name.`,
-      );
-    }
-  } catch (error) {
-    res.status(500).send({ message: (error as Error).message });
+  if (
+    uploadedExternalSourceTypeAttributeSchema['title'] === undefined ||
+    uploadedExternalSourceTypeAttributeSchema['title'] !== external_source_type_name
+  ) {
+    const errorMsg = `${external_source_type_name} attribute schema title does not match provided external source type name.`;
+    logger.error(
+      `POST /uploadExternalSourceType: Error occurred during External Source Type ${external_source_type_name} upload`,
+    );
+    logger.error(errorMsg);
+    res.status(500).send({ message: errorMsg });
     return;
   }
 
+  logger.info(`POST /uploadExternalSourceType: Attribute schema is VALID`);
+
   // Run the Hasura migration for creating an external source type (and inserting allowed event types)
   const externalSourceTypeInput: ExternalSourceTypeInsertInput = {
-    attribute_schema: attribute_schema,
+    attribute_schema: uploadedExternalSourceTypeAttributeSchema,
     name: external_source_type_name,
   };
 
@@ -101,10 +113,11 @@ async function uploadExternalSource(req: Request, res: Response) {
   const {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
-  const { body } = req;
+  const { body, file } = req;
   const { external_events, source } = body;
   const { attributes, derivation_group_name, key, source_type_name, period, valid_at } = source;
   const { end_time, start_time } = period;
+
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
     'Content-Type': 'application/json',
@@ -112,9 +125,33 @@ async function uploadExternalSource(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
+  const uploadedExternalSource = await parseJSONFile<UploadExternalSourceJSON>(file);
+
+  // Format all source times, validate that they're logical
+  const startTimeFormatted: string | undefined = convertDoyToYmd(
+    uploadedExternalSource.source.period.start_time.replaceAll('Z', ''),
+  )?.replace('Z', '+00:00');
+  const endTimeFormatted: string | undefined = convertDoyToYmd(
+    uploadedExternalSource.source.period.end_time.replaceAll('Z', ''),
+  )?.replace('Z', '+00:00');
+  const validAtFormatted: string | undefined = convertDoyToYmd(
+    uploadedExternalSource.source.valid_at.replaceAll('Z', ''),
+  )?.replace('Z', '+00:00');
+  if (!startTimeFormatted || !endTimeFormatted || !validAtFormatted) {
+    const errorMsg = `Parsing failed - parsing dates in input failed. ${uploadedExternalSource.source.period.start_time}, ${uploadedExternalSource.source.period.end_time}, ${uploadedExternalSource.source.valid_at}`;
+    res.status(500).send({ message: errorMsg });
+    return;
+  }
+
+  if (new Date(startTimeFormatted) > new Date(endTimeFormatted)) {
+    const errorMsg = `Parsing failed - start time ${startTimeFormatted} after end time ${endTimeFormatted}.`;
+    res.status(500).send({ message: errorMsg });
+    return;
+  }
+
   logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`);
 
-  // Verify that this is a valid external source!
+  // Verify that this is a valid external source
   let sourceIsValid: boolean = false;
   sourceIsValid = await compiledExternalSourceSchema(body);
   if (sourceIsValid) {
@@ -145,12 +182,11 @@ async function uploadExternalSource(req: Request, res: Response) {
     | GetExternalSourceTypeAttributeSchemaResponse
     | HasuraError;
   if (
-    (getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse).data
-      ?.external_source_type_by_pk?.attribute_schema !== null
+    (getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse)
+      .external_source_type_by_pk?.attribute_schema !== null
   ) {
-    const {
-      data: { external_source_type_by_pk: sourceAttributeSchema },
-    } = getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
+    const { external_source_type_by_pk: sourceAttributeSchema } =
+      getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse;
     if (sourceAttributeSchema !== undefined && sourceAttributeSchema !== null) {
       sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
       sourceAttributesAreValid = await sourceSchema(attributes);
@@ -175,16 +211,50 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  // Get the attribute schema(s) for all external event types used by the source's events
-  // get list of all used event types
-  const usedExternalEventTypes = external_events
-    .map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name)
-    .reduce((acc: string[], externalEventType: string) => {
-      if (!acc.includes(externalEventType)) {
-        acc.push(externalEventType);
+  // Create External Event inputs
+  const externalEventsCreated: ExternalEventInsertInput[] = [];
+  const usedExternalEventTypes: string[] = [];
+  for (const externalEvent of uploadedExternalSource.events) {
+    // Ensure the duration is valid
+    try {
+      getIntervalInMs(externalEvent.duration);
+    } catch (error) {
+      const errorMsg = `Event duration has invalid format: ${externalEvent.key}\n${(error as Error).message}`;
+      res.status(500).send({ message: errorMsg });
+    }
+
+    // Validate external event is in the external source's start/stop bounds
+    const externalEventStart = Date.parse(convertDoyToYmd(externalEvent.start_time.replace('Z', '')) ?? '');
+    const externalEventEnd = externalEventStart + getIntervalInMs(externalEvent.duration);
+    if (!(externalEventStart >= Date.parse(startTimeFormatted) && externalEventEnd <= Date.parse(endTimeFormatted))) {
+      const errorMsg = `Upload failed. Event (${
+        externalEvent.key
+      }) not in bounds of source start and end: occurs from [${new Date(externalEventStart)},${new Date(
+        externalEventEnd,
+      )}], not subset of [${new Date(startTimeFormatted)},${new Date(endTimeFormatted)}].\n`;
+      res.status(500).send(errorMsg);
+      return;
+    }
+
+    // If the event is valid...
+    if (
+      externalEvent.event_type !== undefined &&
+      externalEvent.start_time !== undefined &&
+      externalEvent.duration !== undefined
+    ) {
+      // Add event type to usedExternalEventTypes for validation later
+      if (!usedExternalEventTypes.includes(externalEvent.event_type)) {
+        usedExternalEventTypes.push(externalEvent.event_type);
       }
-      return acc;
-    }, []);
+      externalEventsCreated.push({
+        attributes: externalEvent.attributes,
+        duration: externalEvent.duration,
+        event_type_name: externalEvent.event_type,
+        key: externalEvent.key,
+        start_time: externalEvent.start_time,
+      });
+    }
+  }
 
   const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = {};
   for (const eventType of usedExternalEventTypes) {
@@ -204,12 +274,11 @@ async function uploadExternalSource(req: Request, res: Response) {
       | HasuraError;
 
     if (
-      (getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse).data
-        ?.external_event_type_by_pk?.attribute_schema !== null
+      (getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse)
+        .external_event_type_by_pk?.attribute_schema !== null
     ) {
-      const {
-        data: { external_event_type_by_pk: eventAttributeSchema },
-      } = getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
+      const { external_event_type_by_pk: eventAttributeSchema } =
+        getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse;
       if (eventAttributeSchema !== undefined && eventAttributeSchema !== null) {
         usedExternalEventTypesAttributesSchemas[eventType] = ajv.compile(eventAttributeSchema.attribute_schema);
       }
@@ -247,7 +316,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     derivation_group_name: derivation_group_name,
     end_time: end_time,
     external_events: {
-      data: external_events,
+      data: externalEventsCreated,
     },
     key: key,
     source_type_name: source_type_name,
@@ -281,7 +350,7 @@ export default (app: Express) => {
    *     security:
    *       - bearerAuth: []
    *     consumes:
-   *       - application/json
+   *       - multipart/form-data
    *     produces:
    *       - application/json
    *     parameters:
@@ -292,7 +361,7 @@ export default (app: Express) => {
    *           required: false
    *     requestBody:
    *       content:
-   *         application/json:
+   *         multipart/form-data:
    *           schema:
    *             type: object
    *             properties:
@@ -324,7 +393,13 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post('/uploadExternalSourceType', uploadExternalSourceType);
+  app.post(
+    '/uploadExternalSourceType',
+    upload.single('attribute_schema'),
+    refreshLimiter,
+    auth,
+    uploadExternalSourceType,
+  );
 
   /**
    * @swagger
@@ -333,7 +408,7 @@ export default (app: Express) => {
    *     security:
    *       - bearerAuth: []
    *     consumes:
-   *       - application/json
+   *       - multipart/form-data
    *     produces:
    *       - application/json
    *     parameters:
@@ -344,7 +419,7 @@ export default (app: Express) => {
    *           required: false
    *     requestBody:
    *       content:
-   *         application/json:
+   *         multipart/form-data:
    *           schema:
    *             type: object
    *             properties:
@@ -396,5 +471,5 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post('/uploadExternalSource', uploadExternalSource);
+  app.post('/uploadExternalSource', upload.single('external_source'), refreshLimiter, auth, uploadExternalSource);
 };

@@ -1,16 +1,30 @@
 import type { Express, Request, Response } from 'express';
-import type { ExternalEventTypeInsertInput } from '../../types/external-event.js';
+import type {
+  CreateExternalEventTypeResponse,
+  ExternalEventTypeInsertInput,
+  UploadAttributeJSON,
+} from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import gql from './gql.js';
 import { HasuraError } from '../../types/hasura.js';
+import { auth } from '../auth/middleware.js';
+import rateLimit from 'express-rate-limit';
+import multer from 'multer';
+import { parseJSONFile } from '../../util/fileParser.js';
 
+const upload = multer();
 const logger = getLogger('packages/external-event/external-event');
-const { HASURA_API_URL } = getEnv();
+const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
-
 const ajv = new Ajv();
+const refreshLimiter = rateLimit({
+  legacyHeaders: false,
+  max: RATE_LIMITER_LOGIN_MAX,
+  standardHeaders: true,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+});
 
 async function uploadExternalEventType(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
@@ -19,8 +33,8 @@ async function uploadExternalEventType(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  const { body } = req;
-  const { external_event_type_name, attribute_schema } = body;
+  const { body, file } = req;
+  const { external_event_type_name } = body;
   logger.info(`POST /uploadExternalEventType: Uploading External Event Type: ${external_event_type_name}`);
 
   const headers: HeadersInit = {
@@ -30,8 +44,10 @@ async function uploadExternalEventType(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
+  const uploadedExternalEventTypeAttributeSchema = await parseJSONFile<UploadAttributeJSON>(file);
+
   // Validate schema is valid JSON Schema
-  const schemaIsValid: boolean = ajv.validateSchema(attribute_schema);
+  const schemaIsValid: boolean = ajv.validateSchema(uploadedExternalEventTypeAttributeSchema);
   if (!schemaIsValid) {
     logger.error(
       `POST /uploadExternalEventType: Schema validation failed for External Event Type ${external_event_type_name}`,
@@ -42,24 +58,24 @@ async function uploadExternalEventType(req: Request, res: Response) {
   }
 
   // Make sure name in schema (title) and provided name match
-  try {
-    if (attribute_schema['title'] === undefined || attribute_schema.title !== external_event_type_name) {
-      throw new Error('Schema title does not match provided external event type name.');
-    }
-  } catch (error) {
+  if (
+    uploadedExternalEventTypeAttributeSchema['title'] === undefined ||
+    uploadedExternalEventTypeAttributeSchema['title'] !== external_event_type_name
+  ) {
+    const errorMsg = 'Schema title does not match provided external event type name.';
     logger.error(
       `POST /uploadExternalEventType: Error occurred during External Event Type ${external_event_type_name} upload`,
     );
-    logger.error((error as Error).message);
-    res.status(500).send({ message: (error as Error).message });
+    logger.error(errorMsg);
+    res.status(500).send({ message: errorMsg });
     return;
   }
 
-  logger.info(`POST /uploadExternalEventType: Attribute schema was VALID`);
+  logger.info(`POST /uploadExternalEventType: Attribute schema is VALID`);
 
   // Run the Hasura migration for creating an external event
   const externalEventTypeInsertInput: ExternalEventTypeInsertInput = {
-    attribute_schema: attribute_schema,
+    attribute_schema: uploadedExternalEventTypeAttributeSchema,
     name: external_event_type_name,
   };
 
@@ -72,9 +88,6 @@ async function uploadExternalEventType(req: Request, res: Response) {
     method: 'POST',
   });
 
-  type CreateExternalEventTypeResponse = {
-    data: { createExternalEventType: { attribute_schema: object; name: string } | null };
-  };
   const jsonResponse = await response.json();
   const createExternalEventTypeResponse = jsonResponse as CreateExternalEventTypeResponse | HasuraError;
 
@@ -89,7 +102,7 @@ export default (app: Express) => {
    *     security:
    *       - bearerAuth: []
    *     consumes:
-   *       - application/json
+   *       - multipart/form-data
    *     produces:
    *       - application/json
    *     parameters:
@@ -100,7 +113,7 @@ export default (app: Express) => {
    *           required: false
    *     requestBody:
    *       content:
-   *         application/json:
+   *         multipart/form-data:
    *           schema:
    *             type: object
    *             properties:
@@ -132,5 +145,11 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post('/uploadExternalEventType', uploadExternalEventType);
+  app.post(
+    '/uploadExternalEventType',
+    upload.single('attribute_schema'),
+    refreshLimiter,
+    auth,
+    uploadExternalEventType,
+  );
 };
