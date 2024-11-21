@@ -9,7 +9,7 @@ import type {
   GetExternalEventTypeAttributeSchemaResponse,
   UploadExternalSourceJSON,
 } from '../../types/external-source.js';
-import type { ExternalEventInsertInput, UploadAttributeJSON } from '../../types/external-event.js';
+import type { ExternalEventInsertInput, ExternalEventJson, UploadAttributeJSON } from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
@@ -140,30 +140,6 @@ async function uploadExternalSource(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
-  const uploadedExternalSource = await parseJSONFile<UploadExternalSourceJSON>(file);
-
-  // Format all source times, validate that they're logical
-  const startTimeFormatted: string | undefined = convertDoyToYmd(
-    uploadedExternalSource.source.period.start_time.replaceAll('Z', ''),
-  )?.replace('Z', '+00:00');
-  const endTimeFormatted: string | undefined = convertDoyToYmd(
-    uploadedExternalSource.source.period.end_time.replaceAll('Z', ''),
-  )?.replace('Z', '+00:00');
-  const validAtFormatted: string | undefined = convertDoyToYmd(
-    uploadedExternalSource.source.valid_at.replaceAll('Z', ''),
-  )?.replace('Z', '+00:00');
-  if (!startTimeFormatted || !endTimeFormatted || !validAtFormatted) {
-    const errorMsg = `Parsing failed - parsing dates in input failed. ${uploadedExternalSource.source.period.start_time}, ${uploadedExternalSource.source.period.end_time}, ${uploadedExternalSource.source.valid_at}`;
-    res.status(500).send({ message: errorMsg });
-    return;
-  }
-
-  if (new Date(startTimeFormatted) > new Date(endTimeFormatted)) {
-    const errorMsg = `Parsing failed - start time ${startTimeFormatted} after end time ${endTimeFormatted}.`;
-    res.status(500).send({ message: errorMsg });
-    return;
-  }
-
   logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`);
 
   // Verify that this is a valid external source
@@ -193,7 +169,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   let sourceAttributesAreValid: boolean = false;
   let sourceSchema: Ajv.ValidateFunction | undefined = undefined;
   const sourceTypeResponseJSON = await sourceAttributeSchema.json();
-  const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON as
+  const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON.data as
     | GetExternalSourceTypeAttributeSchemaResponse
     | HasuraError;
   if (
@@ -226,23 +202,12 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  // Get the attribute schema(s) for all external event types used by the source's events
-  // get list of all used event types
-  const usedExternalEventTypes = parsedExternalEvents
-    .map((externalEvent: ExternalEventInsertInput) => externalEvent.event_type_name)
-    .reduce((acc: string[], externalEventType: string) => {
-      if (!acc.includes(externalEventType)) {
-        acc.push(externalEventType);
-      }
-      externalEventsCreated.push({
-        attributes: externalEvent.attributes,
-        duration: externalEvent.duration,
-        event_type_name: externalEvent.event_type,
-        key: externalEvent.key,
-        start_time: externalEvent.start_time,
-      });
+  const usedExternalEventTypes = parsedExternalEvents.reduce((acc: string[], externalEvent: ExternalEventInsertInput) => {
+    if (!acc.includes(externalEvent.event_type_name)) {
+      acc.push(externalEvent.event_type_name);
     }
-  }
+    return acc;
+  }, []);
 
   const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = {};
   for (const eventType of usedExternalEventTypes) {
@@ -257,10 +222,9 @@ async function uploadExternalSource(req: Request, res: Response) {
       method: 'POST',
     });
     const eventTypeJSONResponse = await eventAttributeSchema.json();
-    const getExternalEventTypeAttributeSchemaResponse = eventTypeJSONResponse as
+    const getExternalEventTypeAttributeSchemaResponse = eventTypeJSONResponse.data as
       | GetExternalEventTypeAttributeSchemaResponse
       | HasuraError;
-
     if (
       (getExternalEventTypeAttributeSchemaResponse as GetExternalEventTypeAttributeSchemaResponse)
         .external_event_type_by_pk?.attribute_schema !== null
