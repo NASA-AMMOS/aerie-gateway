@@ -31,7 +31,7 @@ const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
 });
 
-function updateSchemaWithDefs(defs: { event_types: any, source_type: any }) {//: Ajv.ValidateFunction | undefined {
+export function updateSchemaWithDefs(defs: { event_types: any, source_type: any }) {//: Ajv.ValidateFunction | undefined {
   // build if statement
   const ifThenElse: { [key: string]: any } = {
 

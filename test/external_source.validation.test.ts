@@ -1,186 +1,407 @@
 import Ajv from 'ajv';
 import { describe, expect, test } from 'vitest';
-import { externalSourceSchema } from '../src/packages/schemas/external-event-validation-schemata';
+import { attributeSchemaMetaschema } from '../src/packages/schemas/external-event-validation-schemata';
+import { updateSchemaWithDefs } from '../src/packages/external-source/external-source';
 
 const ajv = Ajv();
 
-// type schemas
-const correctExternalEventTypeSchema = {
-  $schema: 'http://json-schema.org/draft-07/schema',
-  additionalProperties: false,
-  description: 'Schema for the attributes of the TestEventType Type.',
-  properties: {
-    code: { type: 'string' },
-    projectUser: { type: 'string' },
-  },
-  required: ['projectUser', 'code'],
-  title: 'TestEventType',
-  type: 'object',
-};
-
-const incorrectPassingExternalEventTypeSchema = {
-  $schema: 'http://json-schema.org/draft-07/schema',
-  additionalProperties: false,
-  descriptionFake: 'Schema for the attributes of the TestEventType Type.',
-  doesntEvenExist: true,
-  propertgibberish: {
-    // if you have something like this, it just registers as no properties existing, and fails any inserted events with attributes.
-    code: { type: 'string' },
-    projectUser: { type: 'string' },
-  },
-  requiredgibberish: ['projectUser', 'code'],
-  title: 'TestEventType',
-  type: 'object',
-};
-
-const incorrectFailingExternalEventTypeSchema = {
-  $schema: 'http://json-schema.org/draft-07/schema',
-  additionalProperties: false,
-  description: 'Schema for the attributes of the TestEventType Type.',
-  properties: {
-    code: { type: 'string' },
-    projectUser: { type: 'string' },
-  },
-  required: 123, // this fails to validate at all since "required" IS well-defined as a field but expects an array
-  title: 'TestEventType',
-  type: 'object',
-};
-
-const externalSourceTypeSchema = {
-  $schema: 'http://json-schema.org/draft-07/schema',
-  additionalProperties: false,
-  description: 'Schema for the attributes of the TestSourceType Type.',
-  properties: {
-    operator: { type: 'string' },
-    version: { type: 'number' },
-  },
-  required: ['version', 'operator'],
-  title: 'TestSourceType',
-  type: 'object',
-};
-
-// compiled schemas
-const compiledExternalEventTypeSchema = ajv.compile(correctExternalEventTypeSchema);
-const compiledExternalSourceTypeSchema = ajv.compile(externalSourceTypeSchema);
-const compiledExternalSourceSchema = ajv.compile(externalSourceSchema);
-
-// external source
-const externalSource = {
-  external_events: [
-    {
-      attributes: {
-        code: 'A',
-        projectUser: 'UserA',
+const attributeDefs = {
+  "event_types": {
+    "EventTypeA": {
+      "properties": {
+        "series": {
+          "properties": {
+            "iteration": { "type": "number" },
+            "make": { "type": "string" },
+            "type": { "type": "string" },
+          },
+          "required": ["type", "make", "iteration"],
+          "type": "object",
+        }
       },
-      duration: '01:10:00',
-      event_type_name: 'TestExternalEventType',
-      key: 'Event01',
-      start_time: '2024-023T00:23:00Z',
+      "required": ["series"],
+      "type": "object",
+    },
+    "EventTypeB": {
+      "properties": {
+        "projectUser": {
+          "type": "string"
+        },
+        "tick": {
+          "type": "number"
+        }
+      },
+      "required": ["projectUser", "tick"],
+      "type": "object"
+    },
+    "EventTypeC": {
+      "properties": {
+        "aperture": {
+          "type": "string"
+        },
+        "subduration": {
+          "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?$",
+          "type": "string"
+        }
+      },
+      "required": ["aperture", "subduration"],
+      "type": "object"
+    }
+  },
+  "source_types": {
+    "SourceTypeA": {
+      "properties": {
+        "version": {
+          "type": "number"
+        },
+        "wrkcat": {
+          "type": "string"
+        }
+      },
+      "required": ["version", "wrkcat"],
+      "type": "object"
+    },
+    "SourceTypeB": {
+      "properties": {
+        "version": {
+          "type": "number"
+        },
+        "wrkcat": {
+          "type": "string"
+        }
+      },
+      "required": ["version", "wrkcat"],
+      "type": "object"
+    }
+  }
+};
+
+const incorrectAttributeDefs = {
+  "event_types": {
+    "EventTypeA": {
+      "properties": {
+        "series": {
+          "properties": {
+            "iteration": { "type": "number" },
+            "make": { "type": "string" },
+            "type": { "type": "string" },
+          },
+          // "required": ["type", "make", "iteration"], // missing required field (not an issue)
+          "type": "object",
+        }
+      },
+      // "required": ["series"], // missing required field (the issue, only at level patternProperties/sdfdsf/required)
+      "type": "object",
+    },
+    "EventTypeB": {
+      "properties": {
+        "projectUser": {
+          "type": "string"
+        },
+        "tick": {
+          "type": "number"
+        }
+      },
+      "required": ["projectUser", "tick"],
+      "type": "object"
+    },
+    "EventTypeC": {
+      "properties": {
+        "aperture": {
+          "type": "string"
+        },
+        "subduration": {
+          "pattern": "^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?$",
+          "type": "string"
+        }
+      },
+      "required": ["aperture", "subduration"],
+      "type": "object"
+    }
+  },
+  "source_types": {
+    "SourceTypeA": {
+      "properties": {
+        "version": {
+          "type": "number"
+        },
+        "wrkcat": {
+          "type": "string"
+        }
+      },
+      "required": ["version", "wrkcat"],
+      "type": "object"
+    },
+    "SourceTypeB": {
+      "properties": {
+        "version": {
+          "type": "number"
+        },
+        "wrkcat": {
+          "type": "string"
+        }
+      },
+      "required": ["version", "wrkcat"],
+      "type": "object"
+    }
+  }
+};
+
+const correctExternalSource = {
+  "events": [
+    {
+      "attributes": {
+        "series": {
+          "iteration": 17,
+          "make": "alpha",
+          "type": "A",
+        }
+      },
+      "duration": "02:00:00",
+      "event_type_name": "EventTypeA",
+      "key": "EventTypeA:1/1",
+      "start_time": "2024-01-01T01:35:00+00:00",
     },
     {
-      attributes: {
-        code: 'B',
-        projectUser: 'UserB',
+      "attributes": {
+        "series": {
+          "iteration": 21,
+          "make": "beta",
+          "type": "B"
+        }
       },
-      duration: '03:40:00',
-      event_type_name: 'DSNContact',
-      key: 'Event02',
-      start_time: '2024-021T00:21:00Z',
+      "duration": "02:00:00",
+      "event_type_name": "EventTypeA",
+      "key": "EventTypeA:1/2",
+      "start_time": "2024-01-02T11:50:00+00:00",
     },
+    {
+      "attributes": {
+        "projectUser": "Jerry",
+        "tick": 18
+      },
+      "duration": "03:40:00",
+      "event_type_name": "EventTypeB",
+      "key": "EventTypeB:1/3",
+      "start_time": "2024-01-03T15:20:00+00:00"
+    }
   ],
-  source: {
-    attributes: {
-      operator: 'alpha',
-      version: 1,
+  "source": {
+    "attributes": {
+      "version": 1,
+      "wrkcat": "234"
     },
-    derivation_group_name: 'TestDerivationGroup',
-    key: 'TestExternalSourceKey',
-    period: {
-      end_time: '2024-01-28T00:00:00+00:00',
-      start_time: '2024-01-21T00:00:00+00:00',
+    "key": "SourceTypeA:valid_source_A.json",
+    "period": {
+      "end_time": "2024-01-07T00:00:00+00:00",
+      "start_time": "2024-01-01T00:00:00+00:00"
     },
-    source_type_name: 'TestExternalSourceType',
-    valid_at: '2024-01-19T00:00:00+00:00',
-  },
+    "source_type_name": "SourceTypeA",
+    "valid_at": "2024-01-01T00:00:00+00:00",
+  }
 };
 
-// invalid attributes
-const invalidSourceAttributes = {
-  operator: 1,
-  version: 1,
+const incorrectExternalSourceAttributes = {
+  "events": [
+    {
+      "attributes": {
+        "series": {
+          "iteration": 17,
+          "make": "alpha",
+          "type": "A",
+        }
+      },
+      "duration": "02:00:00",
+      "event_type_name": "EventTypeA",
+      "key": "EventTypeA:1/1",
+      "start_time": "2024-01-01T01:35:00+00:00",
+    },
+    {
+      "attributes": {
+        "series": {
+          "iteration": 21,
+          "make": "beta",
+          "type": "B"
+        }
+      },
+      "duration": "02:00:00",
+      "event_type_name": "EventTypeA",
+      "key": "EventTypeA:1/2",
+      "start_time": "2024-01-02T11:50:00+00:00",
+    },
+    {
+      "attributes": {
+        "projectUser": "Jerry",
+        "tick": 18
+      },
+      "duration": "03:40:00",
+      "event_type_name": "EventTypeB",
+      "key": "EventTypeB:1/3",
+      "start_time": "2024-01-03T15:20:00+00:00"
+    }
+  ],
+  "source": {
+    "attributes": {
+      "version": 1,
+      "wrkcat": 234 // <-- wrong type. expecting string.
+    },
+    "key": "SourceTypeA:valid_source_A.json",
+    "period": {
+      "end_time": "2024-01-07T00:00:00+00:00",
+      "start_time": "2024-01-01T00:00:00+00:00"
+    },
+    "source_type_name": "SourceTypeA",
+    "valid_at": "2024-01-01T00:00:00+00:00",
+  }
 };
-const invalidEventAttributes = {
-  code: 1,
-  projectUser: 'UserB',
+
+const incorrectExternalEventAttributes = {
+  "events": [
+    {
+      "attributes": {
+        "series": {
+          "iteration": 17,
+          "make": "alpha",
+          // "type": "A", <-- missing.
+        }
+      },
+      "duration": "02:00:00",
+      "event_type_name": "EventTypeA",
+      "key": "EventTypeA:1/1",
+      "start_time": "2024-01-01T01:35:00+00:00",
+    },
+    {
+      "attributes": {
+        "series": {
+          "iteration": 21,
+          "make": "beta",
+          "type": "B"
+        }
+      },
+      "duration": "02:00:00",
+      "event_type_name": "EventTypeA",
+      "key": "EventTypeA:1/2",
+      "start_time": "2024-01-02T11:50:00+00:00",
+    },
+    {
+      "attributes": {
+        "projectUser": "Jerry",
+        "tick": 18
+      },
+      "duration": "03:40:00",
+      "event_type_name": "EventTypeB",
+      "key": "EventTypeB:1/3",
+      "start_time": "2024-01-03T15:20:00+00:00"
+    }
+  ],
+  "source": {
+    "attributes": {
+      "version": 1,
+      "wrkcat": "234"
+    },
+    "key": "SourceTypeA:valid_source_A.json",
+    "period": {
+      "end_time": "2024-01-07T00:00:00+00:00",
+      "start_time": "2024-01-01T00:00:00+00:00"
+    },
+    "source_type_name": "SourceTypeA",
+    "valid_at": "2024-01-01T00:00:00+00:00",
+  }
 };
+
 
 describe('validation tests', () => {
-  // test validating type schema validation (demonstrate you can feed it bogus and its fine, but if an existing field gets a wrong type then its a problem)
-  describe('attribute schema validation', () => {
-    test('validating correct external event type schema', () => {
-      const schemaIsValid: boolean = ajv.validateSchema(correctExternalEventTypeSchema);
-      expect(schemaIsValid).toBe(true);
-    });
 
-    test('validating incorrect external event type schema that passes', () => {
-      const schemaIsValid: boolean = ajv.validateSchema(incorrectPassingExternalEventTypeSchema);
-      expect(schemaIsValid).toBe(true);
-    });
-
-    test('validating incorrect external event type schema that fails', () => {
-      const schemaIsValid: boolean = ajv.validateSchema(incorrectFailingExternalEventTypeSchema);
-      expect(schemaIsValid).toBe(false);
-      const errors = ajv.errors;
-      expect(errors?.length).toBe(1);
-      expect(errors?.at(0)?.message).toContain('should be array');
-    });
+  // test to verify source/event type file is correctly formatted
+  test('verify source/event type file is correctly formatted', () => {
+    // get the validator
+    const attributeValidator = ajv.compile(attributeSchemaMetaschema);
+    
+    // test it against a correct defs/attribute metaschema object
+    const result = attributeValidator(attributeDefs);
+    expect(result).toBeTruthy();
+    expect(attributeValidator.errors).toBeNull();
   });
 
-  // test validating external source validation - don't need to be thorough; this is just ajv functionality.
-  describe('external source validation', () => {
-    test('correct external source validation', async () => {
-      let sourceIsValid: boolean = false;
-      sourceIsValid = await compiledExternalSourceSchema(externalSource);
-      expect(sourceIsValid).toBe(true);
-    });
+  // test to verify source/event type file is incorrectly formatted
+  test('verify source/event type file is incorrectly formatted', () => {
+    // get the validator
+    const attributeValidator = ajv.compile(attributeSchemaMetaschema);
+    
+    // test it against a correct defs/attribute metaschema object
+    const result = attributeValidator(incorrectAttributeDefs);
+    expect(result).toBeFalsy();
+
+    const errors = attributeValidator.errors;
+    expect(errors?.length).toBe(1);
+    expect(errors?.at(0)?.schemaPath).toBe("#/$defs/AttributeSchema/patternProperties/%5E.*%24/required");
+    expect(errors?.at(0)?.message).toMatch("should have required property 'required'");
   });
 
-  // test validating external source attribute validation
-  describe('external source type attribute validation', () => {
-    test('correct external source type attribute validation', async () => {
-      let sourceAttributesAreValid: boolean = false;
-      sourceAttributesAreValid = await compiledExternalSourceTypeSchema(externalSource.source.attributes);
-      expect(sourceAttributesAreValid).toBe(true);
-    });
+  // test to verify that composition of a base schema with attribute schemas work
+  test('verify validation functionality of updateSchemaWithDefs', () => {
+    // transform attributeDefs to match something that might come from hasura (just ONE source type, as we will be constructing a schema for a specific source)
+    const attributeSchema: { event_types: any, source_type: any } = {
+      event_types: [],
+      source_type: {}
+    };
+    attributeSchema.event_types = attributeDefs.event_types;
+    attributeSchema.source_type['SourceTypeA'] = attributeDefs.source_types.SourceTypeA;
 
-    test('incorrect external source type attribute validation', async () => {
-      let sourceAttributesAreValid: boolean = false;
-      sourceAttributesAreValid = await compiledExternalSourceTypeSchema(invalidSourceAttributes);
-      expect(sourceAttributesAreValid).toBe(false);
-      const errors = compiledExternalSourceTypeSchema.errors;
-      expect(errors?.length).toBe(1);
-      expect(errors?.at(0)?.message).toContain('should be string');
-    });
+    // construct a megaschema
+    const schemaFunctionWithDefs = updateSchemaWithDefs(attributeSchema);
+    const schema: any = schemaFunctionWithDefs.schema;
+    expect(schema).toBeTruthy();
+
+    if (schema) {
+      // verify it is formatted correctly
+      expect(Object.keys(schema.$defs.event_types)).toMatchObject(["EventTypeA", "EventTypeB", "EventTypeC"]);
+      expect(Object.keys(schema.$defs.source_type)).toMatchObject(["SourceTypeA"]);
+      expect(schema.properties.events.items.else.else.properties.attributes.$ref).toEqual("#/$defs/event_types/EventTypeC");
+    }
   });
 
-  // test validating external event attribute validation
-  describe('external event type attribute validation', () => {
-    test('correct external event type attribute validation', async () => {
-      let eventAttributesAreValid: boolean = true;
-      for (const external_event of externalSource.external_events) {
-        eventAttributesAreValid =
-          eventAttributesAreValid && (await compiledExternalEventTypeSchema(external_event.attributes));
-      }
-      expect(eventAttributesAreValid).toBe(true);
+
+  // source testing
+  describe('validating (and failing) sources', () => {
+    // transform attributeDefs to match something that might come from hasura (just ONE source type, as we will be constructing a schema for a specific source)
+    const attributeSchema: { event_types: any, source_type: any } = {
+      event_types: [],
+      source_type: {}
+    };
+    attributeSchema.event_types = attributeDefs.event_types;
+    attributeSchema.source_type['SourceTypeA'] = attributeDefs.source_types.SourceTypeA;
+
+    // construct a megaschema
+    const schemaFunctionWithDefs = updateSchemaWithDefs(attributeSchema);
+
+    // test to verify a source's (and all events') attributes are correctly formatted
+    test('source and event attributes are correct', () => {
+      const result = schemaFunctionWithDefs(correctExternalSource);
+      expect(result).toBeTruthy();
+      expect(schemaFunctionWithDefs.errors).toBeNull();
     });
 
-    test('incorrect external event type attribute validation', async () => {
-      let eventAttributesAreValid: boolean = false;
-      eventAttributesAreValid = await compiledExternalEventTypeSchema(invalidEventAttributes);
-      expect(eventAttributesAreValid).toBe(false);
-      const errors = compiledExternalEventTypeSchema.errors;
+    // test to verify a source's attributes are incorrectly formatted
+    test('source attributes fail when incorrectly formatted', () => {
+      const result = schemaFunctionWithDefs(incorrectExternalSourceAttributes);
+      expect(result).toBeFalsy();
+
+      const errors = schemaFunctionWithDefs.errors;
       expect(errors?.length).toBe(1);
-      expect(errors?.at(0)?.message).toContain('should be string');
+      expect(errors?.at(0)?.schemaPath).toBe("#/$defs/source_type/SourceTypeA/properties/wrkcat/type");
+      expect(errors?.at(0)?.message).toMatch("should be string");
+    });
+
+    // test to verify an event's attributes are incorrectly formatted
+    test('event attributes fail when incorrectly formatted', () => {
+      const result = schemaFunctionWithDefs(incorrectExternalEventAttributes);
+      expect(result).toBeFalsy();
+
+      const errors = schemaFunctionWithDefs.errors;
+      expect(errors?.length).toBe(1);
+      expect(errors?.at(0)?.schemaPath).toBe("#/$defs/event_types/EventTypeA/properties/series/required");
+      expect(errors?.at(0)?.message).toMatch("should have required property 'type'");
     });
   });
 });
