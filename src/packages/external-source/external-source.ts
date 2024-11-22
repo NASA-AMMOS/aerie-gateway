@@ -7,9 +7,8 @@ import type {
   CreateExternalSourceTypeResponse,
   GetExternalSourceTypeAttributeSchemaResponse,
   GetExternalEventTypeAttributeSchemaResponse,
-  UploadExternalSourceJSON,
 } from '../../types/external-source.js';
-import type { ExternalEventInsertInput, ExternalEventJson, UploadAttributeJSON } from '../../types/external-event.js';
+import type { ExternalEventInsertInput, UploadAttributeJSON } from '../../types/external-event.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
@@ -32,7 +31,7 @@ const refreshLimiter = rateLimit({
   max: RATE_LIMITER_LOGIN_MAX,
   standardHeaders: true,
   windowMs: 15 * 60 * 1000, // 15 minutes
-})
+});
 
 async function uploadExternalSourceType(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
@@ -113,7 +112,8 @@ async function uploadExternalSource(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
   const { body } = req;
-  const { attributes, derivation_group_name, key, end_time, start_time, source_type_name, valid_at, external_events } = body;
+  const { attributes, derivation_group_name, key, end_time, start_time, source_type_name, valid_at, external_events } =
+    body;
   const parsedAttributes = JSON.parse(attributes);
   const parsedExternalEvents = JSON.parse(external_events);
 
@@ -129,9 +129,9 @@ async function uploadExternalSource(req: Request, res: Response) {
         start_time: start_time,
       },
       source_type_name: source_type_name,
-      valid_at: valid_at
+      valid_at: valid_at,
     },
-  }
+  };
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -142,7 +142,7 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`);
 
-  // Verify that this is a valid external source
+  // Verify External Source input against meta-schema
   let sourceIsValid: boolean = false;
   sourceIsValid = await compiledExternalSourceSchema(externalSourceJson);
   if (sourceIsValid) {
@@ -172,6 +172,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   const getExternalSourceTypeAttributeSchemaResponse = sourceTypeResponseJSON.data as
     | GetExternalSourceTypeAttributeSchemaResponse
     | HasuraError;
+
   if (
     (getExternalSourceTypeAttributeSchemaResponse as GetExternalSourceTypeAttributeSchemaResponse)
       .external_source_type_by_pk?.attribute_schema !== null
@@ -182,13 +183,11 @@ async function uploadExternalSource(req: Request, res: Response) {
       sourceSchema = ajv.compile(sourceAttributeSchema.attribute_schema);
       sourceAttributesAreValid = await sourceSchema(parsedAttributes);
     } else {
-      // source type does not exist!
       logger.error(`POST /uploadExternalSource: External Source Type ${source_type_name} does not exist!`);
       res.status(500).send({ message: `External Source Type ${source_type_name} does not exist!` });
       return;
     }
   }
-
   if (sourceAttributesAreValid) {
     logger.info(`POST /uploadExternalSource: External Source ${key}'s attributes are valid`);
   } else {
@@ -202,13 +201,16 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  const usedExternalEventTypes = parsedExternalEvents.reduce((acc: string[], externalEvent: ExternalEventInsertInput) => {
-    if (!acc.includes(externalEvent.event_type_name)) {
-      acc.push(externalEvent.event_type_name);
-    }
-    return acc;
-  }, []);
-
+  // Build a Record<event type name, validation function> for all event type's being used
+  const usedExternalEventTypes = parsedExternalEvents.reduce(
+    (acc: string[], externalEvent: ExternalEventInsertInput) => {
+      if (!acc.includes(externalEvent.event_type_name)) {
+        acc.push(externalEvent.event_type_name);
+      }
+      return acc;
+    },
+    [],
+  );
   const usedExternalEventTypesAttributesSchemas: Record<string, Ajv.ValidateFunction> = {};
   for (const eventType of usedExternalEventTypes) {
     const eventAttributeSchema = await fetch(GQL_API_URL, {
@@ -237,6 +239,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     }
   }
 
+  // Validate attributes of all External Events in the source
   for (const externalEvent of parsedExternalEvents) {
     try {
       const currentEventType = externalEvent.event_type_name;
@@ -258,7 +261,6 @@ async function uploadExternalSource(req: Request, res: Response) {
     }
   }
 
-  // Run the Hasura migration for creating an external source
   const derivationGroupInsert: DerivationGroupInsertInput = {
     name: derivation_group_name,
     source_type_name: source_type_name,
@@ -413,9 +415,12 @@ export default (app: Express) => {
    *           application/json:
    *             schema:
    *                properties:
-   *                  name:
-   *                    description: Name of the created External Source
-   *                    type: string
+   *                  createExternalSource:
+   *                    type: object
+   *                    properties:
+   *                      name:
+   *                        description: Name of the created External Source
+   *                        type: string
    *       403:
    *         description: Unauthorized error
    *       401:
