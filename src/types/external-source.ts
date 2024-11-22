@@ -6,13 +6,13 @@ export type DerivationGroupInsertInput = {
 export type ExternalSourceTypeInsertInput = {
   name: string;
   attribute_schema: object;
-}[];
+};
 
 
 export type ExternalEventTypeInsertInput = {
   name: string;
   attribute_schema: object;
-}[];
+};
 
 export type ExternalSourceInsertInput = {
   attributes: object;
@@ -50,18 +50,10 @@ export type CreateExternalSourceResponse = {
   createExternalSource: { name: string };
 };
 
-export type CreateExternalSourceTypeResponse = {
-  createExternalSourceType: { attribute_schema: object; name: string };
+export type CreateExternalSourceEventTypeResponse = {
+  createExternalEventTypes: { returning: string[] },
+  createExternalSourceTypes: { returning: string[] }
 };
-
-export type GetExternalSourceTypeAttributeSchemaResponse = {
-  external_source_type_by_pk: { attribute_schema: object };
-};
-
-export type GetExternalEventTypeAttributeSchemaResponse = {
-  external_event_type_by_pk: { attribute_schema: object };
-};
-
 
 export type ExternalEventInsertInput = {
   attributes: object;
@@ -87,10 +79,11 @@ export type ExternalEvent = {
   attributes: object;
 };
 
-export type CreateExternalEventTypeResponse = {
-  createExternalEventType: { attribute_schema: object; name: string };
-};
-
-export type UploadAttributeJSON = {
+export type AttributeSchema = {
   [x: string]: any;
 };
+
+export type GetSourceEventTypeAttributeSchemasResponse = {
+  external_event_type: ExternalEventTypeInsertInput[],
+  external_source_type: ExternalSourceTypeInsertInput[],
+}

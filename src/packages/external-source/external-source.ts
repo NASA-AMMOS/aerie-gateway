@@ -3,10 +3,12 @@ import type {
   DerivationGroupInsertInput,
   ExternalSourceTypeInsertInput,
   CreateExternalSourceResponse,
-  CreateExternalSourceTypeResponse,
   ExternalEventTypeInsertInput,
   ExternalEvent,
   ExternalSourceInsertInput,
+  CreateExternalSourceEventTypeResponse,
+  GetSourceEventTypeAttributeSchemasResponse,
+  AttributeSchema,
 } from '../../types/external-source.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
@@ -113,7 +115,9 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
     localSchemaCopy.$defs.event_types[event_type] = defs.event_types[event_type];
   }
 
-  // compile with defs, return
+  console.log(localSchemaCopy.$defs["event_types"]["EventTypeB"]);
+
+  // Compile & return full schema with 'defs' added
   const localAjv = new Ajv();
   return localAjv.compile(localSchemaCopy);
 }
@@ -126,18 +130,21 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   } = req;
 
   const { body } = req;
+  const { event_types, source_types } = body;
+  const parsedEventTypes: { [x: string]: object } = JSON.parse(event_types);
+  const parsedSourceTypes: { [x: string]: object } = JSON.parse(source_types);
+
   logger.info(`POST /uploadExternalSourceEventTypes: Uploading External Source and Event Types...`);
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
     'Content-Type': 'application/json',
-    'x-hasura-admin-secret': 'aerie',
     'x-hasura-role': roleHeader ? `${roleHeader}` : '',
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
   // Validate uploaded attribute schemas are formatted validly
-  const schemasAreValid: boolean = await compiledAttributeMetaschema(body);
+  const schemasAreValid: boolean = await compiledAttributeMetaschema({event_types: parsedEventTypes, source_types: parsedSourceTypes});
   if (!schemasAreValid) {
     logger.error(
       `POST /uploadExternalSourceEventTypes: Schema validation failed for uploaded source and event types.`,
@@ -150,23 +157,21 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   logger.info(`POST /uploadExternalSourceEventTypes: Uploaded attribute schema(s) are VALID`);
 
   // extract the external sources and event types
-  const externalSourceTypeInput: ExternalSourceTypeInsertInput = [];
-  const externalEventTypeInput: ExternalEventTypeInsertInput = [];
+  const externalSourceTypeInput: ExternalSourceTypeInsertInput[] = [];
+  const externalEventTypeInput: ExternalEventTypeInsertInput[] = [];
 
-  const external_event_types = body.event_types;
-  const event_type_keys = Object.keys(external_event_types);
+  const event_type_keys = Object.keys(parsedEventTypes);
   for (const external_event_type of event_type_keys) {
     externalEventTypeInput.push({
-      attribute_schema: external_event_types[external_event_type],
+      attribute_schema: event_types[external_event_type],
       name: external_event_type
     })
   }
 
-  const external_source_types = body.source_types;
-  const source_type_keys = Object.keys(external_source_types);
+  const source_type_keys = Object.keys(parsedSourceTypes);
   for (const external_source_type of source_type_keys) {
     externalSourceTypeInput.push({
-      attribute_schema: external_source_types[external_source_type],
+      attribute_schema: source_types[external_source_type],
       name: external_source_type
     })
   }
@@ -182,9 +187,11 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   });
 
   const jsonResponse = await response.json();
-  const createExternalSourceTypeResponse = jsonResponse as CreateExternalSourceTypeResponse | HasuraError;
-
-  res.json(createExternalSourceTypeResponse);
+  if (jsonResponse?.data !== undefined) {
+    res.json(jsonResponse.data as CreateExternalSourceEventTypeResponse);
+  } else {
+    res.json(jsonResponse as HasuraError);
+  }
 }
 
 async function uploadExternalSource(req: Request, res: Response) {
@@ -199,7 +206,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   const parsedExternalEvents: ExternalEvent[] = JSON.parse(events);
   const { attributes, derivation_group_name, key, period, source_type_name, valid_at } = parsedSource;
 
-  // re-package the fields as a JSON object to be posted
+  // Re-package the fields as a JSON object to be parsed
   const externalSourceJson = {
     events: parsedExternalEvents,
     source: {
@@ -237,23 +244,19 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   const attributeSchemaJson = await attributeSchemas.json();
-  const { external_event_type, external_source_type } = attributeSchemaJson.data;
 
-  const defs: { event_types: any, source_type: any } = {
-    event_types: {
-
-    },
-    source_type: {
-      [external_source_type[0].name]: external_source_type[0].attribute_schema
-    }
-  };
-
-  for (const event_type of external_event_type) {
-    defs.event_types[event_type.name] = event_type.attribute_schema
-  }
+  const { external_event_type, external_source_type } = attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
+  const eventTypeNamesMappedToSchemas = external_event_type.reduce((acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput ) => {
+    acc[eventType.name] = eventType.attribute_schema;
+    return acc;
+  }, {});
+  const sourceTypeNamesMappedToSchemas = external_source_type.reduce((acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput ) => {
+    acc[sourceType.name] = sourceType.attribute_schema;
+    return acc;
+  }, {});
 
   // Assemble megaschema from attribute schemas
-  const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs(defs);
+  const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({ event_types: eventTypeNamesMappedToSchemas, source_type: sourceTypeNamesMappedToSchemas });
 
   // Verify that this is a valid external source
   let sourceIsValid: boolean = false;
@@ -298,9 +301,11 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   const jsonResponse = await response.json();
-  const createExternalSourceResponse = jsonResponse as CreateExternalSourceResponse | HasuraError;
-
-  res.json(createExternalSourceResponse);
+  if (jsonResponse?.data !== undefined) {
+    res.json(jsonResponse.data as CreateExternalSourceResponse);
+  } else {
+    res.json(jsonResponse as HasuraError);
+  }
 }
 
 export default (app: Express) => {
@@ -326,37 +331,37 @@ export default (app: Express) => {
    *           schema:
    *             type: object
    *             properties:
-   *               attribute_schema:
+   *               event_types:
    *                 type: object
-   *               external_source_type_name:
-   *                 type: string
+   *               source_types:
+   *                 type: object
    *             required:
-   *               - external_source_type_name
-   *                 attribute_schema
+   *               - event_types
+   *                 source_types
    *     responses:
    *       200:
-   *         description: Created External Source Type
+   *         description: Created External Source & Event Types
    *         content:
    *           application/json:
    *             schema:
    *                properties:
-   *                  attribute_schema:
-   *                    description: JSON Schema for the created External Source Type's attributes
+   *                  createExternalEventTypes:
+   *                    description: Names of all the event types that were created in this request.
    *                    type: object
-   *                  name:
-   *                    description: Name of the created External Source Type
-   *                    type: string
+   *                  createExternalSourceTypes:
+   *                    description: Names of all the source types that were created in this request.
+   *                    type: object
    *       403:
    *         description: Unauthorized error
    *       401:
    *         description: Unauthenticated error
-   *     summary: Uploads an External Source Type definition (containing name & attributes schema) to Hasura.
+   *     summary: Uploads & validates a combination of External Event & Source types to Hasura.
    *     tags:
    *       - Hasura
    */
   app.post(
     '/uploadExternalSourceEventTypes',
-    upload.single('attribute_schema'),
+    upload.any(),
     refreshLimiter,
     auth,
     uploadExternalSourceEventTypes,
