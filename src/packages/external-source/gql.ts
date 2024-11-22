@@ -27,11 +27,17 @@ export default {
       }
     }
   `,
-  CREATE_EXTERNAL_SOURCE_TYPE: `#graphql
-    mutation CreateExternalSourceType($sourceType: external_source_type_insert_input!) {
-      createExternalSourceType: insert_external_source_type_one(object: $sourceType) {
-        name
-        attribute_schema
+  CREATE_EXTERNAL_SOURCE_EVENT_TYPES: `#graphql
+    mutation uploadAttributeSchemas($externalEventTypes: [external_event_type_insert_input!]!, $externalSourceTypes: [external_source_type_insert_input!]!) {
+      createExternalEventTypes: insert_external_event_type(objects: $externalEventTypes) {
+        returning {
+          name
+        }
+      }
+      createExternalSourceTypes: insert_external_source_type(objects: $externalSourceTypes) {
+        returning {
+          name
+        }
       }
     }
   `,
@@ -56,4 +62,16 @@ export default {
       }
     }
   `,
+  GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS: `#graphql
+  query getET($externalEventTypes: [String!]!, $externalSourceType: String!) {
+    external_event_type(where: {name: {_in: $externalEventTypes}}) {
+      name
+      attribute_schema
+    }
+    external_source_type(where: {name: {_eq: $externalSourceType}}) {
+      name
+      attribute_schema
+    }
+  }
+  `
 };

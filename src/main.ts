@@ -13,7 +13,6 @@ import initHealthRoutes from './packages/health/health.js';
 import initPlanRoutes from './packages/plan/plan.js';
 import initSwaggerRoutes from './packages/swagger/swagger.js';
 import initExternalSourceRoutes from './packages/external-source/external-source.js';
-import initExternalEventRoutes from './packages/external-event/external-event.js';
 import cookieParser from 'cookie-parser';
 import { AuthAdapter } from './types/auth.js';
 import { NoAuthAdapter } from './packages/auth/adapters/NoAuthAdapter.js';
@@ -53,7 +52,6 @@ async function main(): Promise<void> {
   initHasuraRoutes(app);
   initPlanRoutes(app);
   initExternalSourceRoutes(app);
-  initExternalEventRoutes(app);
   initSwaggerRoutes(app);
 
   app.listen(PORT, () => {

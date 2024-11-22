@@ -1,5 +1,3 @@
-import { ExternalEventJson } from './external-event';
-
 export type DerivationGroupInsertInput = {
   name: string;
   source_type_name: string;
@@ -8,7 +6,13 @@ export type DerivationGroupInsertInput = {
 export type ExternalSourceTypeInsertInput = {
   name: string;
   attribute_schema: object;
-};
+}[];
+
+
+export type ExternalEventTypeInsertInput = {
+  name: string;
+  attribute_schema: object;
+}[];
 
 export type ExternalSourceInsertInput = {
   attributes: object;
@@ -56,4 +60,37 @@ export type GetExternalSourceTypeAttributeSchemaResponse = {
 
 export type GetExternalEventTypeAttributeSchemaResponse = {
   external_event_type_by_pk: { attribute_schema: object };
+};
+
+
+export type ExternalEventInsertInput = {
+  attributes: object;
+  start_time: string;
+  duration: string;
+  event_type_name: string;
+  key: string;
+};
+
+export type ExternalEventJson = {
+  attributes: object;
+  duration: string;
+  event_type: string;
+  key: string;
+  start_time: string;
+};
+
+export type ExternalEvent = {
+  key: string;
+  event_type_name: string;
+  start_time: string;
+  duration: string;
+  attributes: object;
+};
+
+export type CreateExternalEventTypeResponse = {
+  createExternalEventType: { attribute_schema: object; name: string };
+};
+
+export type UploadAttributeJSON = {
+  [x: string]: any;
 };
