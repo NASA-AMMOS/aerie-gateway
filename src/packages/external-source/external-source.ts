@@ -332,8 +332,10 @@ export default (app: Express) => {
    *             type: object
    *             properties:
    *               event_types:
+   *                 description: An object representing the JSON Schema definition(s) for all external event types to be uploaded.
    *                 type: object
    *               source_types:
+   *                 description: An object representing the JSON Schema definition(s) for all external event types to be uploaded.
    *                 type: object
    *             required:
    *               - event_types
