@@ -316,7 +316,7 @@ describe('validation tests', () => {
   test('verify source/event type file is correctly formatted', () => {
     // get the validator
     const attributeValidator = ajv.compile(attributeSchemaMetaschema);
-    
+
     // test it against a correct defs/attribute metaschema object
     const result = attributeValidator(attributeDefs);
     expect(result).toBeTruthy();
@@ -327,7 +327,7 @@ describe('validation tests', () => {
   test('verify source/event type file is incorrectly formatted', () => {
     // get the validator
     const attributeValidator = ajv.compile(attributeSchemaMetaschema);
-    
+
     // test it against a correct defs/attribute metaschema object
     const result = attributeValidator(incorrectAttributeDefs);
     expect(result).toBeFalsy();

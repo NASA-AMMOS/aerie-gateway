@@ -41,7 +41,7 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
   let ifThenElsePointer = ifThenElse;
   const keys = Object.keys(defs.event_types);
 
-  // handling if there's only 1 event type
+  // handling if there's only 1 event type (don't bother with $defs, just update attributes' properties directly)
   if (keys.length === 1) {
     // no need for ifThenElse, simply create localSchemaCopy and update properties.events.items.properties.attributes
     //   to match the event type in defs, and verify the event_type_name matches the def name
@@ -111,7 +111,7 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
 
   // insert def for "source" attributes
   const sourceTypeKey = Object.keys(defs.source_type)[0];
-  localSchemaCopy.properties.source.properties.attributes = { $ref: `#/$defs/source_type/${sourceTypeKey}`}
+  localSchemaCopy.properties.source.properties.attributes = { $ref: `#/$defs/source_type/${sourceTypeKey}` }
 
   // add defs
   localSchemaCopy.$defs = {
@@ -161,7 +161,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   };
 
   // Validate uploaded attribute schemas are formatted validly
-  const schemasAreValid: boolean = await compiledAttributeMetaschema({event_types: parsedEventTypes, source_types: parsedSourceTypes});
+  const schemasAreValid: boolean = await compiledAttributeMetaschema({ event_types: parsedEventTypes, source_types: parsedSourceTypes });
   if (!schemasAreValid) {
     logger.error(
       `POST /uploadExternalSourceEventTypes: Schema validation failed for uploaded source and event types.`,
@@ -172,7 +172,6 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   }
 
   logger.info(`POST /uploadExternalSourceEventTypes: Uploaded attribute schema(s) are VALID`);
-  console.log(parsedEventTypes, parsedSourceTypes);
 
   // extract the external sources and event types
   const externalSourceTypeInput: ExternalSourceTypeInsertInput[] = [];
@@ -219,7 +218,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   } = req;
   const { body } = req;
 
-  if (typeof(body) !== "object") {
+  if (typeof (body) !== "object") {
     logger.error(
       `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events".`,
     );
@@ -230,9 +229,9 @@ async function uploadExternalSource(req: Request, res: Response) {
   let parsedSource;
   let parsedExternalEvents: ExternalEvent[];
   try {
-  const { source, events } = body;
-  parsedSource = JSON.parse(source);
-  parsedExternalEvents = JSON.parse(events);
+    const { source, events } = body;
+    parsedSource = JSON.parse(source);
+    parsedExternalEvents = JSON.parse(events);
   }
   catch (e) {
     logger.error(
@@ -291,17 +290,14 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  const eventTypeNamesMappedToSchemas = external_event_type.reduce((acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput ) => {
+  const eventTypeNamesMappedToSchemas = external_event_type.reduce((acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput) => {
     acc[eventType.name] = eventType.attribute_schema;
     return acc;
   }, {});
-  const sourceTypeNamesMappedToSchemas = external_source_type.reduce((acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput ) => {
+  const sourceTypeNamesMappedToSchemas = external_source_type.reduce((acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput) => {
     acc[sourceType.name] = sourceType.attribute_schema;
     return acc;
   }, {});
-
-  console.log(external_event_type, external_source_type)
-  console.log(eventTypeNamesMappedToSchemas, sourceTypeNamesMappedToSchemas)
 
   // Assemble megaschema from attribute schemas
   const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({ event_types: eventTypeNamesMappedToSchemas, source_type: sourceTypeNamesMappedToSchemas });
