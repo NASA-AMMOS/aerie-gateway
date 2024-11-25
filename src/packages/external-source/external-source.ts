@@ -1,14 +1,14 @@
 import type { Express, Request, Response } from 'express';
 import type {
-  DerivationGroupInsertInput,
   ExternalSourceTypeInsertInput,
   CreateExternalSourceResponse,
   ExternalEventTypeInsertInput,
   ExternalEvent,
-  ExternalSourceInsertInput,
   CreateExternalSourceEventTypeResponse,
   GetSourceEventTypeAttributeSchemasResponse,
   AttributeSchema,
+  DerivationGroupInsertInput,
+  ExternalSourceInsertInput,
 } from '../../types/external-source.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
@@ -33,7 +33,7 @@ const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
 });
 
-export function updateSchemaWithDefs(defs: { event_types: any, source_type: any }) {//: Ajv.ValidateFunction | undefined {
+export function updateSchemaWithDefs(defs: { event_types: any, source_type: any }): Ajv.ValidateFunction {
   // build if statement
   const ifThenElse: { [key: string]: any } = {
 
@@ -172,6 +172,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   }
 
   logger.info(`POST /uploadExternalSourceEventTypes: Uploaded attribute schema(s) are VALID`);
+  console.log(parsedEventTypes, parsedSourceTypes);
 
   // extract the external sources and event types
   const externalSourceTypeInput: ExternalSourceTypeInsertInput[] = [];
@@ -180,7 +181,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   const event_type_keys = Object.keys(parsedEventTypes);
   for (const external_event_type of event_type_keys) {
     externalEventTypeInput.push({
-      attribute_schema: event_types[external_event_type],
+      attribute_schema: parsedEventTypes[external_event_type],
       name: external_event_type
     })
   }
@@ -188,7 +189,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   const source_type_keys = Object.keys(parsedSourceTypes);
   for (const external_source_type of source_type_keys) {
     externalSourceTypeInput.push({
-      attribute_schema: source_types[external_source_type],
+      attribute_schema: parsedSourceTypes[external_source_type],
       name: external_source_type
     })
   }
@@ -280,7 +281,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   const attributeSchemaJson = await attributeSchemas.json();
-  const { external_event_type, external_source_type } = attributeSchemaJson.data;
+  const { external_event_type, external_source_type } = attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
 
   if (external_event_type.length === 0 || external_source_type.length === 0) {
     logger.error(
@@ -290,10 +291,6 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  const defs: { event_types: any, source_type: any } = {
-    event_types: {
-
-  const { external_event_type, external_source_type } = attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
   const eventTypeNamesMappedToSchemas = external_event_type.reduce((acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput ) => {
     acc[eventType.name] = eventType.attribute_schema;
     return acc;
@@ -301,7 +298,10 @@ async function uploadExternalSource(req: Request, res: Response) {
   const sourceTypeNamesMappedToSchemas = external_source_type.reduce((acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput ) => {
     acc[sourceType.name] = sourceType.attribute_schema;
     return acc;
-  }, {});
+  }, {}); 
+
+  console.log(external_event_type, external_source_type)
+  console.log(eventTypeNamesMappedToSchemas, sourceTypeNamesMappedToSchemas)
 
   // Assemble megaschema from attribute schemas
   const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({ event_types: eventTypeNamesMappedToSchemas, source_type: sourceTypeNamesMappedToSchemas });
