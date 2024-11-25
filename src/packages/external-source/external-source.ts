@@ -47,9 +47,19 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
     //   to match the event type in defs, and verify the event_type_name matches the def name
     const localSchemaCopy = structuredClone(baseExternalSourceSchema);
     const event_type_name = keys[0];
-    const event_type_schema = defs.event_types[event_type_name];
+    const event_type_schema = {
+      ...defs.event_types[event_type_name],
+
+      // additionally, restrict extra properties
+      additionalProperties: false
+    };
     const source_type_name = Object.keys(defs.source_type)[0];
-    const source_type_schema = defs.source_type[source_type_name];
+    const source_type_schema = {
+      ...defs.source_type[source_type_name],
+
+      // additionally, restrict extra properties
+      additionalProperties: false
+    };
 
     localSchemaCopy.properties.events.items.properties.attributes = event_type_schema;
     localSchemaCopy.properties.events.items.properties.event_type_name = { "const": event_type_name };
@@ -58,7 +68,7 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
     localSchemaCopy.properties.source.properties.attributes = source_type_schema;
 
     const localAjv = new Ajv();
-    return localAjv.addSchema(defs).compile(localSchemaCopy);
+    return localAjv.compile(localSchemaCopy);
   }
 
   // handle n event types
@@ -103,19 +113,26 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
   const sourceTypeKey = Object.keys(defs.source_type)[0];
   localSchemaCopy.properties.source.properties.attributes = { $ref: `#/$defs/source_type/${sourceTypeKey}`}
 
-
   // add defs
   localSchemaCopy.$defs = {
     event_types: {},
     source_type: {
-      [sourceTypeKey]: defs.source_type[sourceTypeKey]
-    }
-  }
-  for (const event_type of keys) {
-    localSchemaCopy.$defs.event_types[event_type] = defs.event_types[event_type];
-  }
+      [sourceTypeKey]: {
+        ...defs.source_type[sourceTypeKey],
 
-  console.log(localSchemaCopy.$defs["event_types"]["EventTypeB"]);
+        // additionally, restrict extra properties
+        additionalProperties: false
+      }
+    }
+  };
+  for (const event_type of keys) {
+    localSchemaCopy.$defs.event_types[event_type] = {
+      ...defs.event_types[event_type],
+
+      // additionally, restrict extra properties
+      additionalProperties: false
+    };
+  }
 
   // Compile & return full schema with 'defs' added
   const localAjv = new Ajv();
@@ -201,9 +218,28 @@ async function uploadExternalSource(req: Request, res: Response) {
   } = req;
   const { body } = req;
 
-  const { source, events } = body;
-  const parsedSource = JSON.parse(source);
-  const parsedExternalEvents: ExternalEvent[] = JSON.parse(events);
+  if (typeof(body) !== "object") {
+    logger.error(
+      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "external_events".`,
+    );
+    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "external_events".` });
+    return;
+  }
+
+  let parsedSource;
+  let parsedExternalEvents: ExternalEvent[];
+  try {
+  const { source, external_events } = body;
+  parsedSource = JSON.parse(source);
+  parsedExternalEvents = JSON.parse(external_events);
+  }
+  catch (e) {
+    logger.error(
+      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "external_events". Alternatively, parsing may have failed:\n${e as Error}`,
+    );
+    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "external_events". Alternatively, parsing may have failed:\n${e as Error}` });
+    return;
+  }
   const { attributes, derivation_group_name, key, period, source_type_name, valid_at } = parsedSource;
 
   // Re-package the fields as a JSON object to be parsed
@@ -244,6 +280,18 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   const attributeSchemaJson = await attributeSchemas.json();
+  const { external_event_type, external_source_type } = attributeSchemaJson.data;
+
+  if (external_event_type.length === 0 || external_source_type.length === 0) {
+    logger.error(
+      `POST /uploadExternalSourceEventTypes: The source and event types in your source do not exist in the database.`,
+    );
+    res.status(500).send({ message: `The source and event types in your source do not exist in the database.` });
+    return;
+  }
+
+  const defs: { event_types: any, source_type: any } = {
+    event_types: {
 
   const { external_event_type, external_source_type } = attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
   const eventTypeNamesMappedToSchemas = external_event_type.reduce((acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput ) => {
