@@ -221,24 +221,24 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   if (typeof(body) !== "object") {
     logger.error(
-      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "external_events".`,
+      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events".`,
     );
-    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "external_events".` });
+    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "events".` });
     return;
   }
 
   let parsedSource;
   let parsedExternalEvents: ExternalEvent[];
   try {
-  const { source, external_events } = body;
+  const { source, events } = body;
   parsedSource = JSON.parse(source);
-  parsedExternalEvents = JSON.parse(external_events);
+  parsedExternalEvents = JSON.parse(events);
   }
   catch (e) {
     logger.error(
-      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "external_events". Alternatively, parsing may have failed:\n${e as Error}`,
+      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${e as Error}`,
     );
-    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "external_events". Alternatively, parsing may have failed:\n${e as Error}` });
+    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${e as Error}` });
     return;
   }
   const { attributes, derivation_group_name, key, period, source_type_name, valid_at } = parsedSource;
@@ -298,7 +298,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   const sourceTypeNamesMappedToSchemas = external_source_type.reduce((acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput ) => {
     acc[sourceType.name] = sourceType.attribute_schema;
     return acc;
-  }, {}); 
+  }, {});
 
   console.log(external_event_type, external_source_type)
   console.log(eventTypeNamesMappedToSchemas, sourceTypeNamesMappedToSchemas)
