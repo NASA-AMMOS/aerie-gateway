@@ -33,11 +33,9 @@ const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
 });
 
-export function updateSchemaWithDefs(defs: { event_types: any, source_type: any }): Ajv.ValidateFunction {
+export function updateSchemaWithDefs(defs: { event_types: any; source_type: any }): Ajv.ValidateFunction {
   // build if statement
-  const ifThenElse: { [key: string]: any } = {
-
-  };
+  const ifThenElse: { [key: string]: any } = {};
   let ifThenElsePointer = ifThenElse;
   const keys = Object.keys(defs.event_types);
 
@@ -51,18 +49,18 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
       ...defs.event_types[event_type_name],
 
       // additionally, restrict extra properties
-      additionalProperties: false
+      additionalProperties: false,
     };
     const source_type_name = Object.keys(defs.source_type)[0];
     const source_type_schema = {
       ...defs.source_type[source_type_name],
 
       // additionally, restrict extra properties
-      additionalProperties: false
+      additionalProperties: false,
     };
 
     localSchemaCopy.properties.events.items.properties.attributes = event_type_schema;
-    localSchemaCopy.properties.events.items.properties.event_type_name = { "const": event_type_name };
+    localSchemaCopy.properties.events.items.properties.event_type_name = { const: event_type_name };
 
     // insert def for "source" attributes
     localSchemaCopy.properties.source.properties.attributes = source_type_schema;
@@ -74,44 +72,42 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
   // handle n event types
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
-    console.log("NOW ON:", key);
-    ifThenElsePointer["if"] = {
+    console.log('NOW ON:', key);
+    ifThenElsePointer['if'] = {
       properties: {
         event_type_name: {
-          const: key
-        }
-      }
+          const: key,
+        },
+      },
     };
-    ifThenElsePointer["then"] = {
+    ifThenElsePointer['then'] = {
       properties: {
         attributes: {
-          $ref: `#/$defs/event_types/${key}`
-        }
-      }
+          $ref: `#/$defs/event_types/${key}`,
+        },
+      },
     };
-    ifThenElsePointer["else"] = {
-
-    };
-    ifThenElsePointer = ifThenElsePointer["else"];
+    ifThenElsePointer['else'] = {};
+    ifThenElsePointer = ifThenElsePointer['else'];
   }
 
   // fill in the final else with the last element
   const key = keys[keys.length - 1];
-  ifThenElsePointer["properties"] = {
+  ifThenElsePointer['properties'] = {
     attributes: {
-      $ref: `#/$defs/event_types/${key}`
-    }
-  }
+      $ref: `#/$defs/event_types/${key}`,
+    },
+  };
 
   // insert if statement into local copy of baseExternalSourceSchema
   const localSchemaCopy = structuredClone(baseExternalSourceSchema);
-  localSchemaCopy.properties.events.items["if"] = ifThenElse["if"];
-  localSchemaCopy.properties.events.items["then"] = ifThenElse["then"];
-  localSchemaCopy.properties.events.items["else"] = ifThenElse["else"];
+  localSchemaCopy.properties.events.items['if'] = ifThenElse['if'];
+  localSchemaCopy.properties.events.items['then'] = ifThenElse['then'];
+  localSchemaCopy.properties.events.items['else'] = ifThenElse['else'];
 
   // insert def for "source" attributes
   const sourceTypeKey = Object.keys(defs.source_type)[0];
-  localSchemaCopy.properties.source.properties.attributes = { $ref: `#/$defs/source_type/${sourceTypeKey}` }
+  localSchemaCopy.properties.source.properties.attributes = { $ref: `#/$defs/source_type/${sourceTypeKey}` };
 
   // add defs
   localSchemaCopy.$defs = {
@@ -121,16 +117,16 @@ export function updateSchemaWithDefs(defs: { event_types: any, source_type: any 
         ...defs.source_type[sourceTypeKey],
 
         // additionally, restrict extra properties
-        additionalProperties: false
-      }
-    }
+        additionalProperties: false,
+      },
+    },
   };
   for (const event_type of keys) {
     localSchemaCopy.$defs.event_types[event_type] = {
       ...defs.event_types[event_type],
 
       // additionally, restrict extra properties
-      additionalProperties: false
+      additionalProperties: false,
     };
   }
 
@@ -161,11 +157,12 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   };
 
   // Validate uploaded attribute schemas are formatted validly
-  const schemasAreValid: boolean = await compiledAttributeMetaschema({ event_types: parsedEventTypes, source_types: parsedSourceTypes });
+  const schemasAreValid: boolean = await compiledAttributeMetaschema({
+    event_types: parsedEventTypes,
+    source_types: parsedSourceTypes,
+  });
   if (!schemasAreValid) {
-    logger.error(
-      `POST /uploadExternalSourceEventTypes: Schema validation failed for uploaded source and event types.`,
-    );
+    logger.error(`POST /uploadExternalSourceEventTypes: Schema validation failed for uploaded source and event types.`);
     compiledAttributeMetaschema.errors?.forEach(error => logger.error(error));
     res.status(500).send({ message: compiledAttributeMetaschema.errors });
     return;
@@ -181,16 +178,16 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   for (const external_event_type of event_type_keys) {
     externalEventTypeInput.push({
       attribute_schema: parsedEventTypes[external_event_type],
-      name: external_event_type
-    })
+      name: external_event_type,
+    });
   }
 
   const source_type_keys = Object.keys(parsedSourceTypes);
   for (const external_source_type of source_type_keys) {
     externalSourceTypeInput.push({
       attribute_schema: parsedSourceTypes[external_source_type],
-      name: external_source_type
-    })
+      name: external_source_type,
+    });
   }
 
   // Run the Hasura migration for creating all types, in one go
@@ -218,11 +215,13 @@ async function uploadExternalSource(req: Request, res: Response) {
   } = req;
   const { body } = req;
 
-  if (typeof (body) !== "object") {
+  if (typeof body !== 'object') {
     logger.error(
       `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events".`,
     );
-    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "events".` });
+    res
+      .status(500)
+      .send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "events".` });
     return;
   }
 
@@ -232,12 +231,19 @@ async function uploadExternalSource(req: Request, res: Response) {
     const { source, events } = body;
     parsedSource = JSON.parse(source);
     parsedExternalEvents = JSON.parse(events);
-  }
-  catch (e) {
+  } catch (e) {
     logger.error(
-      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${e as Error}`,
+      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
+        e as Error
+      }`,
     );
-    res.status(500).send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${e as Error}` });
+    res
+      .status(500)
+      .send({
+        message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
+          e as Error
+        }`,
+      });
     return;
   }
   const { attributes, derivation_group_name, key, period, source_type_name, valid_at } = parsedSource;
@@ -272,7 +278,7 @@ async function uploadExternalSource(req: Request, res: Response) {
       query: gql.GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS,
       variables: {
         externalEventTypes: eventTypeNames,
-        externalSourceType: source_type_name
+        externalSourceType: source_type_name,
       },
     }),
     headers,
@@ -280,7 +286,8 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   const attributeSchemaJson = await attributeSchemas.json();
-  const { external_event_type, external_source_type } = attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
+  const { external_event_type, external_source_type } =
+    attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
 
   if (external_event_type.length === 0 || external_source_type.length === 0) {
     logger.error(
@@ -290,17 +297,26 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  const eventTypeNamesMappedToSchemas = external_event_type.reduce((acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput) => {
-    acc[eventType.name] = eventType.attribute_schema;
-    return acc;
-  }, {});
-  const sourceTypeNamesMappedToSchemas = external_source_type.reduce((acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput) => {
-    acc[sourceType.name] = sourceType.attribute_schema;
-    return acc;
-  }, {});
+  const eventTypeNamesMappedToSchemas = external_event_type.reduce(
+    (acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput) => {
+      acc[eventType.name] = eventType.attribute_schema;
+      return acc;
+    },
+    {},
+  );
+  const sourceTypeNamesMappedToSchemas = external_source_type.reduce(
+    (acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput) => {
+      acc[sourceType.name] = sourceType.attribute_schema;
+      return acc;
+    },
+    {},
+  );
 
   // Assemble megaschema from attribute schemas
-  const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({ event_types: eventTypeNamesMappedToSchemas, source_type: sourceTypeNamesMappedToSchemas });
+  const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({
+    event_types: eventTypeNamesMappedToSchemas,
+    source_type: sourceTypeNamesMappedToSchemas,
+  });
 
   // Verify that this is a valid external source
   let sourceIsValid: boolean = false;
@@ -308,8 +324,18 @@ async function uploadExternalSource(req: Request, res: Response) {
   if (sourceIsValid) {
     logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
   } else {
-    logger.error(`POST /uploadExternalSource: External Source ${key}'s formatting is invalid:\n${JSON.stringify(compiledExternalSourceMegaschema.errors)}`);
-    res.status(500).send({ message: `External Source ${key}'s formatting is invalid:\n${JSON.stringify(compiledExternalSourceMegaschema.errors)}` });
+    logger.error(
+      `POST /uploadExternalSource: External Source ${key}'s formatting is invalid:\n${JSON.stringify(
+        compiledExternalSourceMegaschema.errors,
+      )}`,
+    );
+    res
+      .status(500)
+      .send({
+        message: `External Source ${key}'s formatting is invalid:\n${JSON.stringify(
+          compiledExternalSourceMegaschema.errors,
+        )}`,
+      });
     return;
   }
 
@@ -405,13 +431,7 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post(
-    '/uploadExternalSourceEventTypes',
-    upload.any(),
-    refreshLimiter,
-    auth,
-    uploadExternalSourceEventTypes,
-  );
+  app.post('/uploadExternalSourceEventTypes', upload.any(), refreshLimiter, auth, uploadExternalSourceEventTypes);
 
   /**
    * @swagger

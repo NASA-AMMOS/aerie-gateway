@@ -8,7 +8,6 @@ export type ExternalSourceTypeInsertInput = {
   attribute_schema: object;
 };
 
-
 export type ExternalEventTypeInsertInput = {
   name: string;
   attribute_schema: object;
@@ -51,8 +50,8 @@ export type CreateExternalSourceResponse = {
 };
 
 export type CreateExternalSourceEventTypeResponse = {
-  createExternalEventTypes: { returning: string[] },
-  createExternalSourceTypes: { returning: string[] }
+  createExternalEventTypes: { returning: string[] };
+  createExternalSourceTypes: { returning: string[] };
 };
 
 export type ExternalEventInsertInput = {
@@ -84,6 +83,6 @@ export type AttributeSchema = {
 };
 
 export type GetSourceEventTypeAttributeSchemasResponse = {
-  external_event_type: ExternalEventTypeInsertInput[],
-  external_source_type: ExternalSourceTypeInsertInput[],
-}
+  external_event_type: ExternalEventTypeInsertInput[];
+  external_source_type: ExternalSourceTypeInsertInput[];
+};
