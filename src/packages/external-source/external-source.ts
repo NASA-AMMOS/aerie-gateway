@@ -3,12 +3,13 @@ import type {
   ExternalSourceTypeInsertInput,
   CreateExternalSourceResponse,
   ExternalEventTypeInsertInput,
-  ExternalEvent,
   CreateExternalSourceEventTypeResponse,
   GetSourceEventTypeAttributeSchemasResponse,
   AttributeSchema,
   DerivationGroupInsertInput,
   ExternalSourceInsertInput,
+  ExternalSourceRequest,
+  ExternalEventRequest,
 } from '../../types/external-source.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
@@ -34,44 +35,40 @@ const refreshLimiter = rateLimit({
 });
 
 export function updateSchemaWithDefs(defs: { event_types: any; source_type: any }): Ajv.ValidateFunction {
-  // build if statement
+  // Build if statement
   const ifThenElse: { [key: string]: any } = {};
   let ifThenElsePointer = ifThenElse;
   const keys = Object.keys(defs.event_types);
 
-  // handling if there's only 1 event type (don't bother with $defs, just update attributes' properties directly)
+  // Handle single event type (don't bother with $defs, just update attributes' properties directly)
   if (keys.length === 1) {
-    // no need for ifThenElse, simply create localSchemaCopy and update properties.events.items.properties.attributes
-    //   to match the event type in defs, and verify the event_type_name matches the def name
     const localSchemaCopy = structuredClone(baseExternalSourceSchema);
+
     const event_type_name = keys[0];
     const event_type_schema = {
       ...defs.event_types[event_type_name],
-
-      // additionally, restrict extra properties
       additionalProperties: false,
     };
     const source_type_name = Object.keys(defs.source_type)[0];
     const source_type_schema = {
       ...defs.source_type[source_type_name],
-
-      // additionally, restrict extra properties
       additionalProperties: false,
     };
 
     localSchemaCopy.properties.events.items.properties.attributes = event_type_schema;
     localSchemaCopy.properties.events.items.properties.event_type_name = { const: event_type_name };
 
-    // insert def for "source" attributes
+    // Insert def for "source" attributes
     localSchemaCopy.properties.source.properties.attributes = source_type_schema;
 
     const localAjv = new Ajv();
     return localAjv.compile(localSchemaCopy);
   }
 
-  // handle n event types
+  // HJandle n event types
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
+    // Create tree of if/else/then statements to support validating different types
     ifThenElsePointer['if'] = {
       properties: {
         event_type_name: {
@@ -90,7 +87,6 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
     ifThenElsePointer = ifThenElsePointer['else'];
   }
 
-  // fill in the final else with the last element
   const key = keys[keys.length - 1];
   ifThenElsePointer['properties'] = {
     attributes: {
@@ -98,24 +94,21 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
     },
   };
 
-  // insert if statement into local copy of baseExternalSourceSchema
   const localSchemaCopy = structuredClone(baseExternalSourceSchema);
   localSchemaCopy.properties.events.items['if'] = ifThenElse['if'];
   localSchemaCopy.properties.events.items['then'] = ifThenElse['then'];
   localSchemaCopy.properties.events.items['else'] = ifThenElse['else'];
 
-  // insert def for "source" attributes
+  // Insert def for "source" attributes
   const sourceTypeKey = Object.keys(defs.source_type)[0];
   localSchemaCopy.properties.source.properties.attributes = { $ref: `#/$defs/source_type/${sourceTypeKey}` };
 
-  // add defs
+  // Add defs
   localSchemaCopy.$defs = {
     event_types: {},
     source_type: {
       [sourceTypeKey]: {
         ...defs.source_type[sourceTypeKey],
-
-        // additionally, restrict extra properties
         additionalProperties: false,
       },
     },
@@ -123,8 +116,6 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
   for (const event_type of keys) {
     localSchemaCopy.$defs.event_types[event_type] = {
       ...defs.event_types[event_type],
-
-      // additionally, restrict extra properties
       additionalProperties: false,
     };
   }
@@ -199,19 +190,21 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     method: 'POST',
   });
 
-  const jsonResponse = await response.json();
-  if (jsonResponse?.data !== undefined) {
-    res.json(jsonResponse.data as CreateExternalSourceEventTypeResponse);
+  const createExternalSourceEventTypesResponse = await response.json();
+  if (createExternalSourceEventTypesResponse?.data !== undefined) {
+    res.json(createExternalSourceEventTypesResponse.data as CreateExternalSourceEventTypeResponse);
   } else {
-    res.json(jsonResponse as HasuraError);
+    res.json(createExternalSourceEventTypesResponse as HasuraError);
   }
 }
 
 async function uploadExternalSource(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
+
   const {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
+
   const { body } = req;
 
   if (typeof body !== 'object') {
@@ -224,8 +217,8 @@ async function uploadExternalSource(req: Request, res: Response) {
     return;
   }
 
-  let parsedSource;
-  let parsedExternalEvents: ExternalEvent[];
+  let parsedSource: ExternalSourceRequest;
+  let parsedExternalEvents: ExternalEventRequest[];
   try {
     const { source, events } = body;
     parsedSource = JSON.parse(source);
@@ -316,8 +309,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   });
 
   // Verify that this is a valid external source
-  let sourceIsValid: boolean = false;
-  sourceIsValid = await compiledExternalSourceMegaschema(externalSourceJson);
+  const sourceIsValid: boolean = await compiledExternalSourceMegaschema(externalSourceJson);
   if (sourceIsValid) {
     logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
   } else {
@@ -365,11 +357,11 @@ async function uploadExternalSource(req: Request, res: Response) {
     method: 'POST',
   });
 
-  const jsonResponse = await response.json();
-  if (jsonResponse?.data !== undefined) {
-    res.json(jsonResponse.data as CreateExternalSourceResponse);
+  const createExternalSourceResponse = await response.json();
+  if (createExternalSourceResponse?.data !== undefined) {
+    res.json(createExternalSourceResponse.data as CreateExternalSourceResponse);
   } else {
-    res.json(jsonResponse as HasuraError);
+    res.json(createExternalSourceResponse as HasuraError);
   }
 }
 

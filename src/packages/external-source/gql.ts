@@ -1,5 +1,4 @@
 export default {
-  // TODO: discuss upset for derivation group
   CREATE_EXTERNAL_SOURCE: `#graphql
     mutation CreateExternalSource(
       $derivation_group: derivation_group_insert_input!,
@@ -28,7 +27,7 @@ export default {
     }
   `,
   CREATE_EXTERNAL_SOURCE_EVENT_TYPES: `#graphql
-    mutation uploadAttributeSchemas($externalEventTypes: [external_event_type_insert_input!]!, $externalSourceTypes: [external_source_type_insert_input!]!) {
+    mutation UploadAttributeSchemas($externalEventTypes: [external_event_type_insert_input!]!, $externalSourceTypes: [external_source_type_insert_input!]!) {
       createExternalEventTypes: insert_external_event_type(objects: $externalEventTypes) {
         returning {
           name
@@ -49,11 +48,11 @@ export default {
     }
   `,
   GET_EXTERNAL_EVENT_TYPE_ATTRIBUTE_SCHEMA: `#graphql
-  query GetExternalEventTypeAttributeSchema($name: String!) {
-    external_event_type_by_pk(name: $name) {
-      attribute_schema
+    query GetExternalEventTypeAttributeSchema($name: String!) {
+      external_event_type_by_pk(name: $name) {
+        attribute_schema
+      }
     }
-  }
   `,
   GET_EXTERNAL_SOURCE_TYPE_ATTRIBUTE_SCHEMA: `#graphql
     query GetExternalSourceTypeAttributeSchema($name: String!) {
@@ -63,15 +62,15 @@ export default {
     }
   `,
   GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS: `#graphql
-  query getET($externalEventTypes: [String!]!, $externalSourceType: String!) {
-    external_event_type(where: {name: {_in: $externalEventTypes}}) {
-      name
-      attribute_schema
+    query GetSourceEventTypeAttributeSchemas($externalEventTypes: [String!]!, $externalSourceType: String!) {
+      external_event_type(where: {name: {_in: $externalEventTypes}}) {
+        name
+        attribute_schema
+      }
+      external_source_type(where: {name: {_eq: $externalSourceType}}) {
+        name
+        attribute_schema
+      }
     }
-    external_source_type(where: {name: {_eq: $externalSourceType}}) {
-      name
-      attribute_schema
-    }
-  }
   `,
 };

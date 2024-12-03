@@ -1,5 +1,4 @@
 import { ParsedDoyString, ParsedYmdString } from '../types/time';
-import parseInterval from 'postgres-interval';
 
 function parseNumber(number: number | string): number {
   return parseInt(`${number}`, 10);
@@ -93,7 +92,7 @@ export function convertDateToDoy(dateString: string, numDecimals = 6): string | 
   return null;
 }
 
-export function convertDoyToYmd(doyString: string, numDecimals = 6, includeMsecs = true): string | null {
+function convertDoyToYmd(doyString: string, numDecimals = 6, includeMsecs = true): string | null {
   const parsedDoy: ParsedDoyString = parseDoyOrYmdTime(doyString, numDecimals) as ParsedDoyString;
 
   if (parsedDoy !== null) {
@@ -128,22 +127,4 @@ export function getTimeDifference(dateString1: string, dateString2: string, numD
     return Math.abs(date.getTime() * 1000 - nextDate.getTime() * 1000);
   }
   return null;
-}
-
-/**
- * Returns a Postgres Interval duration in milliseconds.
- * If duration is null, undefined, or empty string then we just return 0.
- * @note This function assumes 24-hour days.
- */
-export function getIntervalInMs(interval: string | null | undefined): number {
-  if (interval !== null && interval !== undefined && interval !== '') {
-    const parsedInterval = parseInterval(interval);
-    const { days, hours, milliseconds, minutes, seconds } = parsedInterval;
-    const daysInMs = days * 24 * 60 * 60 * 1000;
-    const hoursInMs = hours * 60 * 60 * 1000;
-    const minutesInMs = minutes * 60 * 1000;
-    const secondsInMs = seconds * 1000;
-    return daysInMs + hoursInMs + minutesInMs + secondsInMs + milliseconds;
-  }
-  return 0;
 }

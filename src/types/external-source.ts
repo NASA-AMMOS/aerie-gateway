@@ -31,20 +31,6 @@ export type ExternalSourceInsertInput = {
   valid_at: string;
 };
 
-export type UploadExternalSourceJSON = {
-  events: ExternalEventJson[];
-  source: {
-    attributes: object;
-    key: string;
-    period: {
-      end_time: string;
-      start_time: string;
-    };
-    source_type: string;
-    valid_at: string;
-  };
-};
-
 export type CreateExternalSourceResponse = {
   createExternalSource: { name: string };
 };
@@ -54,28 +40,24 @@ export type CreateExternalSourceEventTypeResponse = {
   createExternalSourceTypes: { returning: string[] };
 };
 
-export type ExternalEventInsertInput = {
-  attributes: object;
-  start_time: string;
-  duration: string;
-  event_type_name: string;
-  key: string;
-};
-
-export type ExternalEventJson = {
-  attributes: object;
-  duration: string;
-  event_type: string;
-  key: string;
-  start_time: string;
-};
-
-export type ExternalEvent = {
+export type ExternalEventRequest = {
   key: string;
   event_type_name: string;
   start_time: string;
   duration: string;
   attributes: object;
+};
+
+export type ExternalSourceRequest = {
+  attributes: object;
+  derivation_group_name: string;
+  key: string;
+  period: {
+    end_time: string;
+    start_time: string;
+  };
+  source_type_name: string;
+  valid_at: string;
 };
 
 export type AttributeSchema = {
