@@ -72,7 +72,6 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
   // handle n event types
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
-    console.log('NOW ON:', key);
     ifThenElsePointer['if'] = {
       properties: {
         event_type_name: {
@@ -237,13 +236,11 @@ async function uploadExternalSource(req: Request, res: Response) {
         e as Error
       }`,
     );
-    res
-      .status(500)
-      .send({
-        message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
-          e as Error
-        }`,
-      });
+    res.status(500).send({
+      message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
+        e as Error
+      }`,
+    });
     return;
   }
   const { attributes, derivation_group_name, key, period, source_type_name, valid_at } = parsedSource;
@@ -329,13 +326,11 @@ async function uploadExternalSource(req: Request, res: Response) {
         compiledExternalSourceMegaschema.errors,
       )}`,
     );
-    res
-      .status(500)
-      .send({
-        message: `External Source ${key}'s formatting is invalid:\n${JSON.stringify(
-          compiledExternalSourceMegaschema.errors,
-        )}`,
-      });
+    res.status(500).send({
+      message: `External Source ${key}'s formatting is invalid:\n${JSON.stringify(
+        compiledExternalSourceMegaschema.errors,
+      )}`,
+    });
     return;
   }
 
