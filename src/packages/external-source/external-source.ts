@@ -23,8 +23,7 @@ import multer from 'multer';
 
 const upload = multer({ limits: { fieldSize: 25 * 1024 * 1024 } });
 const logger = getLogger('packages/external-source/external-source');
-const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
-const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
+const { RATE_LIMITER_LOGIN_MAX, GQL_API_URL } = getEnv();
 const ajv = new Ajv();
 const compiledAttributeMetaschema = ajv.compile(attributeSchemaMetaschema);
 const refreshLimiter = rateLimit({
@@ -44,28 +43,28 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
   if (keys.length === 1) {
     const localSchemaCopy = structuredClone(baseExternalSourceSchema);
 
-    const event_type_name = keys[0];
-    const event_type_schema = {
-      ...defs.event_types[event_type_name],
+    const eventTypeName = keys[0];
+    const eventTypeSchema = {
+      ...defs.event_types[eventTypeName],
       additionalProperties: false,
     };
-    const source_type_name = Object.keys(defs.source_type)[0];
-    const source_type_schema = {
-      ...defs.source_type[source_type_name],
+    const sourceTypeName = Object.keys(defs.source_type)[0];
+    const sourceTypeSchema = {
+      ...defs.source_type[sourceTypeName],
       additionalProperties: false,
     };
 
-    localSchemaCopy.properties.events.items.properties.attributes = event_type_schema;
-    localSchemaCopy.properties.events.items.properties.event_type_name = { const: event_type_name };
+    localSchemaCopy.properties.events.items.properties.attributes = eventTypeSchema;
+    localSchemaCopy.properties.events.items.properties.event_type_name = { const: eventTypeName };
 
     // Insert def for "source" attributes
-    localSchemaCopy.properties.source.properties.attributes = source_type_schema;
+    localSchemaCopy.properties.source.properties.attributes = sourceTypeSchema;
 
     const localAjv = new Ajv();
     return localAjv.compile(localSchemaCopy);
   }
 
-  // HJandle n event types
+  // Handle n event types
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
     // Create tree of if/else/then statements to support validating different types
@@ -113,9 +112,9 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
       },
     },
   };
-  for (const event_type of keys) {
-    localSchemaCopy.$defs.event_types[event_type] = {
-      ...defs.event_types[event_type],
+  for (const eventType of keys) {
+    localSchemaCopy.$defs.event_types[eventType] = {
+      ...defs.event_types[eventType],
       additionalProperties: false,
     };
   }
@@ -164,19 +163,19 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   const externalSourceTypeInput: ExternalSourceTypeInsertInput[] = [];
   const externalEventTypeInput: ExternalEventTypeInsertInput[] = [];
 
-  const event_type_keys = Object.keys(parsedEventTypes);
-  for (const external_event_type of event_type_keys) {
+  const eventTypeKeys = Object.keys(parsedEventTypes);
+  for (const externalEventType of eventTypeKeys) {
     externalEventTypeInput.push({
-      attribute_schema: parsedEventTypes[external_event_type],
-      name: external_event_type,
+      attribute_schema: parsedEventTypes[externalEventType],
+      name: externalEventType,
     });
   }
 
-  const source_type_keys = Object.keys(parsedSourceTypes);
-  for (const external_source_type of source_type_keys) {
+  const sourceTypeKeys = Object.keys(parsedSourceTypes);
+  for (const externalSourceType of sourceTypeKeys) {
     externalSourceTypeInput.push({
-      attribute_schema: parsedSourceTypes[external_source_type],
-      name: external_source_type,
+      attribute_schema: parsedSourceTypes[externalSourceType],
+      name: externalSourceType,
     });
   }
 
