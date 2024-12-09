@@ -15,7 +15,7 @@ import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import gql from './gql.js';
-import { attributeSchemaMetaschema, baseExternalSourceSchema } from '../schemas/external-event-validation-schemata.js';
+import { attributeSchemaMetaschema, baseExternalSourceSchema } from '../../schemas/external-event-validation-schemata.js';
 import { HasuraError } from '../../types/hasura.js';
 import { auth } from '../auth/middleware.js';
 import rateLimit from 'express-rate-limit';

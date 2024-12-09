@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import { describe, expect, test } from 'vitest';
-import { attributeSchemaMetaschema } from '../src/packages/schemas/external-event-validation-schemata';
+import { attributeSchemaMetaschema } from '../src/schemas/external-event-validation-schemata';
 import { updateSchemaWithDefs } from '../src/packages/external-source/external-source';
 
 const ajv = Ajv();
