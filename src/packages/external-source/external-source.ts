@@ -225,12 +225,12 @@ async function uploadExternalSource(req: Request, res: Response) {
   } catch (e) {
     logger.error(
       `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
-        e as Error
+        (e as Error).message
       }`,
     );
     res.status(500).send({
       message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
-        e as Error
+        (e as Error).message
       }`,
     });
     return;
@@ -249,6 +249,7 @@ async function uploadExternalSource(req: Request, res: Response) {
       valid_at: valid_at,
     },
   };
+  console.log(period);
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -282,7 +283,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     logger.error(
       `POST /uploadExternalSourceEventTypes: The source and event types in your source do not exist in the database.`,
     );
-    res.status(500).send({ message: `The source and event types in your source do not exist in the database.` });
+    res.status(500).send({ message: `The source type and event types in your source do not exist in the database.` });
     return;
   }
 
