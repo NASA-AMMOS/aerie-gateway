@@ -128,11 +128,9 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
 
   const {
+    body: {event_types, source_types},
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
-
-  const { body } = req;
-  const { event_types, source_types } = body;
   const parsedEventTypes: { [x: string]: object } = JSON.parse(event_types);
   const parsedSourceTypes: { [x: string]: object } = JSON.parse(source_types);
 
@@ -151,9 +149,9 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     source_types: parsedSourceTypes,
   });
   if (!schemasAreValid) {
-    logger.error(`POST /uploadExternalSourceEventTypes: Schema validation failed for uploaded source and event types.`);
-    compiledAttributeMetaschema.errors?.forEach(error => logger.error(error));
-    res.status(500).send({ message: compiledAttributeMetaschema.errors });
+    const errorMsg = `Schema validation failed for uploaded source and event types:\n${JSON.stringify(compiledAttributeMetaschema.errors)}`;
+    logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
+    res.status(500).send({ message: errorMsg });
     return;
   }
 
@@ -201,37 +199,23 @@ async function uploadExternalSource(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
 
   const {
+    body: { source, events },
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  const { body } = req;
-
-  if (typeof body !== 'object') {
-    logger.error(
-      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events".`,
-    );
-    res
-      .status(500)
-      .send({ message: `Body of request must be a JSON, with two stringified properties: "source" and "events".` });
-    return;
-  }
-
   let parsedSource: ExternalSourceRequest;
   let parsedExternalEvents: ExternalEventRequest[];
+
   try {
-    const { source, events } = body;
     parsedSource = JSON.parse(source);
     parsedExternalEvents = JSON.parse(events);
   } catch (e) {
+    const errorMsg = `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${(e as Error).message}`;
     logger.error(
-      `POST /uploadExternalSourceEventTypes: Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
-        (e as Error).message
-      }`,
+      `POST /uploadExternalSourceEventTypes: ${errorMsg}`,
     );
     res.status(500).send({
-      message: `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
-        (e as Error).message
-      }`,
+      message: errorMsg,
     });
     return;
   }
@@ -249,7 +233,6 @@ async function uploadExternalSource(req: Request, res: Response) {
       valid_at: valid_at,
     },
   };
-  console.log(period);
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -280,10 +263,11 @@ async function uploadExternalSource(req: Request, res: Response) {
     attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
 
   if (external_event_type.length === 0 || external_source_type.length === 0) {
+    const errorMsg = 'The source and/or event types in your source do not exist in the database.';
     logger.error(
-      `POST /uploadExternalSourceEventTypes: The source and event types in your source do not exist in the database.`,
+      `POST /uploadExternalSourceEventTypes: ${errorMsg}`,
     );
-    res.status(500).send({ message: `The source type and event types in your source do not exist in the database.` });
+    res.status(500).send({ message: errorMsg });
     return;
   }
 
@@ -313,16 +297,9 @@ async function uploadExternalSource(req: Request, res: Response) {
   if (sourceIsValid) {
     logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
   } else {
-    logger.error(
-      `POST /uploadExternalSource: External Source ${key}'s formatting is invalid:\n${JSON.stringify(
-        compiledExternalSourceMegaschema.errors,
-      )}`,
-    );
-    res.status(500).send({
-      message: `External Source ${key}'s formatting is invalid:\n${JSON.stringify(
-        compiledExternalSourceMegaschema.errors,
-      )}`,
-    });
+    const errorMsg = `External Source ${key}'s formatting is invalid:\n${JSON.stringify(compiledExternalSourceMegaschema.errors)}`
+    logger.error(`POST /uploadExternalSource: ${errorMsg}`);
+    res.status(500).send({ message: errorMsg });
     return;
   }
 
@@ -396,7 +373,7 @@ export default (app: Express) => {
    *                 type: object
    *             required:
    *               - event_types
-   *                 source_types
+   *               - source_types
    *     responses:
    *       200:
    *         description: Created External Source & Event Types
@@ -442,36 +419,62 @@ export default (app: Express) => {
    *           schema:
    *             type: object
    *             properties:
-   *               attributes:
-   *                 type: object
-   *               derivation_group_name:
-   *                 type: string
-   *               end_time:
-   *                 type: string
    *               events:
+   *                 description: A list of External Events to be uploaded that are contained within the External Source.
+   *                 type: array
+   *                 items:
+   *                   type: object
+   *                   properties:
+   *                     attributes:
+   *                       type: object
+   *                     duration:
+   *                       type: string
+   *                     event_type_name:
+   *                       type: string
+   *                     key:
+   *                       type: string
+   *                     start_time:
+   *                       type: string
+   *                   required:
+   *                     - attributes
+   *                     - duration
+   *                     - event_type_name
+   *                     - key
+   *                     - start_time
+   *               source:
+   *                 description: An object representing the External Source to be uploaded.
    *                 type: object
    *                 properties:
-   *                   data:
-   *                     type: array
+   *                   attributes:
+   *                     type: object
+   *                   derivation_group_name:
+   *                     type: string
+   *                   key:
+   *                     type: string
+   *                   period:
+   *                     type: object
+   *                     properties:
+   *                       end_time:
+   *                         type: string
+   *                       start_time:
+   *                         type: string
+   *                     required:
+   *                       - end_time
+   *                         start_time
+   *                   source_type_name:
+   *                     type: string
+   *                   valid_at:
+   *                     type: string
    *                 required:
-   *                   - data
-   *               key:
-   *                 type: string
-   *               source_type_name:
-   *                 type: string
-   *               start_time:
-   *                 type: string
-   *               valid_at:
-   *                 type: string
+   *                   - attributes
+   *                   - derivation_group_name
+   *                   - key
+   *                   - period
+   *                   - source_type_name
+   *                   - valid_at
    *             required:
-   *               - attributes
-   *                 derivation_group_name
-   *                 end_time
-   *                 events
-   *                 key
-   *                 source_type_name
-   *                 start_time
-   *                 valid_at
+   *               - events
+   *               - source
    *     responses:
    *       200:
    *         description: Created External Source
