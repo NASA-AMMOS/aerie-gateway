@@ -15,7 +15,10 @@ import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import gql from './gql.js';
-import { attributeSchemaMetaschema, baseExternalSourceSchema } from '../../schemas/external-event-validation-schemata.js';
+import {
+  attributeSchemaMetaschema,
+  baseExternalSourceSchema,
+} from '../../schemas/external-event-validation-schemata.js';
 import { HasuraError } from '../../types/hasura.js';
 import { auth } from '../auth/middleware.js';
 import rateLimit from 'express-rate-limit';
@@ -128,7 +131,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
 
   const {
-    body: {event_types, source_types},
+    body: { event_types, source_types },
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
   const parsedEventTypes: { [x: string]: object } = JSON.parse(event_types);
@@ -149,7 +152,9 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     source_types: parsedSourceTypes,
   });
   if (!schemasAreValid) {
-    const errorMsg = `Schema validation failed for uploaded source and event types:\n${JSON.stringify(compiledAttributeMetaschema.errors)}`;
+    const errorMsg = `Schema validation failed for uploaded source and event types:\n${JSON.stringify(
+      compiledAttributeMetaschema.errors,
+    )}`;
     logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
     res.status(500).send({ message: errorMsg });
     return;
@@ -210,10 +215,10 @@ async function uploadExternalSource(req: Request, res: Response) {
     parsedSource = JSON.parse(source);
     parsedExternalEvents = JSON.parse(events);
   } catch (e) {
-    const errorMsg = `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${(e as Error).message}`;
-    logger.error(
-      `POST /uploadExternalSourceEventTypes: ${errorMsg}`,
-    );
+    const errorMsg = `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
+      (e as Error).message
+    }`;
+    logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
     res.status(500).send({
       message: errorMsg,
     });
@@ -264,9 +269,7 @@ async function uploadExternalSource(req: Request, res: Response) {
 
   if (external_event_type.length === 0 || external_source_type.length === 0) {
     const errorMsg = 'The source and/or event types in your source do not exist in the database.';
-    logger.error(
-      `POST /uploadExternalSourceEventTypes: ${errorMsg}`,
-    );
+    logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
     res.status(500).send({ message: errorMsg });
     return;
   }
@@ -297,7 +300,9 @@ async function uploadExternalSource(req: Request, res: Response) {
   if (sourceIsValid) {
     logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
   } else {
-    const errorMsg = `External Source ${key}'s formatting is invalid:\n${JSON.stringify(compiledExternalSourceMegaschema.errors)}`
+    const errorMsg = `External Source ${key}'s formatting is invalid:\n${JSON.stringify(
+      compiledExternalSourceMegaschema.errors,
+    )}`;
     logger.error(`POST /uploadExternalSource: ${errorMsg}`);
     res.status(500).send({ message: errorMsg });
     return;
