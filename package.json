@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@streamparser/json": "^0.0.21",
+    "ajv": "^6.10.0",
     "altair-express-middleware": "^5.2.11",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
