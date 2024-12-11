@@ -26,7 +26,8 @@ import multer from 'multer';
 
 const upload = multer({ limits: { fieldSize: 25 * 1024 * 1024 } });
 const logger = getLogger('packages/external-source/external-source');
-const { RATE_LIMITER_LOGIN_MAX, GQL_API_URL } = getEnv();
+const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
+const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
 const ajv = new Ajv();
 const compiledAttributeMetaschema = ajv.compile(attributeSchemaMetaschema);
 const refreshLimiter = rateLimit({
