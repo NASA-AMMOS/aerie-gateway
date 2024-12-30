@@ -38,6 +38,9 @@ const refreshLimiter = rateLimit({
 });
 
 export function updateSchemaWithDefs(defs: { event_types: any; source_type: any }): Ajv.ValidateFunction {
+
+  logger.info("SDFSDFDSF")
+
   // Build if statement
   const ifThenElse: { [key: string]: any } = {};
   let ifThenElsePointer = ifThenElse;
@@ -123,6 +126,8 @@ export function updateSchemaWithDefs(defs: { event_types: any; source_type: any 
     };
   }
 
+  logger.info(JSON.stringify(localSchemaCopy));
+
   // Compile & return full schema with 'defs' added
   const localAjv = new Ajv();
   return localAjv.compile(localSchemaCopy);
@@ -135,8 +140,17 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     body: { event_types, source_types },
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
-  const parsedEventTypes: { [x: string]: object } = JSON.parse(event_types);
-  const parsedSourceTypes: { [x: string]: object } = JSON.parse(source_types);
+
+  console.log(event_types, source_types)
+
+  let parsedEventTypes: { [x: string]: object } | undefined = undefined; 
+  if (event_types !== undefined) {
+    parsedEventTypes = JSON.parse(event_types);
+  }
+  let parsedSourceTypes: { [x: string]: object } | undefined = undefined;
+  if (source_types !== undefined) {
+    parsedSourceTypes = JSON.parse(source_types);
+  }
 
   logger.info(`POST /uploadExternalSourceEventTypes: Uploading External Source and Event Types...`);
 
@@ -148,10 +162,14 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   };
 
   // Validate uploaded attribute schemas are formatted validly
-  const schemasAreValid: boolean = await compiledAttributeMetaschema({
-    event_types: parsedEventTypes,
-    source_types: parsedSourceTypes,
-  });
+  const metaschema: { [x: string]: object } = {};
+  if (parsedEventTypes !== undefined) {
+    metaschema["event_types"] = parsedEventTypes;
+  }
+  if (parsedSourceTypes !== undefined) {
+    metaschema["source_types"] = parsedSourceTypes;
+  }
+  const schemasAreValid: boolean = await compiledAttributeMetaschema(metaschema);
   if (!schemasAreValid) {
     const errorMsg = `Schema validation failed for uploaded source and event types:\n${JSON.stringify(
       compiledAttributeMetaschema.errors,
@@ -167,20 +185,26 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   const externalSourceTypeInput: ExternalSourceTypeInsertInput[] = [];
   const externalEventTypeInput: ExternalEventTypeInsertInput[] = [];
 
-  const eventTypeKeys = Object.keys(parsedEventTypes);
-  for (const externalEventType of eventTypeKeys) {
-    externalEventTypeInput.push({
-      attribute_schema: parsedEventTypes[externalEventType],
-      name: externalEventType,
-    });
+  let eventTypeKeys: string[] = [];
+  if (parsedEventTypes !== undefined) {
+    eventTypeKeys = Object.keys(parsedEventTypes);
+    for (const externalEventType of eventTypeKeys) {
+      externalEventTypeInput.push({
+        attribute_schema: parsedEventTypes[externalEventType],
+        name: externalEventType,
+      });
+    }
   }
 
-  const sourceTypeKeys = Object.keys(parsedSourceTypes);
-  for (const externalSourceType of sourceTypeKeys) {
-    externalSourceTypeInput.push({
-      attribute_schema: parsedSourceTypes[externalSourceType],
-      name: externalSourceType,
-    });
+  let sourceTypeKeys: string[] = [];
+  if (parsedSourceTypes !== undefined) {
+    sourceTypeKeys = Object.keys(parsedSourceTypes);
+    for (const externalSourceType of sourceTypeKeys) {
+      externalSourceTypeInput.push({
+        attribute_schema: parsedSourceTypes[externalSourceType],
+        name: externalSourceType,
+      });
+    }
   }
 
   // Run the Hasura migration for creating all types, in one go
@@ -268,6 +292,7 @@ async function uploadExternalSource(req: Request, res: Response) {
   const { external_event_type, external_source_type } =
     attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
 
+  // TODO: make this create new ones
   if (external_event_type.length === 0 || external_source_type.length === 0) {
     const errorMsg = 'The source and/or event types in your source do not exist in the database.';
     logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
