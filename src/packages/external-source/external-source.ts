@@ -292,7 +292,6 @@ async function uploadExternalSource(req: Request, res: Response) {
   const { external_event_type, external_source_type } =
     attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
 
-  // TODO: make this create new ones
   if (external_event_type.length === 0 || external_source_type.length === 0) {
     const errorMsg = 'The source and/or event types in your source do not exist in the database.';
     logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
