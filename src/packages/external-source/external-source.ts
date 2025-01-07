@@ -38,9 +38,6 @@ const refreshLimiter = rateLimit({
 });
 
 export function updateSchemaWithDefs(defs: { event_types: any; source_type: any }): Ajv.ValidateFunction {
-
-  logger.info("SDFSDFDSF")
-
   // Build if statement
   const ifThenElse: { [key: string]: any } = {};
   let ifThenElsePointer = ifThenElse;
@@ -243,7 +240,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     const errorMsg = `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
       (e as Error).message
     }`;
-    logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
+    logger.error(`POST /uploadExternalSource: ${errorMsg}`);
     res.status(500).send({
       message: errorMsg,
     });
