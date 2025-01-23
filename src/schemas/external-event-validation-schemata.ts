@@ -25,11 +25,7 @@ export const attributeSchemaMetaschema = {
   },
   $schema: 'http://json-schema.org/draft-07/schema',
   additionalProperties: false,
-  anyOf: [
-        {required: ['source_types']},
-        {required: ['event_types']},
-        {required: ['source_types', 'event_types']}
-  ],
+  anyOf: [{ required: ['source_types'] }, { required: ['event_types'] }, { required: ['source_types', 'event_types'] }],
   description: 'Schema for the attributes of uploaded source types and/or event types.',
   properties: {
     event_types: {

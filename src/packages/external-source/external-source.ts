@@ -138,9 +138,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  console.log(event_types, source_types)
-
-  let parsedEventTypes: { [x: string]: object } | undefined = undefined; 
+  let parsedEventTypes: { [x: string]: object } | undefined = undefined;
   if (event_types !== undefined) {
     parsedEventTypes = JSON.parse(event_types);
   }
@@ -161,10 +159,10 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
   // Validate uploaded attribute schemas are formatted validly
   const metaschema: { [x: string]: object } = {};
   if (parsedEventTypes !== undefined) {
-    metaschema["event_types"] = parsedEventTypes;
+    metaschema['event_types'] = parsedEventTypes;
   }
   if (parsedSourceTypes !== undefined) {
-    metaschema["source_types"] = parsedSourceTypes;
+    metaschema['source_types'] = parsedSourceTypes;
   }
   const schemasAreValid: boolean = await compiledAttributeMetaschema(metaschema);
   if (!schemasAreValid) {
