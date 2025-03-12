@@ -2,7 +2,7 @@ import type { Express } from 'express';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { customAlphabet } from 'nanoid';
-import { parse } from 'path';
+import path, { parse } from 'path';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { auth } from '../auth/middleware.js';
@@ -83,6 +83,59 @@ export default (app: Express) => {
       }
 
       res.json({ id, success: true });
+    } catch (error: any) {
+      logger.error(error);
+      res.status(404).json({ message: error.message, success: false });
+    }
+  });
+
+  /**
+   * @swagger
+   * /file/{id}:
+   *   get:
+   *     parameters:
+   *       - description: ID of the file
+   *         in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: number
+   *     produces:
+   *       - application/json
+   *     responses:
+   *       200:
+   *         description: Fetches the file by id
+   *     summary: Get the file with the associated ID.
+   *     tags:
+   *       - Files
+   */
+  app.get('/file/:id', filesLimiter, auth, async (req, res) => {
+    const { params } = req;
+    const { id } = params;
+
+    try {
+      const { rows, rowCount } = await db.query(
+        `
+        select *
+        from merlin.uploaded_file
+        where id = $1;
+      `,
+        [id],
+      );
+
+      if (rowCount && rowCount > 0) {
+        const [row] = rows;
+        const { name } = row;
+
+        const fileStoreBasePath = `/app/files`; // todo get from env
+        const filePath = path.join(fileStoreBasePath, name);
+
+        res.sendFile(filePath, err => {
+          if (err) {
+            logger.info(`GET /file/{id}: No file was found with id: ${id}`);
+          }
+        });
+      }
     } catch (error: any) {
       logger.error(error);
       res.status(404).json({ message: error.message, success: false });
