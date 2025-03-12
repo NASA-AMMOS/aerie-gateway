@@ -11,7 +11,7 @@ import { DbMerlin } from '../db/db.js';
 const logger = getLogger('packages/files/files');
 
 export default (app: Express) => {
-  const { RATE_LIMITER_FILES_MAX } = getEnv();
+  const { FILE_PATH, RATE_LIMITER_FILES_MAX } = getEnv();
 
   const filesLimiter = rateLimit({
     legacyHeaders: false,
@@ -127,8 +127,7 @@ export default (app: Express) => {
         const [row] = rows;
         const { name } = row;
 
-        const fileStoreBasePath = `/app/files`; // todo get from env
-        const filePath = path.join(fileStoreBasePath, name);
+        const filePath = path.join(FILE_PATH, name);
 
         res.sendFile(filePath, err => {
           if (err) {
