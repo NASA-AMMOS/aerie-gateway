@@ -1,5 +1,7 @@
 import { JSONParser } from '@streamparser/json';
 
+export const FILE_PATH = '/app/files';
+
 export function parseJSONFile<T>(file?: Express.Multer.File): Promise<T> {
   return new Promise(resolve => {
     const jsonParser = new JSONParser({ paths: ['$.*'], stringBufferSize: undefined });

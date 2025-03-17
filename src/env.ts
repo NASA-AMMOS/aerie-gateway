@@ -11,7 +11,6 @@ export type Env = {
   AUTH_URL: string;
   DEFAULT_ROLE: string[];
   DEFAULT_ROLE_NO_AUTH: string;
-  FILE_PATH: string;
   GQL_API_URL: string;
   GQL_API_WS_URL: string;
   HASURA_API_URL: string;
@@ -42,7 +41,6 @@ export const defaultEnv: Env = {
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
   DEFAULT_ROLE: ['user'],
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
-  FILE_PATH: '/app/files',
   GATEWAY_DB_PASSWORD: '',
   GATEWAY_DB_USER: '',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
@@ -117,7 +115,6 @@ export function getEnv(): Env {
   const AUTH_SSO_TOKEN_NAME = parseArray(env['AUTH_SSO_TOKEN_NAME'], defaultEnv.AUTH_SSO_TOKEN_NAME);
   const DEFAULT_ROLE = parseArray(env['DEFAULT_ROLE'], defaultEnv.DEFAULT_ROLE);
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;
-  const FILE_PATH = env['FILE_PATH'] ?? defaultEnv.FILE_PATH;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
   const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
@@ -147,7 +144,6 @@ export function getEnv(): Env {
     AUTH_URL,
     DEFAULT_ROLE,
     DEFAULT_ROLE_NO_AUTH,
-    FILE_PATH,
     GATEWAY_DB_PASSWORD,
     GATEWAY_DB_USER,
     GQL_API_URL,

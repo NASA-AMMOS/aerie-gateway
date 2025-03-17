@@ -7,11 +7,12 @@ import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
 import { auth } from '../auth/middleware.js';
 import { DbMerlin } from '../db/db.js';
+import { FILE_PATH } from '../../util/fileParser.js';
 
 const logger = getLogger('packages/files/files');
 
 export default (app: Express) => {
-  const { FILE_PATH, RATE_LIMITER_FILES_MAX } = getEnv();
+  const { RATE_LIMITER_FILES_MAX } = getEnv();
 
   const filesLimiter = rateLimit({
     legacyHeaders: false,
