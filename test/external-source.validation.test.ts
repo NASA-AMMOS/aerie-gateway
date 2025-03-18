@@ -160,7 +160,7 @@ const incorrectExternalSourceAttributes = {
     attributes: {
       version: 1,
       wrkcat: 234, // <-- wrong type. expecting string.
-    }
+    },
   },
 };
 
@@ -174,13 +174,13 @@ const incorrectExternalEventAttributes = {
           make: 'alpha',
           // "type": "A", <-- missing.
         },
-      }
+      },
     },
     {
-      ...correctExternalSource.events[1]
+      ...correctExternalSource.events[1],
     },
     {
-      ...correctExternalSource.events[2]
+      ...correctExternalSource.events[2],
     },
   ],
   source: correctExternalSource.source,
