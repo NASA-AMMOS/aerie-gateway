@@ -120,7 +120,7 @@ export default (app: Express) => {
         select *
         from merlin.uploaded_file
         where id = $1
-        and deleted_date = null;
+        and deleted_date is null;
       `,
         [id],
       );
