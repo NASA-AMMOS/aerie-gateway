@@ -93,58 +93,10 @@ const incorrectAttributeDefs = {
       // "required": ["series"], // missing required field (the issue, only at level patternProperties/sdfdsf/required)
       type: 'object',
     },
-    EventTypeB: {
-      properties: {
-        projectUser: {
-          type: 'string',
-        },
-        tick: {
-          type: 'number',
-        },
-      },
-      required: ['projectUser', 'tick'],
-      type: 'object',
-    },
-    EventTypeC: {
-      properties: {
-        aperture: {
-          type: 'string',
-        },
-        subduration: {
-          pattern: '^P(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?$',
-          type: 'string',
-        },
-      },
-      required: ['aperture', 'subduration'],
-      type: 'object',
-    },
+    EventTypeB: attributeDefs.event_types.EventTypeB,
+    EventTypeC: attributeDefs.event_types.EventTypeC,
   },
-  source_types: {
-    SourceTypeA: {
-      properties: {
-        version: {
-          type: 'number',
-        },
-        wrkcat: {
-          type: 'string',
-        },
-      },
-      required: ['version', 'wrkcat'],
-      type: 'object',
-    },
-    SourceTypeB: {
-      properties: {
-        version: {
-          type: 'number',
-        },
-        wrkcat: {
-          type: 'string',
-        },
-      },
-      required: ['version', 'wrkcat'],
-      type: 'object',
-    },
-  },
+  source_types: attributeDefs.source_types,
 };
 
 const correctExternalSource = {
@@ -202,111 +154,36 @@ const correctExternalSource = {
 };
 
 const incorrectExternalSourceAttributes = {
-  events: [
-    {
-      attributes: {
-        series: {
-          iteration: 17,
-          make: 'alpha',
-          type: 'A',
-        },
-      },
-      duration: '02:00:00',
-      event_type_name: 'EventTypeA',
-      key: 'EventTypeA:1/1',
-      start_time: '2024-01-01T01:35:00+00:00',
-    },
-    {
-      attributes: {
-        series: {
-          iteration: 21,
-          make: 'beta',
-          type: 'B',
-        },
-      },
-      duration: '02:00:00',
-      event_type_name: 'EventTypeA',
-      key: 'EventTypeA:1/2',
-      start_time: '2024-01-02T11:50:00+00:00',
-    },
-    {
-      attributes: {
-        projectUser: 'Jerry',
-        tick: 18,
-      },
-      duration: '03:40:00',
-      event_type_name: 'EventTypeB',
-      key: 'EventTypeB:1/3',
-      start_time: '2024-01-03T15:20:00+00:00',
-    },
-  ],
+  events: correctExternalSource.events,
   source: {
+    ...correctExternalSource.source,
     attributes: {
       version: 1,
       wrkcat: 234, // <-- wrong type. expecting string.
-    },
-    key: 'SourceTypeA:valid_source_A.json',
-    period: {
-      end_time: '2024-01-07T00:00:00+00:00',
-      start_time: '2024-01-01T00:00:00+00:00',
-    },
-    source_type_name: 'SourceTypeA',
-    valid_at: '2024-01-01T00:00:00+00:00',
+    }
   },
 };
 
 const incorrectExternalEventAttributes = {
   events: [
     {
+      ...correctExternalSource.events[0],
       attributes: {
         series: {
           iteration: 17,
           make: 'alpha',
           // "type": "A", <-- missing.
         },
-      },
-      duration: '02:00:00',
-      event_type_name: 'EventTypeA',
-      key: 'EventTypeA:1/1',
-      start_time: '2024-01-01T01:35:00+00:00',
+      }
     },
     {
-      attributes: {
-        series: {
-          iteration: 21,
-          make: 'beta',
-          type: 'B',
-        },
-      },
-      duration: '02:00:00',
-      event_type_name: 'EventTypeA',
-      key: 'EventTypeA:1/2',
-      start_time: '2024-01-02T11:50:00+00:00',
+      ...correctExternalSource.events[1]
     },
     {
-      attributes: {
-        projectUser: 'Jerry',
-        tick: 18,
-      },
-      duration: '03:40:00',
-      event_type_name: 'EventTypeB',
-      key: 'EventTypeB:1/3',
-      start_time: '2024-01-03T15:20:00+00:00',
+      ...correctExternalSource.events[2]
     },
   ],
-  source: {
-    attributes: {
-      version: 1,
-      wrkcat: '234',
-    },
-    key: 'SourceTypeA:valid_source_A.json',
-    period: {
-      end_time: '2024-01-07T00:00:00+00:00',
-      start_time: '2024-01-01T00:00:00+00:00',
-    },
-    source_type_name: 'SourceTypeA',
-    valid_at: '2024-01-01T00:00:00+00:00',
-  },
+  source: correctExternalSource.source,
 };
 
 describe('validation tests', () => {
