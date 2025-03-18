@@ -174,7 +174,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     return;
   }
 
-  logger.info(`POST /uploadExternalSourceEventTypes: Uploaded attribute schema(s) are VALID`);
+  logger.info(`POST /uploadExternalSourceEventTypes: Uploaded attribute schema(s) are VALID.`);
 
   // extract the external sources and event types
   const externalSourceTypeInput: ExternalSourceTypeInsertInput[] = [];
