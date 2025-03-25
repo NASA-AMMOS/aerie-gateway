@@ -134,12 +134,13 @@ export default (app: Express) => {
         res.sendFile(filePath, err => {
           if (err) {
             logger.info(`GET /file/{id}: No file was found with id: ${id}`);
+            res.status(404).json(err.message);
           }
         });
       }
     } catch (error: any) {
       logger.error(error);
-      res.status(404).json({ message: error.message, success: false });
+      res.status(500).json(error.message);
     }
   });
 
