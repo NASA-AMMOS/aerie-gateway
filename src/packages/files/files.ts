@@ -94,6 +94,8 @@ export default (app: Express) => {
    * @swagger
    * /file/{id}:
    *   get:
+   *     security:
+   *       - bearerAuth: []
    *     parameters:
    *       - description: ID of the file
    *         in: path
@@ -102,10 +104,10 @@ export default (app: Express) => {
    *         schema:
    *           type: number
    *     produces:
-   *       - application/json
+   *       - application/octet-stream
    *     responses:
    *       200:
-   *         description: Fetches the file by id
+   *         description: GetFileResponse
    *     summary: Get the file with the associated ID.
    *     tags:
    *       - Files
@@ -113,6 +115,7 @@ export default (app: Express) => {
   app.get('/file/:id', filesLimiter, auth, async (req, res) => {
     const { params } = req;
     const { id } = params;
+    const noFileFoundError = `No file was found with id: ${id}`;
 
     try {
       const { rows, rowCount } = await db.query(
@@ -133,10 +136,12 @@ export default (app: Express) => {
 
         res.sendFile(filePath, err => {
           if (err) {
-            logger.info(`GET /file/{id}: No file was found with id: ${id}`);
+            logger.info(`GET /file/{id}: ${noFileFoundError}`);
             res.status(404).json(err.message);
           }
         });
+      } else {
+        res.status(404).json(noFileFoundError);
       }
     } catch (error: any) {
       logger.error(error);
