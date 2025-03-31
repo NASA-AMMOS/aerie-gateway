@@ -5,6 +5,7 @@ import { getEnv } from './env.js';
 import getLogger from './logger.js';
 import initApiPlaygroundRoutes from './packages/api-playground/api-playground.js';
 import initAuthRoutes from './packages/auth/routes.js';
+import initExpansionRoutes from './packages/expansion/expansion.js';
 import { DbMerlin } from './packages/db/db.js';
 import initFileRoutes from './packages/files/files.js';
 import initHasuraRoutes from './packages/hasura/hasura-events.js';
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
 
   initApiPlaygroundRoutes(app);
   initAuthRoutes(app, authHandler);
+  initExpansionRoutes(app);
   initFileRoutes(app);
   initHealthRoutes(app);
   initHasuraRoutes(app);
