@@ -4,6 +4,7 @@ export type ImportSequenceTemplatePayload = {
   model_id: number;
   name: string;
   parcel_id: number;
+  sequence_template_file: string;
 };
 
 export type SequenceTemplateInsertInput = {

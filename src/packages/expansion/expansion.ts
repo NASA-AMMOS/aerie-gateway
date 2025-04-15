@@ -31,8 +31,7 @@ async function importSequenceTemplate(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  const { body, file } = req;
-  const { activity_type, language, model_id, name, parcel_id } = body as ImportSequenceTemplatePayload;
+  const { activity_type, language, model_id, name, parcel_id, sequence_template_file } = req.body as ImportSequenceTemplatePayload;
 
   logger.info(`POST /importSequenceTemplate: Importing sequence template: ${name}`);
 
@@ -46,10 +45,6 @@ async function importSequenceTemplate(req: Request, res: Response) {
   let createdSequenceTemplate: SequenceTemplateSchema | null = null;
 
   try {
-    if (file === undefined) {
-      throw Error('No sequence template file was given in the request!');
-    }
-    const sequenceTemplateContent: string = file.buffer.toString();
     logger.info(`POST /importSequenceTemplate: Creating sequence template: ${name}`);
 
     const sequenceTemplateInsertInput: SequenceTemplateInsertInput = {
@@ -58,7 +53,7 @@ async function importSequenceTemplate(req: Request, res: Response) {
       model_id,
       name,
       parcel_id,
-      template_definition: sequenceTemplateContent,
+      template_definition: sequence_template_file,
     };
 
     // TODO: Add multi-import
@@ -100,7 +95,7 @@ export default (app: Express) => {
    *     security:
    *       - bearerAuth: []
    *     consumes:
-   *       - multipart/form-data
+   *       - application/json
    *     produces:
    *       - application/json
    *     parameters:
@@ -111,12 +106,11 @@ export default (app: Express) => {
    *          required: false
    *     requestBody:
    *       content:
-   *         multipart/form-data:
+   *         application/json:
    *          schema:
    *            type: object
    *            properties:
    *              sequence_template_file:
-   *                format: binary
    *                type: string
    *              activity_type:
    *                type: string
@@ -141,7 +135,6 @@ export default (app: Express) => {
    */
   app.post(
     '/importSequenceTemplate',
-    upload.single('sequence_template_file'),
     refreshLimiter,
     auth,
     importSequenceTemplate,
