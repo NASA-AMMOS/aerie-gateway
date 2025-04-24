@@ -31,6 +31,36 @@ export type ExternalSourceInsertInput = {
   valid_at: string;
 };
 
+export type ExternalEventInsertInput = {
+  attributes: object;
+  duration: string;
+  event_type_name: string;
+  key: string;
+  start_time: string;
+};
+
+export type ExternalEventJson = {
+  attributes: object;
+  duration: string;
+  event_type_name: string;
+  key: string;
+  start_time: string;
+};
+
+export type ExternalSourceJson = {
+  events: ExternalEventJson[];
+  source: {
+    attributes: object;
+    key: string;
+    period: {
+      end_time: string;
+      start_time: string;
+    };
+    source_type_name: string;
+    valid_at: string;
+  };
+};
+
 export type CreateExternalSourceResponse = {
   createExternalSource: { name: string };
 };

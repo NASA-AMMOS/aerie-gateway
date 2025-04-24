@@ -8,8 +8,8 @@ import type {
   AttributeSchema,
   DerivationGroupInsertInput,
   ExternalSourceInsertInput,
-  ExternalSourceRequest,
-  ExternalEventRequest,
+  ExternalSourceJson,
+  ExternalEventInsertInput,
 } from '../../types/external-source.js';
 import Ajv from 'ajv';
 import { getEnv } from '../../env.js';
@@ -23,6 +23,8 @@ import { HasuraError } from '../../types/hasura.js';
 import { auth } from '../auth/middleware.js';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
+import { parseJSONFile } from '../../util/fileParser.js';
+import { convertDoyToYmd, getIntervalInMs, switchISOTimezoneRepresentation } from '../../util/time.js';
 
 const upload = multer({ limits: { fieldSize: 25 * 1024 * 1024 } });
 const logger = getLogger('packages/external-source/external-source');
@@ -224,40 +226,19 @@ async function uploadExternalSource(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
 
   const {
-    body: { source, events },
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  let parsedSource: ExternalSourceRequest;
-  let parsedExternalEvents: ExternalEventRequest[];
-
-  try {
-    parsedSource = JSON.parse(source);
-    parsedExternalEvents = JSON.parse(events);
-  } catch (e) {
-    const errorMsg = `Body of request must be a JSON, with two stringified properties: "source" and "events". Alternatively, parsing may have failed:\n${
-      (e as Error).message
-    }`;
+  const { body, file } = req;
+  const { derivation_group_name } = body;
+  if (!file) {
+    const errorMsg = 'No file given';
     logger.error(`POST /uploadExternalSource: ${errorMsg}`);
     res.status(500).send({
       message: errorMsg,
     });
     return;
   }
-  const { attributes, derivation_group_name, key, period, source_type_name, valid_at } = parsedSource;
-
-  // Re-package the fields as a JSON object to be parsed
-  const externalSourceJson = {
-    events: parsedExternalEvents,
-    source: {
-      attributes: attributes,
-      derivation_group_name: derivation_group_name,
-      key: key,
-      period: period,
-      source_type_name: source_type_name,
-      valid_at: valid_at,
-    },
-  };
 
   const headers: HeadersInit = {
     Authorization: authorizationHeader ?? '',
@@ -266,104 +247,224 @@ async function uploadExternalSource(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   };
 
-  logger.info(`POST /uploadExternalSource: Uploading External Source: ${key}`);
+  try {
+    const externalSourceJson = await parseJSONFile<ExternalSourceJson>(file);
+    const { source, events } = externalSourceJson;
+    logger.info(`POST /uploadExternalSource: Uploading External Source: ${source.key}`);
+    const derivationGroupName =
+      derivation_group_name !== undefined ? derivation_group_name : `${source.source_type_name} Default`;
 
-  // Get the attribute schema for the source's external source type and all contained event types
-  let eventTypeNames = parsedExternalEvents.map(e => e.event_type_name);
-  eventTypeNames = eventTypeNames.filter((e, i) => eventTypeNames.indexOf(e) === i);
-  const attributeSchemas = await fetch(GQL_API_URL, {
-    body: JSON.stringify({
-      query: gql.GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS,
-      variables: {
-        externalEventTypes: eventTypeNames,
-        externalSourceType: source_type_name,
+    // Validate the input source/events, convert times
+    const startTimeFormatted: string | undefined = switchISOTimezoneRepresentation(
+      convertDoyToYmd(source.period.start_time) ?? '',
+    );
+    const endTimeFormatted: string | undefined = switchISOTimezoneRepresentation(
+      convertDoyToYmd(source.period.end_time) ?? '',
+    );
+    const validAtFormatted: string | undefined = switchISOTimezoneRepresentation(
+      convertDoyToYmd(source.valid_at) ?? '',
+    );
+
+    if (!startTimeFormatted || !endTimeFormatted || !validAtFormatted) {
+      throw new Error(
+        `Parsing failed - parsing dates in input failed. ${source.period.start_time}, ${source.period.end_time}, ${source.valid_at}`,
+      );
+    }
+
+    // Check that the start and end times are logical
+    if (new Date(startTimeFormatted) > new Date(endTimeFormatted)) {
+      throw new Error(`Parsing failed - start time ${startTimeFormatted} after end time ${endTimeFormatted}.`);
+    }
+
+    // Set to formatted values for validation
+    externalSourceJson.source.period.start_time = startTimeFormatted;
+    externalSourceJson.source.period.end_time = endTimeFormatted;
+    externalSourceJson.source.valid_at = validAtFormatted;
+
+    // Create parsed external events
+    const parsedExternalEvents: ExternalEventInsertInput[] = [];
+    for (const externalEvent of events) {
+      // Ensure duration is valid
+      try {
+        getIntervalInMs(externalEvent.duration);
+      } catch (error) {
+        throw new Error(`Event duration has invalid format: ${externalEvent.key}\n${(error as Error).message}`);
+      }
+
+      // Validate external event is in the external source's time bounds
+      const externalEventStart = Date.parse(convertDoyToYmd(externalEvent.start_time.replace('Z', '')) ?? '');
+      const externalEventEnd = externalEventStart + getIntervalInMs(externalEvent.duration);
+      if (!(externalEventStart >= Date.parse(startTimeFormatted) && externalEventEnd <= Date.parse(endTimeFormatted))) {
+        throw new Error(
+          `Event (${externalEvent.key}) not in bounds of source start and end: occurs from [${new Date(
+            externalEventStart,
+          )}, ${new Date(externalEventEnd)}], not subset of [${new Date(startTimeFormatted)}, ${new Date(
+            endTimeFormatted,
+          )}].`,
+        );
+      }
+
+      parsedExternalEvents.push(externalEvent);
+    }
+
+    // Get the attribute schema for the source's external source type and all contained event types
+    let eventTypeNames = events.map(e => e.event_type_name);
+    eventTypeNames = eventTypeNames.filter((e, i) => eventTypeNames.indexOf(e) === i);
+    const attributeSchemas = await fetch(GQL_API_URL, {
+      body: JSON.stringify({
+        query: gql.GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS,
+        variables: {
+          externalEventTypes: eventTypeNames,
+          externalSourceType: source.source_type_name,
+        },
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    const expectedEventTypes = events.map(event => event.event_type_name);
+
+    const attributeSchemaJson = await attributeSchemas.json();
+    const { external_event_type, external_source_type } =
+      attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
+    // If the source type doesn't exist, and there are attributes - the source cannot be uploaded
+    const newEventTypes = [];
+    const newSourceType = [];
+    if (external_source_type.length === 0) {
+      if (Object.keys(source.attributes).length > 0) {
+        throw new Error(`The source type in your source, '${source.source_type_name}', do not exist in the database.`);
+      } else if (Object.keys(source.attributes).length === 0) {
+        // Create External Source Type w. empty attribute schema
+        newSourceType.push({
+          attribute_schema: {
+            properties: {},
+            required: [],
+            type: 'object',
+          },
+          name: source.source_type_name,
+        });
+      }
+    }
+
+    for (const expectedEventType of expectedEventTypes) {
+      if (!external_event_type.find(eventType => eventType.name === expectedEventType)) {
+        // If the event type doesn't exist, and there are attributes - the source cannot be uploaded
+        const doesEventTypeHaveAttributes = events
+          .filter(event => event.event_type_name === expectedEventType)
+          .map(event => event.attributes)
+          .reduce((typeUsesAttributes: boolean, attributes: object) => {
+            return typeUsesAttributes && Object.keys(attributes).length > 0;
+          }, true);
+        if (doesEventTypeHaveAttributes) {
+          throw new Error(`The event type in your source, '${expectedEventType}', do not exist in the database.`);
+        } else {
+          // Create External Event Type w. empty attribute schema
+          newEventTypes.push({
+            attribute_schema: {
+              properties: {},
+              required: [],
+              type: 'object',
+            },
+            name: expectedEventType,
+          });
+        }
+      }
+    }
+
+    // Create new, empty types if required
+    if (Object.keys(newEventTypes).length > 0 || Object.keys(newSourceType).length > 0) {
+      const response = await fetch(GQL_API_URL, {
+        body: JSON.stringify({
+          query: gql.CREATE_EXTERNAL_SOURCE_EVENT_TYPES,
+          variables: { externalEventTypes: newEventTypes, externalSourceTypes: newSourceType },
+        }),
+        headers,
+        method: 'POST',
+      });
+      const createExternalSourceEventTypesResponse = await response.json();
+      if (createExternalSourceEventTypesResponse?.data === undefined) {
+        throw new Error((createExternalSourceEventTypesResponse as HasuraError).errors[0].message);
+      }
+    }
+
+    const eventTypeNamesMappedToSchemas = external_event_type.reduce(
+      (acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput) => {
+        acc[eventType.name] = eventType.attribute_schema;
+        return acc;
       },
-    }),
-    headers,
-    method: 'POST',
-  });
-
-  const attributeSchemaJson = await attributeSchemas.json();
-  const { external_event_type, external_source_type } =
-    attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
-
-  if (external_event_type.length === 0 || external_source_type.length === 0) {
-    const errorMsg = 'The source and/or event types in your source do not exist in the database.';
-    logger.error(`POST /uploadExternalSourceEventTypes: ${errorMsg}`);
-    res.status(500).send({ message: errorMsg });
-    return;
-  }
-
-  const eventTypeNamesMappedToSchemas = external_event_type.reduce(
-    (acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput) => {
-      acc[eventType.name] = eventType.attribute_schema;
-      return acc;
-    },
-    {},
-  );
-  const sourceTypeNamesMappedToSchemas = external_source_type.reduce(
-    (acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput) => {
-      acc[sourceType.name] = sourceType.attribute_schema;
-      return acc;
-    },
-    {},
-  );
-
-  // Assemble megaschema from attribute schemas
-  const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({
-    event_types: eventTypeNamesMappedToSchemas,
-    source_type: sourceTypeNamesMappedToSchemas,
-  });
-
-  // Verify that this is a valid external source
-  const sourceIsValid: boolean = await compiledExternalSourceMegaschema(externalSourceJson);
-  if (sourceIsValid) {
-    logger.info(`POST /uploadExternalSource: External Source ${key}'s formatting is valid`);
-  } else {
-    const errorMsg = `External Source ${key}'s formatting is invalid:\n${JSON.stringify(
-      compiledExternalSourceMegaschema.errors,
-    )}`;
-    logger.error(`POST /uploadExternalSource: ${errorMsg}`);
-    res.status(500).send({ message: errorMsg });
-    return;
-  }
-
-  // Run the Hasura migration for creating an external source
-  const derivationGroupInsert: DerivationGroupInsertInput = {
-    name: derivation_group_name,
-    source_type_name: source_type_name,
-  };
-
-  const externalSourceInsert: ExternalSourceInsertInput = {
-    attributes: attributes,
-    derivation_group_name: derivation_group_name,
-    end_time: period.end_time,
-    external_events: {
-      data: parsedExternalEvents,
-    },
-    key: key,
-    source_type_name: source_type_name,
-    start_time: period.start_time,
-    valid_at: valid_at,
-  };
-
-  const response = await fetch(GQL_API_URL, {
-    body: JSON.stringify({
-      query: gql.CREATE_EXTERNAL_SOURCE,
-      variables: {
-        derivation_group: derivationGroupInsert,
-        source: externalSourceInsert,
+      {},
+    );
+    const sourceTypeNamesMappedToSchemas = external_source_type.reduce(
+      (acc: Record<string, AttributeSchema>, sourceType: ExternalSourceTypeInsertInput) => {
+        acc[sourceType.name] = sourceType.attribute_schema;
+        return acc;
       },
-    }),
-    headers,
-    method: 'POST',
-  });
+      {},
+    );
 
-  const createExternalSourceResponse = await response.json();
-  if (createExternalSourceResponse?.data !== undefined) {
-    res.json(createExternalSourceResponse.data as CreateExternalSourceResponse);
-  } else {
-    res.json(createExternalSourceResponse as HasuraError);
+    // Assemble megaschema from attribute schemas
+    const compiledExternalSourceMegaschema: Ajv.ValidateFunction = updateSchemaWithDefs({
+      event_types: eventTypeNamesMappedToSchemas,
+      source_type: sourceTypeNamesMappedToSchemas,
+    });
+
+    // Verify that this is a valid external source
+    const sourceIsValid: boolean = await compiledExternalSourceMegaschema(externalSourceJson);
+    if (sourceIsValid) {
+      logger.info(`POST /uploadExternalSource: External Source ${source.key}'s formatting is valid`);
+    } else {
+      const errorMsg = `External Source ${source.key}'s formatting is invalid:\n${JSON.stringify(
+        compiledExternalSourceMegaschema.errors,
+      )}`;
+      logger.error(`POST /uploadExternalSource: ${errorMsg}`);
+      res.status(500).send({ message: errorMsg });
+      return;
+    }
+
+    // Run the Hasura migration for creating an external source
+    const derivationGroupInsert: DerivationGroupInsertInput = {
+      name: derivationGroupName,
+      source_type_name: source.source_type_name,
+    };
+
+    const externalSourceInsert: ExternalSourceInsertInput = {
+      attributes: source.attributes,
+      derivation_group_name: derivationGroupName,
+      end_time: endTimeFormatted,
+      external_events: {
+        data: parsedExternalEvents,
+      },
+      key: source.key,
+      source_type_name: source.source_type_name,
+      start_time: startTimeFormatted,
+      valid_at: validAtFormatted,
+    };
+
+    const response = await fetch(GQL_API_URL, {
+      body: JSON.stringify({
+        query: gql.CREATE_EXTERNAL_SOURCE,
+        variables: {
+          derivation_group: derivationGroupInsert,
+          source: externalSourceInsert,
+        },
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    const createExternalSourceResponse = await response.json();
+    if (createExternalSourceResponse?.data !== undefined) {
+      res.json(createExternalSourceResponse.data as CreateExternalSourceResponse);
+    } else {
+      res.json(createExternalSourceResponse as HasuraError);
+    }
+  } catch (e) {
+    logger.error(`POST /uploadExternalSource: Error occurred during External Source ${file.filename} upload`);
+    logger.error((e as Error).message);
+    res.status(500).send({
+      message: (e as Error).message,
+    });
+    return;
   }
 }
 
@@ -444,62 +545,11 @@ export default (app: Express) => {
    *           schema:
    *             type: object
    *             properties:
-   *               events:
-   *                 description: A list of External Events to be uploaded that are contained within the External Source.
-   *                 type: array
-   *                 items:
-   *                   type: object
-   *                   properties:
-   *                     attributes:
-   *                       type: object
-   *                     duration:
-   *                       type: string
-   *                     event_type_name:
-   *                       type: string
-   *                     key:
-   *                       type: string
-   *                     start_time:
-   *                       type: string
-   *                   required:
-   *                     - attributes
-   *                     - duration
-   *                     - event_type_name
-   *                     - key
-   *                     - start_time
-   *               source:
-   *                 description: An object representing the External Source to be uploaded.
-   *                 type: object
-   *                 properties:
-   *                   attributes:
-   *                     type: object
-   *                   derivation_group_name:
-   *                     type: string
-   *                   key:
-   *                     type: string
-   *                   period:
-   *                     type: object
-   *                     properties:
-   *                       end_time:
-   *                         type: string
-   *                       start_time:
-   *                         type: string
-   *                     required:
-   *                       - end_time
-   *                         start_time
-   *                   source_type_name:
-   *                     type: string
-   *                   valid_at:
-   *                     type: string
-   *                 required:
-   *                   - attributes
-   *                   - derivation_group_name
-   *                   - key
-   *                   - period
-   *                   - source_type_name
-   *                   - valid_at
-   *             required:
-   *               - events
-   *               - source
+   *               external_source_file:
+   *                  format: binary
+   *                  type: string
+   *               derivation_group_name:
+   *                  type: string
    *     responses:
    *       200:
    *         description: Created External Source
@@ -521,5 +571,5 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post('/uploadExternalSource', upload.any(), refreshLimiter, auth, uploadExternalSource);
+  app.post('/uploadExternalSource', upload.single('external_source_file'), refreshLimiter, auth, uploadExternalSource);
 };

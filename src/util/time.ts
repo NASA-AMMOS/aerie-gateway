@@ -1,7 +1,25 @@
 import { ParsedDoyString, ParsedYmdString } from '../types/time';
+import parseInterval from 'postgres-interval';
 
 function parseNumber(number: number | string): number {
   return parseInt(`${number}`, 10);
+}
+
+/**
+ * Changes the timezone representation of a UTC ISO 8601 between 'Z' and '+00:00'.
+ * @param {string} time - The time string to convert
+ * @returns {string} - The new string with the opposite timezone representation
+ * @example
+ * switchISOTimezoneRepresentation('2024-001T01:02:03Z'); // 2024-001T01:02:03+00:00
+ * switchISOTimezoneRepresentation('2024-001T01:02:03+00:00'); // 2024-001T01:02:03Z
+ */
+export function switchISOTimezoneRepresentation(time: string): string {
+  if (time.endsWith('Z')) {
+    return time.replace('Z', '+00:00');
+  } else if (time.endsWith('+00:00')) {
+    return time.replace('+00:00', 'Z');
+  }
+  return time; // No changes if not a valid ISO 8601 representation
 }
 
 /**
@@ -77,6 +95,24 @@ export function parseDoyOrYmdTime(dateString: string, numDecimals = 6): null | P
   return null;
 }
 
+/**
+ * Returns a Postgres Interval duration in milliseconds.
+ * If duration is null, undefined, or empty string then we just return 0.
+ * @note This function assumes 24-hour days.
+ */
+export function getIntervalInMs(interval: string | null | undefined): number {
+  if (interval !== null && interval !== undefined && interval !== '') {
+    const parsedInterval = parseInterval(interval);
+    const { days, hours, milliseconds, minutes, seconds } = parsedInterval;
+    const daysInMs = days * 24 * 60 * 60 * 1000;
+    const hoursInMs = hours * 60 * 60 * 1000;
+    const minutesInMs = minutes * 60 * 1000;
+    const secondsInMs = seconds * 1000;
+    return daysInMs + hoursInMs + minutesInMs + secondsInMs + milliseconds;
+  }
+  return 0;
+}
+
 export function convertDateToDoy(dateString: string, numDecimals = 6): string | null {
   const parsedTime = parseDoyOrYmdTime(dateString, numDecimals);
 
@@ -92,7 +128,7 @@ export function convertDateToDoy(dateString: string, numDecimals = 6): string | 
   return null;
 }
 
-function convertDoyToYmd(doyString: string, numDecimals = 6, includeMsecs = true): string | null {
+export function convertDoyToYmd(doyString: string, numDecimals = 6, includeMsecs = true): string | null {
   const parsedDoy: ParsedDoyString = parseDoyOrYmdTime(doyString, numDecimals) as ParsedDoyString;
 
   if (parsedDoy !== null) {
