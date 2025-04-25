@@ -476,7 +476,7 @@ export default (app: Express) => {
    *     security:
    *       - bearerAuth: []
    *     consumes:
-   *       - multipart/form-data
+   *       - application/json
    *     produces:
    *       - application/json
    *     parameters:
@@ -487,7 +487,7 @@ export default (app: Express) => {
    *           required: false
    *     requestBody:
    *       content:
-   *         multipart/form-data:
+   *         application/json:
    *           schema:
    *             type: object
    *             properties:
@@ -521,7 +521,7 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post('/uploadExternalSourceEventTypes', upload.any(), refreshLimiter, auth, uploadExternalSourceEventTypes);
+  app.post('/uploadExternalSourceEventTypes', refreshLimiter, auth, uploadExternalSourceEventTypes);
 
   /**
    * @swagger
