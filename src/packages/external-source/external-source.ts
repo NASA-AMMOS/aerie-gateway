@@ -256,13 +256,13 @@ async function uploadExternalSource(req: Request, res: Response) {
 
     // Validate the input source/events, convert times
     const startTimeFormatted: string | undefined = switchISOTimezoneRepresentation(
-      convertDoyToYmd(source.period.start_time) ?? '',
+      convertDoyToYmd(source.period.start_time.replace("Z", "")) ?? '',
     );
     const endTimeFormatted: string | undefined = switchISOTimezoneRepresentation(
-      convertDoyToYmd(source.period.end_time) ?? '',
+      convertDoyToYmd(source.period.end_time.replace("Z", "")) ?? '',
     );
     const validAtFormatted: string | undefined = switchISOTimezoneRepresentation(
-      convertDoyToYmd(source.valid_at) ?? '',
+      convertDoyToYmd(source.valid_at.replace("Z", "")) ?? '',
     );
 
     if (!startTimeFormatted || !endTimeFormatted || !validAtFormatted) {
@@ -323,7 +323,6 @@ async function uploadExternalSource(req: Request, res: Response) {
     });
 
     const expectedEventTypes = events.map(event => event.event_type_name);
-
     const attributeSchemaJson = await attributeSchemas.json();
     const { external_event_type, external_source_type } =
       attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
