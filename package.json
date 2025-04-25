@@ -40,6 +40,7 @@
     "nanoid": "^4.0.2",
     "node-fetch": "^3.3.2",
     "pg": "^8.11.1",
+    "postgres-interval": "^4.0.2",
     "swagger-jsdoc": "^7.0.0-rc.6",
     "swagger-ui-express": "^4.6.3",
     "winston": "^3.9.0"
