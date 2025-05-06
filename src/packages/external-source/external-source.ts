@@ -256,13 +256,13 @@ async function uploadExternalSource(req: Request, res: Response) {
 
     // Validate the input source/events, convert times
     const startTimeFormatted: string | undefined = switchISOTimezoneRepresentation(
-      convertDoyToYmd(source.period.start_time.replace("Z", "")) ?? '',
+      convertDoyToYmd(source.period.start_time.replace('Z', '')) ?? '',
     );
     const endTimeFormatted: string | undefined = switchISOTimezoneRepresentation(
-      convertDoyToYmd(source.period.end_time.replace("Z", "")) ?? '',
+      convertDoyToYmd(source.period.end_time.replace('Z', '')) ?? '',
     );
     const validAtFormatted: string | undefined = switchISOTimezoneRepresentation(
-      convertDoyToYmd(source.valid_at.replace("Z", "")) ?? '',
+      convertDoyToYmd(source.valid_at.replace('Z', '')) ?? '',
     );
 
     if (!startTimeFormatted || !endTimeFormatted || !validAtFormatted) {
