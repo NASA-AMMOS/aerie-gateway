@@ -1,6 +1,5 @@
 import type { Express, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import multer from 'multer';
 import getLogger from '../../logger.js';
 import { auth } from '../auth/middleware.js';
 import { getEnv } from '../../env.js';
@@ -11,7 +10,6 @@ import {
 } from '../../types/expansion.js';
 import gql from './gql.js';
 
-const upload = multer();
 const logger = getLogger('packages/plan/plan');
 const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
 
@@ -31,7 +29,8 @@ async function importSequenceTemplate(req: Request, res: Response) {
     headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
   } = req;
 
-  const { activity_type, language, model_id, name, parcel_id, sequence_template_file } = req.body as ImportSequenceTemplatePayload;
+  const { activity_type, language, model_id, name, parcel_id, sequence_template_file } =
+    req.body as ImportSequenceTemplatePayload;
 
   logger.info(`POST /importSequenceTemplate: Importing sequence template: ${name}`);
 
@@ -133,10 +132,5 @@ export default (app: Express) => {
    *     tags:
    *       - Hasura
    */
-  app.post(
-    '/importSequenceTemplate',
-    refreshLimiter,
-    auth,
-    importSequenceTemplate,
-  );
+  app.post('/importSequenceTemplate', refreshLimiter, auth, importSequenceTemplate);
 };
