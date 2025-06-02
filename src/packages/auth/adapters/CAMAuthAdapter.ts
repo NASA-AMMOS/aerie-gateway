@@ -39,7 +39,7 @@ export const CAMAuthAdapter: AuthAdapter = {
     return invalidated;
   },
 
-  validate: async (req: Request): Promise<ValidateResponse> => {
+  validate: async (req: Request): Promise<ValidateResponse | undefined> => {
     const { AUTH_SSO_TOKEN_NAME, AUTH_URL, AUTH_UI_URL } = getEnv();
 
     const cookies = req.cookies;

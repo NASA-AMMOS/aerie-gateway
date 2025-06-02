@@ -1,4 +1,4 @@
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 export type JsonWebToken = string;
 
@@ -49,8 +49,8 @@ export type ValidateResponse = {
 };
 
 export interface AuthAdapter {
-  validate(req: Request): Promise<ValidateResponse>;
-  logout(req: Request): Promise<boolean>;
+  validate(req: Request, res: Response): Promise<ValidateResponse | undefined>;
+  logout(req: Request): Promise<boolean | string>;
 }
 
 export type GroupRoleMapping = { [key: string]: string[] };

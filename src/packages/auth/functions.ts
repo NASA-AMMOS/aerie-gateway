@@ -1,5 +1,6 @@
 import jwt, { Algorithm } from 'jsonwebtoken';
-import type { Response } from 'node-fetch';
+import { Response as ExpressResponse } from 'express';
+import type { Response as NodeResponse } from 'node-fetch';
 import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
 import getLogger from '../../logger.js';
@@ -27,6 +28,15 @@ export function authorizationHeaderToToken(authorizationHeader: string | undefin
     }
   } else {
     throw new Error(`Authorization header not found`);
+  }
+}
+
+export function enforcePEMFormatting(publicKey: string): string {
+  if (publicKey.includes('-----BEGIN PUBLIC KEY-----') && publicKey.includes('-----END PUBLIC KEY-----')) {
+    return publicKey;
+  }
+  else {
+    return '-----BEGIN PUBLIC KEY-----\n' + publicKey + '\n-----END PUBLIC KEY-----'
   }
 }
 
@@ -110,9 +120,16 @@ export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
   try {
     const token = authorizationHeaderToToken(authorizationHeader);
     const { HASURA_GRAPHQL_JWT_SECRET, JWT_ALGORITHMS } = getEnv();
-    const { key }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
+    const { type, key }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
+    let realKey: string;
+    if (type === "RS256") {
+      realKey = enforcePEMFormatting(key);
+    }
+    else {
+      realKey = key;
+    }
     const options: jwt.VerifyOptions = { algorithms: JWT_ALGORITHMS };
-    const jwtPayload = jwt.verify(token, key, options) as JwtPayload;
+    const jwtPayload = jwt.verify(token, realKey, options) as JwtPayload;
     return { jwtErrorMessage: '', jwtPayload };
   } catch (e) {
     console.error(e);
@@ -155,11 +172,11 @@ export function generateJwt(
   }
 }
 
-export async function login(username: string, password: string): Promise<AuthResponse> {
+export async function login(username: string, password: string, res: ExpressResponse): Promise<AuthResponse | undefined> {
   const { AUTH_TYPE, AUTH_URL, ALLOWED_ROLES_NO_AUTH, DEFAULT_ROLE_NO_AUTH } = getEnv();
 
   if (AUTH_TYPE === 'cam') {
-    let response: Response | undefined;
+    let response: NodeResponse | undefined;
     let json: any;
 
     try {
@@ -190,6 +207,21 @@ export async function login(username: string, password: string): Promise<AuthRes
         token: null,
       };
     }
+  } else if (AUTH_TYPE === 'keycloak') { // TODO: VERIFY THIS IS CORRECT....
+    // JUST THE AUTHORIZATION CODE OBTAINING STEP OF THE FLOW
+    // 1. No Cookies
+    //    Make a request to get an authorization code, with the redirect_uri set to be just aerie-ui
+    //     -> doing so will hit hooks.server.ts and forward us here to case 2
+    const keycloakAuthUrl = new URL(
+      'https://keycloak.shared-services.appdat.jsc.nasa.gov/auth/realms/ssmo-dev/protocol/openid-connect/auth'
+    );
+    keycloakAuthUrl.searchParams.set('client_id', 'ssmo-dev-shared-aerie');
+    keycloakAuthUrl.searchParams.set('response_type', 'code');
+    keycloakAuthUrl.searchParams.set('scope', 'openid profile email');
+    keycloakAuthUrl.searchParams.set('redirect_uri', 'http://localhost:3000/'); // TODO: turn this into an env variable or something
+
+    console.log('throwing redirect to keycloak...');
+    res.redirect(302, keycloakAuthUrl.toString());
   } else if (AUTH_TYPE === 'none') {
     const { allowed_roles, default_role } = await getUserRoles(username, DEFAULT_ROLE_NO_AUTH, ALLOWED_ROLES_NO_AUTH);
     return {

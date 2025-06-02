@@ -44,7 +44,7 @@ export default (app: Express, auth: AuthAdapter) => {
   app.post('/auth/login', loginLimiter, async (req, res) => {
     const { body } = req;
     const { username, password } = body;
-    const response = await login(username, password);
+    const response = await login(username, password, res);
     res.json(response);
   });
 
@@ -68,15 +68,37 @@ export default (app: Express, auth: AuthAdapter) => {
    *       - Auth
    */
   app.get('/auth/validateSSO', loginLimiter, async (req, res) => {
-    const { token, success, message, userId, redirectURL } = await auth.validate(req);
-    const resp = {
-      message,
-      redirectURL,
-      success,
-      token,
-      userId,
-    };
-    res.json(resp);
+    const result = await auth.validate(req, res);
+    if (result) {
+      if (result.message.includes("FORWARD TO PLANS")) {
+        // LOOPS BACK TO hooks.server.ts, BUT THEN IT'LL COME BACK HERE AND HIT CASE 4 AND _THEN_ GET IT; 
+        //    NOTE THAT ANY INFO WE SEND HERE IS NECESSARILY IGNORED.
+        res.redirect(302, 'http://localhost:3000/plans');
+      }
+      else {
+        const { token, success, message, userId, redirectURL } = result;
+        const resp = {
+          message,
+          redirectURL,
+          success,
+          token,
+          userId,
+        };
+        res.json(resp);
+      }
+    }
+    else {
+      // TODO: CHECK THIS??? SHOULD NEVER HIT THIS. 
+      //    login can return undefined technically, if there is a redirect, but that'll never go here.
+      const resp = {
+        message: 'validation failed',
+        redirectURL: '',
+        success: false,
+        token: '',
+        userId: ''
+      }
+      res.json(resp);
+    }
   });
 
   /**
@@ -100,7 +122,13 @@ export default (app: Express, auth: AuthAdapter) => {
    */
   app.get('/auth/logoutSSO', async (req, res) => {
     const success = await auth.logout(req);
-    res.json({ success });
+    if (success !== undefined) {
+      res.json({ success });
+    }
+    else {
+      // TODO: shouldn't happen
+      res.json({ success: false });
+    }
   });
 
   /**

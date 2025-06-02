@@ -17,6 +17,7 @@ export type Env = {
   HASURA_GRAPHQL_JWT_SECRET: string;
   JWT_ALGORITHMS: Algorithm[];
   JWT_EXPIRATION: string;
+  KEYCLOAK_CLIENT_SECRET: string;
   LOG_FILE: string;
   LOG_LEVEL: string;
   PORT: string;
@@ -47,8 +48,9 @@ export const defaultEnv: Env = {
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_API_URL: 'http://hasura:8080',
   HASURA_GRAPHQL_JWT_SECRET: '',
-  JWT_ALGORITHMS: ['HS256'],
+  JWT_ALGORITHMS: ['HS256', 'RS256'],
   JWT_EXPIRATION: '36h',
+  KEYCLOAK_CLIENT_SECRET: '',
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
   PORT: '9000',
@@ -121,6 +123,7 @@ export function getEnv(): Env {
   const HASURA_API_URL = env['HASURA_API_URL'] ?? defaultEnv.HASURA_API_URL;
   const JWT_ALGORITHMS = parseArray(env['JWT_ALGORITHMS'], defaultEnv.JWT_ALGORITHMS);
   const JWT_EXPIRATION = env['JWT_EXPIRATION'] ?? defaultEnv.JWT_EXPIRATION;
+  const KEYCLOAK_CLIENT_SECRET = env['KEYCLOAK_CLIENT_SECRET'] ?? defaultEnv.KEYCLOAK_CLIENT_SECRET;
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
@@ -152,6 +155,7 @@ export function getEnv(): Env {
     HASURA_GRAPHQL_JWT_SECRET,
     JWT_ALGORITHMS,
     JWT_EXPIRATION,
+    KEYCLOAK_CLIENT_SECRET,
     LOG_FILE,
     LOG_LEVEL,
     PORT,
