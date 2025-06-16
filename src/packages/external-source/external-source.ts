@@ -252,7 +252,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     const { source, events } = externalSourceJson;
     logger.info(`POST /uploadExternalSource: Uploading External Source: ${source.key}`);
     const derivationGroupName =
-      derivation_group_name !== undefined ? derivation_group_name : `${source.source_type_name} Default`;
+      derivation_group_name !== undefined ? derivation_group_name : source.derivation_group_name;
 
     // Validate the input source/events, convert times
     const startTimeFormatted: string | undefined = switchISOTimezoneRepresentation(

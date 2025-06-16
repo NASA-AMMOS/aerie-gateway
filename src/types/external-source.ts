@@ -51,6 +51,7 @@ export type ExternalSourceJson = {
   events: ExternalEventJson[];
   source: {
     attributes: object;
+    derivation_group_name: string;
     key: string;
     period: {
       end_time: string;
