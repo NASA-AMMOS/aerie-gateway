@@ -78,11 +78,10 @@ async function importSequenceTemplate(req: Request, res: Response) {
       throw Error('Sequence template creation unsuccessful.');
     }
     res.json(createdSequenceTemplate);
-  } catch (error) {
+  } catch (error: any) {
     logger.error(`POST /importSequenceTemplate: Error occurred during sequence template ${name} import`);
     logger.error(error);
-    res.status(500);
-    res.send((error as Error).message);
+    res.status(500).json({ message: error.message, success: false });
   }
 }
 
