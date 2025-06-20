@@ -65,7 +65,7 @@ async function importSequenceTemplate(req: Request, res: Response) {
       method: 'POST',
     });
 
-    const responseJSON = (await sequenceTemplateCreationResponse.json());
+    const responseJSON = await sequenceTemplateCreationResponse.json();
 
     if (responseJSON && responseJSON?.errors && responseJSON.errors.length) {
       const [error] = responseJSON.errors;
