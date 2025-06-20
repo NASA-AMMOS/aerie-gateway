@@ -65,14 +65,13 @@ async function importSequenceTemplate(req: Request, res: Response) {
       method: 'POST',
     });
 
-    const sequenceTemplateCreationResponseJSON = (await sequenceTemplateCreationResponse.json()) as {
-      data: {
-        insert_sequence_template: any;
-      };
-    };
+    const responseJSON = (await sequenceTemplateCreationResponse.json());
 
-    if (sequenceTemplateCreationResponseJSON !== null && sequenceTemplateCreationResponseJSON.data !== null) {
-      createdSequenceTemplate = sequenceTemplateCreationResponseJSON.data.insert_sequence_template;
+    if (responseJSON && responseJSON?.errors && responseJSON.errors.length) {
+      const [error] = responseJSON.errors;
+      throw new Error(error?.message ?? JSON.stringify(error));
+    } else if (responseJSON !== null && responseJSON.data !== null) {
+      createdSequenceTemplate = responseJSON.data?.insert_sequence_template;
       logger.info(`POST /importSequenceTemplate: Imported sequence template: ${name}`);
     } else {
       throw Error('Sequence template creation unsuccessful.');
