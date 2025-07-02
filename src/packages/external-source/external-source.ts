@@ -204,7 +204,7 @@ async function uploadExternalSourceEventTypes(req: Request, res: Response) {
     }
   }
 
-  // Run the Hasura migration for creating all types, in one go
+  // Run the Hasura mutation for creating all types, in one go
   const response = await fetch(GQL_API_URL, {
     body: JSON.stringify({
       query: gql.CREATE_EXTERNAL_SOURCE_EVENT_TYPES,
