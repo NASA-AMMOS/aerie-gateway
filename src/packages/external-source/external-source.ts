@@ -309,7 +309,9 @@ async function uploadExternalSource(req: Request, res: Response) {
 
     // Get the attribute schema for the source's external source type and all contained event types
     let eventTypeNamesPresentInSource = events.map(e => e.event_type_name);
-    eventTypeNamesPresentInSource = eventTypeNamesPresentInSource.filter((e, i) => eventTypeNamesPresentInSource.indexOf(e) === i);
+    eventTypeNamesPresentInSource = eventTypeNamesPresentInSource.filter(
+      (e, i) => eventTypeNamesPresentInSource.indexOf(e) === i,
+    );
     const attributeSchemas = await fetch(GQL_API_URL, {
       body: JSON.stringify({
         query: gql.GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS,
@@ -326,7 +328,6 @@ async function uploadExternalSource(req: Request, res: Response) {
     const { external_event_type, external_source_type } =
       attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
     // If the source type doesn't exist, and there are attributes - the source cannot be uploaded
-    const newEventTypes = [];
     const newSourceType = [];
     if (external_source_type.length === 0) {
       if (Object.keys(source.attributes).length > 0) {
@@ -347,31 +348,24 @@ async function uploadExternalSource(req: Request, res: Response) {
 
     // Loop through all events and if any event has attributes but no schema, throw, otherwise
     // add all event types that are missing schema to the db
-    // Reject the upload if we find any events with attributes that don't have a schema
-    for (const eventTypeName of eventTypeNamesPresentInSource) {
-      if (!external_event_type.find(eventType => eventType.name === eventTypeName)) {
-        // If the event type doesn't exist, and there are attributes - the source cannot be uploaded
-        const doesEventTypeHaveAttributes = events
-          .filter(event => event.event_type_name === eventTypeName)
-          .map(event => event.attributes)
-          .reduce((typeUsesAttributes: boolean, attributes: object) => {
-            return typeUsesAttributes && Object.keys(attributes).length > 0;
-          }, true);
-        if (doesEventTypeHaveAttributes) {
-          throw new Error(`The event type in your source, '${eventTypeName}', do not exist in the database.`);
-        } else {
-          // Create External Event Type w. empty attribute schema
-          newEventTypes.push({
-            attribute_schema: {
-              properties: {},
-              required: [],
-              type: 'object',
-            },
-            name: eventTypeName,
-          });
-        }
+    const eventTypesWithoutSchema: Set<string> = new Set();
+    for (const event of events) {
+      const eventHasSchema = external_event_type.find(eventType => eventType.name === event.event_type_name);
+      if (!eventHasSchema && Object.keys(event.attributes).length > 0) {
+        // Reject the upload if we find any events with attributes that don't have a schema
+        throw new Error(`The event type in your source, '${event.event_type_name}', do not exist in the database.`);
+      } else {
+        eventTypesWithoutSchema.add(event.event_type_name);
       }
     }
+    const newEventTypes = Array.from(eventTypesWithoutSchema.values()).map(eventTypeName => ({
+      attribute_schema: {
+        properties: {},
+        required: [],
+        type: 'object',
+      },
+      name: eventTypeName,
+    }));
 
     // Create new, empty types if required
     if (Object.keys(newEventTypes).length > 0 || Object.keys(newSourceType).length > 0) {
