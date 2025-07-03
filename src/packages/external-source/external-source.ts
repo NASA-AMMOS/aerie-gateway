@@ -308,13 +308,13 @@ async function uploadExternalSource(req: Request, res: Response) {
     }
 
     // Get the attribute schema for the source's external source type and all contained event types
-    let eventTypeNames = events.map(e => e.event_type_name);
-    eventTypeNames = eventTypeNames.filter((e, i) => eventTypeNames.indexOf(e) === i);
+    let eventTypeNamesPresentInSource = events.map(e => e.event_type_name);
+    eventTypeNamesPresentInSource = eventTypeNamesPresentInSource.filter((e, i) => eventTypeNamesPresentInSource.indexOf(e) === i);
     const attributeSchemas = await fetch(GQL_API_URL, {
       body: JSON.stringify({
         query: gql.GET_SOURCE_EVENT_TYPE_ATTRIBUTE_SCHEMAS,
         variables: {
-          externalEventTypes: eventTypeNames,
+          externalEventTypes: eventTypeNamesPresentInSource,
           externalSourceType: source.source_type_name,
         },
       }),
@@ -322,7 +322,6 @@ async function uploadExternalSource(req: Request, res: Response) {
       method: 'POST',
     });
 
-    const expectedEventTypes = events.map(event => event.event_type_name);
     const attributeSchemaJson = await attributeSchemas.json();
     const { external_event_type, external_source_type } =
       attributeSchemaJson.data as GetSourceEventTypeAttributeSchemasResponse;
@@ -332,8 +331,9 @@ async function uploadExternalSource(req: Request, res: Response) {
     if (external_source_type.length === 0) {
       if (Object.keys(source.attributes).length > 0) {
         throw new Error(`The source type in your source, '${source.source_type_name}', do not exist in the database.`);
-      } else if (Object.keys(source.attributes).length === 0) {
+      } else {
         // Create External Source Type w. empty attribute schema
+        // These are useful for getting a full list of source types and event types for UI timeline event filtering
         newSourceType.push({
           attribute_schema: {
             properties: {},
@@ -345,17 +345,20 @@ async function uploadExternalSource(req: Request, res: Response) {
       }
     }
 
-    for (const expectedEventType of expectedEventTypes) {
-      if (!external_event_type.find(eventType => eventType.name === expectedEventType)) {
+    // Loop through all events and if any event has attributes but no schema, throw, otherwise
+    // add all event types that are missing schema to the db
+    // Reject the upload if we find any events with attributes that don't have a schema
+    for (const eventTypeName of eventTypeNamesPresentInSource) {
+      if (!external_event_type.find(eventType => eventType.name === eventTypeName)) {
         // If the event type doesn't exist, and there are attributes - the source cannot be uploaded
         const doesEventTypeHaveAttributes = events
-          .filter(event => event.event_type_name === expectedEventType)
+          .filter(event => event.event_type_name === eventTypeName)
           .map(event => event.attributes)
           .reduce((typeUsesAttributes: boolean, attributes: object) => {
             return typeUsesAttributes && Object.keys(attributes).length > 0;
           }, true);
         if (doesEventTypeHaveAttributes) {
-          throw new Error(`The event type in your source, '${expectedEventType}', do not exist in the database.`);
+          throw new Error(`The event type in your source, '${eventTypeName}', do not exist in the database.`);
         } else {
           // Create External Event Type w. empty attribute schema
           newEventTypes.push({
@@ -364,7 +367,7 @@ async function uploadExternalSource(req: Request, res: Response) {
               required: [],
               type: 'object',
             },
-            name: expectedEventType,
+            name: eventTypeName,
           });
         }
       }
@@ -420,7 +423,7 @@ async function uploadExternalSource(req: Request, res: Response) {
       return;
     }
 
-    // Run the Hasura migration for creating an external source
+    // Run the Hasura mutation for creating an external source
     const derivationGroupInsert: DerivationGroupInsertInput = {
       name: derivationGroupName,
       source_type_name: source.source_type_name,
