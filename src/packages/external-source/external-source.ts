@@ -330,7 +330,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     // If the source type doesn't exist, and there are attributes - the source cannot be uploaded
     const newSourceType = [];
     if (external_source_type.length === 0) {
-      if (Object.keys(source.attributes).length > 0) {
+      if (Object.keys(source.attributes || {}).length > 0) {
         throw new Error(`The source type in your source, '${source.source_type_name}', do not exist in the database.`);
       } else {
         // Create External Source Type w. empty attribute schema
@@ -350,12 +350,14 @@ async function uploadExternalSource(req: Request, res: Response) {
     // add all event types that are missing schema to the db
     const eventTypesWithoutSchema: Set<string> = new Set();
     for (const event of events) {
-      const eventHasSchema = external_event_type.find(eventType => eventType.name === event.event_type_name);
-      if (!eventHasSchema && Object.keys(event.attributes).length > 0) {
-        // Reject the upload if we find any events with attributes that don't have a schema
-        throw new Error(`The event type in your source, '${event.event_type_name}', do not exist in the database.`);
-      } else {
-        eventTypesWithoutSchema.add(event.event_type_name);
+      const eventHasSchemaInDB = external_event_type.find(eventType => eventType.name === event.event_type_name);
+      if (!eventHasSchemaInDB) {
+        if(Object.keys(event.attributes || {}).length > 0) {
+          // Reject the upload if we find any events with attributes that don't have a schema
+          throw new Error(`The event type in your source, '${event.event_type_name}', do not exist in the database.`);
+        } else {
+          eventTypesWithoutSchema.add(event.event_type_name);
+        }
       }
     }
     const newEventTypes = Array.from(eventTypesWithoutSchema.values()).map(eventTypeName => ({
@@ -366,22 +368,6 @@ async function uploadExternalSource(req: Request, res: Response) {
       },
       name: eventTypeName,
     }));
-
-    // Create new, empty types if required
-    if (Object.keys(newEventTypes).length > 0 || Object.keys(newSourceType).length > 0) {
-      const response = await fetch(GQL_API_URL, {
-        body: JSON.stringify({
-          query: gql.CREATE_EXTERNAL_SOURCE_EVENT_TYPES,
-          variables: { externalEventTypes: newEventTypes, externalSourceTypes: newSourceType },
-        }),
-        headers,
-        method: 'POST',
-      });
-      const createExternalSourceEventTypesResponse = await response.json();
-      if (createExternalSourceEventTypesResponse?.data === undefined) {
-        throw new Error((createExternalSourceEventTypesResponse as HasuraError).errors[0].message);
-      }
-    }
 
     const eventTypeNamesMappedToSchemas = external_event_type.reduce(
       (acc: Record<string, AttributeSchema>, eventType: ExternalEventTypeInsertInput) => {
@@ -417,6 +403,22 @@ async function uploadExternalSource(req: Request, res: Response) {
       return;
     }
 
+    // Create new, empty types in DB if required
+    if (Object.keys(newEventTypes).length > 0 || Object.keys(newSourceType).length > 0) {
+      const response = await fetch(GQL_API_URL, {
+        body: JSON.stringify({
+          query: gql.CREATE_EXTERNAL_SOURCE_EVENT_TYPES,
+          variables: { externalEventTypes: newEventTypes, externalSourceTypes: newSourceType },
+        }),
+        headers,
+        method: 'POST',
+      });
+      const createExternalSourceEventTypesResponse = await response.json();
+      if (createExternalSourceEventTypesResponse?.data === undefined) {
+        throw new Error((createExternalSourceEventTypesResponse as HasuraError).errors[0].message);
+      }
+    }
+
     // Run the Hasura mutation for creating an external source
     const derivationGroupInsert: DerivationGroupInsertInput = {
       name: derivationGroupName,
@@ -424,7 +426,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     };
 
     const externalSourceInsert: ExternalSourceInsertInput = {
-      attributes: source.attributes,
+      attributes: source.attributes || {},
       derivation_group_name: derivationGroupName,
       end_time: endTimeFormatted,
       external_events: {
@@ -455,10 +457,12 @@ async function uploadExternalSource(req: Request, res: Response) {
       res.json(createExternalSourceResponse as HasuraError);
     }
   } catch (e) {
+    const error = e as Error;
     logger.error(`POST /uploadExternalSource: Error occurred during External Source ${file.filename} upload`);
-    logger.error((e as Error).message);
+    logger.error(error.message);
+    if(error.stack) logger.info(error.stack);
     res.status(500).send({
-      message: (e as Error).message,
+      message: error.message || "Unknown error",
     });
     return;
   }
