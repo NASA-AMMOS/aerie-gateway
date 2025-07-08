@@ -352,7 +352,7 @@ async function uploadExternalSource(req: Request, res: Response) {
     for (const event of events) {
       const eventHasSchemaInDB = external_event_type.find(eventType => eventType.name === event.event_type_name);
       if (!eventHasSchemaInDB) {
-        if(Object.keys(event.attributes || {}).length > 0) {
+        if (Object.keys(event.attributes || {}).length > 0) {
           // Reject the upload if we find any events with attributes that don't have a schema
           throw new Error(`The event type in your source, '${event.event_type_name}', do not exist in the database.`);
         } else {
@@ -460,9 +460,9 @@ async function uploadExternalSource(req: Request, res: Response) {
     const error = e as Error;
     logger.error(`POST /uploadExternalSource: Error occurred during External Source ${file.filename} upload`);
     logger.error(error.message);
-    if(error.stack) logger.info(error.stack);
+    if (error.stack) logger.info(error.stack);
     res.status(500).send({
-      message: error.message || "Unknown error",
+      message: error.message || 'Unknown error',
     });
     return;
   }

@@ -25,12 +25,12 @@ export function parseJSONFile<T>(file?: Express.Multer.File): Promise<T> {
       } catch (e) {
         let err = e as Error;
         console.error(err);
-        if(err.message) err.message = `JSON Parse error: ${err.message}`;
+        if (err.message) err.message = `JSON Parse error: ${err.message}`;
         else err = new Error(`JSON Parse error: ${e}`);
         reject(err);
       }
     } else {
-      reject(new Error("invalid JSON file"));
+      reject(new Error('invalid JSON file'));
     }
   });
 }
