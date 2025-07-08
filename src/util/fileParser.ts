@@ -3,7 +3,7 @@ import { JSONParser } from '@streamparser/json';
 export const FILE_PATH = '/app/files';
 
 export function parseJSONFile<T>(file?: Express.Multer.File): Promise<T> {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const jsonParser = new JSONParser({ paths: ['$.*'], stringBufferSize: undefined });
     let finalJSON: any;
     jsonParser.onToken = ({ value }) => {
@@ -23,8 +23,14 @@ export function parseJSONFile<T>(file?: Express.Multer.File): Promise<T> {
       try {
         jsonParser.write(file.buffer);
       } catch (e) {
-        console.error(e);
+        let err = e as Error;
+        console.error(err);
+        if(err.message) err.message = `JSON Parse error: ${err.message}`;
+        else err = new Error(`JSON Parse error: ${e}`);
+        reject(err);
       }
+    } else {
+      reject(new Error("invalid JSON file"));
     }
   });
 }
