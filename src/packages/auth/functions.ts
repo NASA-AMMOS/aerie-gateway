@@ -91,6 +91,7 @@ export async function upsertUserRoles(username: string, default_role: string, al
       `
         insert into permissions.users_allowed_roles (username, allowed_role)
         values ($1, $2)
+        on conflict (username, allowed_role) do nothing;
       `,
       [username, allowed_role],
     );
