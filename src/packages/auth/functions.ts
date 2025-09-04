@@ -56,7 +56,7 @@ export async function getUserRoles(
     return { allowed_roles: hasura_allowed_roles, default_role: hasura_default_role };
   } else {
     // since user does not exist, this upsert is just an insert
-    upsertUserRoles(username, default_role, allowed_roles);
+    await upsertUserRoles(username, default_role, allowed_roles);
     return { allowed_roles, default_role };
   }
 }
