@@ -16,8 +16,12 @@ export type JwtSecret = {
   type: string;
 
   // either key or jwk_url
-  key?: string; 
+  key?: string;
   jwk_url?: string;
+
+  // optional validation fields (used with JWKS/OIDC)
+  issuer?: string;
+  audience?: string | string[];
 };
 
 export type AuthResponse = {

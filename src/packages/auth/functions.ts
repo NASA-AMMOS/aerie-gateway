@@ -121,12 +121,19 @@ function enforcePEMFormatting(publicKey: string): string {
 export async function decodeJwt(authorizationHeader: string | undefined): Promise<JwtDecode> {
   try {
     const token = authorizationHeaderToToken(authorizationHeader);
-    // TODO: this ignores the JWT_ALGORITHMS env variable, because that's included in HASURA_GRAPHQL_JWT_SECRET, both the keycloak version, and even the local version...
-    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
-    const { type, key, jwk_url }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
+    const { HASURA_GRAPHQL_JWT_SECRET, JWT_ALGORITHMS } = getEnv();
+    const { type, key, jwk_url, issuer, audience }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
 
-    // TODO: figure out the defaults, for some reason the JWT_ALGORITHM env variable and it's default were getting messed up...default _should_ be HS256, but if using Keycloak, need RS256
-    const options: jwt.VerifyOptions = { algorithms: ['RS256', 'HS256'] };
+    const options: jwt.VerifyOptions = { algorithms: JWT_ALGORITHMS };
+
+    // Add issuer/audience validation if configured (used with JWKS/OIDC)
+    if (issuer) {
+      options.issuer = issuer;
+    }
+    if (audience) {
+      // jwt.verify expects string or non-empty array
+      options.audience = Array.isArray(audience) ? audience as [string, ...string[]] : audience;
+    }
 
     type getKeyType = (header: JwtHeader, callback: any) => void;
     let realKey: string | getKeyType;
@@ -140,12 +147,13 @@ export async function decodeJwt(authorizationHeader: string | undefined): Promis
 
       realKey = function(header, callback) {
         client.getSigningKey(header.kid, function(err, key) {
-          if (key) {
-            const signingKey = key?.getPublicKey();
+          if (err) {
+            callback(err, null);
+          } else if (key) {
+            const signingKey = key.getPublicKey();
             callback(null, signingKey);
-          }
-          else {
-            console.log(err)
+          } else {
+            callback(new Error('No signing key found'), null);
           }
         });
       }

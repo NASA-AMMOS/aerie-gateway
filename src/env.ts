@@ -48,7 +48,7 @@ export const defaultEnv: Env = {
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_API_URL: 'http://hasura:8080',
   HASURA_GRAPHQL_JWT_SECRET: '',
-  JWT_ALGORITHMS: ['HS256'],
+  JWT_ALGORITHMS: ['RS256'],
   JWT_EXPIRATION: '36h' as StringValue,
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
