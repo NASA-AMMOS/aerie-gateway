@@ -18,7 +18,7 @@ export const adminOnlyAuth = async (req: Request, res: Response, next: NextFunct
   const response = await session(authorizationHeader);
 
   if (response.success) {
-    const { jwtPayload } = decodeJwt(authorizationHeader);
+    const { jwtPayload } = await decodeJwt(authorizationHeader);
     if (jwtPayload == null) {
       res.status(401).send({ message: 'No authorization headers present.' });
       return;

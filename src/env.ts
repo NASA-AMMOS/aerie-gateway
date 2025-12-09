@@ -1,5 +1,6 @@
 import type { Algorithm } from 'jsonwebtoken';
 import { GroupRoleMapping } from './types/auth';
+import { StringValue } from 'ms';
 
 export type Env = {
   ALLOWED_ROLES: string[];
@@ -16,7 +17,7 @@ export type Env = {
   HASURA_API_URL: string;
   HASURA_GRAPHQL_JWT_SECRET: string;
   JWT_ALGORITHMS: Algorithm[];
-  JWT_EXPIRATION: string;
+  JWT_EXPIRATION: StringValue;
   LOG_FILE: string;
   LOG_LEVEL: string;
   PORT: string;
@@ -48,7 +49,7 @@ export const defaultEnv: Env = {
   HASURA_API_URL: 'http://hasura:8080',
   HASURA_GRAPHQL_JWT_SECRET: '',
   JWT_ALGORITHMS: ['HS256'],
-  JWT_EXPIRATION: '36h',
+  JWT_EXPIRATION: '36h' as StringValue,
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
   PORT: '9000',
@@ -120,7 +121,7 @@ export function getEnv(): Env {
   const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
   const HASURA_API_URL = env['HASURA_API_URL'] ?? defaultEnv.HASURA_API_URL;
   const JWT_ALGORITHMS = parseArray(env['JWT_ALGORITHMS'], defaultEnv.JWT_ALGORITHMS);
-  const JWT_EXPIRATION = env['JWT_EXPIRATION'] ?? defaultEnv.JWT_EXPIRATION;
+  const JWT_EXPIRATION = (env['JWT_EXPIRATION'] as StringValue) ?? defaultEnv.JWT_EXPIRATION;
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;

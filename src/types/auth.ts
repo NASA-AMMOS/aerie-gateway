@@ -13,8 +13,11 @@ export type JwtPayload = {
 };
 
 export type JwtSecret = {
-  key: string;
   type: string;
+
+  // either key or jwk_url
+  key?: string; 
+  jwk_url?: string;
 };
 
 export type AuthResponse = {

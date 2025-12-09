@@ -1,4 +1,4 @@
-import jwt, { Algorithm } from 'jsonwebtoken';
+import jwt, { Algorithm, JwtHeader, VerifyOptions } from 'jsonwebtoken';
 import type { Response } from 'node-fetch';
 import fetch from 'node-fetch';
 import { getEnv } from '../../env.js';
@@ -14,6 +14,8 @@ import type {
   UserRoles,
 } from '../../types/auth.js';
 import { loginSSO } from './adapters/CAMAuthAdapter.js';
+import { JwksClient } from 'jwks-rsa';
+import { StringValue } from 'ms';
 
 const logger = getLogger('packages/auth/functions');
 
@@ -107,14 +109,78 @@ export async function syncRolesToDB(username: string, default_role: string, allo
   await db.query('commit;');
 }
 
-export function decodeJwt(authorizationHeader: string | undefined): JwtDecode {
+function enforcePEMFormatting(publicKey: string): string {
+  if (publicKey.includes('-----BEGIN PUBLIC KEY-----') && publicKey.includes('-----END PUBLIC KEY-----')) {
+    return publicKey;
+  }
+  else {
+    return '-----BEGIN PUBLIC KEY-----\n' + publicKey + '\n-----END PUBLIC KEY-----'
+  }
+}
+
+export async function decodeJwt(authorizationHeader: string | undefined): Promise<JwtDecode> {
   try {
     const token = authorizationHeaderToToken(authorizationHeader);
-    const { HASURA_GRAPHQL_JWT_SECRET, JWT_ALGORITHMS } = getEnv();
-    const { key }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
-    const options: jwt.VerifyOptions = { algorithms: JWT_ALGORITHMS };
-    const jwtPayload = jwt.verify(token, key, options) as JwtPayload;
-    return { jwtErrorMessage: '', jwtPayload };
+    // TODO: this ignores the JWT_ALGORITHMS env variable, because that's included in HASURA_GRAPHQL_JWT_SECRET, both the keycloak version, and even the local version...
+    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
+    const { type, key, jwk_url }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
+
+    // TODO: figure out the defaults, for some reason the JWT_ALGORITHM env variable and it's default were getting messed up...default _should_ be HS256, but if using Keycloak, need RS256
+    const options: jwt.VerifyOptions = { algorithms: ['RS256', 'HS256'] };
+
+    type getKeyType = (header: JwtHeader, callback: any) => void;
+    let realKey: string | getKeyType;
+
+    // if they are using a jwk_url instead, pull the key!
+    if (!key && jwk_url) {
+      // https://www.npmjs.com/package/jsonwebtoken
+      const client = new JwksClient({
+        jwksUri: jwk_url
+      });
+
+      realKey = function(header, callback) {
+        client.getSigningKey(header.kid, function(err, key) {
+          if (key) {
+            const signingKey = key?.getPublicKey();
+            callback(null, signingKey);
+          }
+          else {
+            console.log(err)
+          }
+        });
+      }
+
+      const verifyJwt = async function(token: string, options: VerifyOptions = {}): Promise<any> {
+        return new Promise((resolve, reject) => {
+          jwt.verify(token, realKey, options, (err, decoded) => {
+            if (err) return reject(err);
+            resolve(decoded);
+          });
+        });
+      }
+
+      try {
+        const jwtPayload = await verifyJwt(token, options);
+        return {jwtErrorMessage: '', jwtPayload: jwtPayload}
+      } catch (err) {
+        return {jwtErrorMessage: 'JWT verification failed: ' + err, jwtPayload: null}
+      }
+    }
+    else if (key) {
+      if (type === "RS256") {
+        realKey = enforcePEMFormatting(key);
+      }
+      else {
+        realKey = key;
+      }
+
+      const jwtPayload = jwt.verify(token, realKey, options) as JwtPayload;
+      return { jwtErrorMessage: '', jwtPayload };
+    }
+    else {
+      const jwtErrorMessage = 'Neither a valid JWT Key or JWK URL were provided. A type (algorithm) and either of those two must be provided.'
+      return { jwtErrorMessage, jwtPayload: null };
+    }
   } catch (e) {
     console.error(e);
 
@@ -134,22 +200,26 @@ export function generateJwt(
   username: string,
   defaultRole: string,
   allowedRoles: string[],
-  expiry: string = getEnv().JWT_EXPIRATION,
+  expiry: StringValue = getEnv().JWT_EXPIRATION,
 ): string | null {
   try {
     const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
     const { key, type }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
-    const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: expiry };
-    const payload: JwtPayload = {
-      'https://hasura.io/jwt/claims': {
-        'x-hasura-allowed-roles': allowedRoles,
-        'x-hasura-default-role': defaultRole,
-        'x-hasura-user-id': username,
-      },
-      username,
-    };
+    if (key) {
+      const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: expiry };
+      const payload: JwtPayload = {
+        'https://hasura.io/jwt/claims': {
+          'x-hasura-allowed-roles': allowedRoles,
+          'x-hasura-default-role': defaultRole,
+          'x-hasura-user-id': username,
+        },
+        username,
+      };
 
-    return jwt.sign(payload, key, options);
+      return jwt.sign(payload, key, options);
+    }
+    console.error('using JWKS URL, so this JWT generation will not work. You also shouldn\'t be using this method if using JWKS')
+    return null;
   } catch (e) {
     console.error(e);
     return null;
@@ -210,7 +280,7 @@ export async function login(username: string, password: string): Promise<AuthRes
 }
 
 export async function session(authorizationHeader: string | undefined): Promise<SessionResponse> {
-  const { jwtErrorMessage, jwtPayload } = decodeJwt(authorizationHeader);
+  const { jwtErrorMessage, jwtPayload } = await decodeJwt(authorizationHeader);
 
   if (jwtPayload) {
     return { message: 'Token is valid', success: true };
