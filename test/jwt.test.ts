@@ -301,3 +301,91 @@ describe('decodeJwt with HS256 static key', () => {
     expect(result.jwtErrorMessage).toContain('invalid signature');
   });
 });
+
+describe('configurable JWT claim paths', () => {
+  beforeEach(() => {
+    vi.stubEnv('JWT_ALGORITHMS', JSON.stringify(['RS256']));
+    vi.stubEnv(
+      'HASURA_GRAPHQL_JWT_SECRET',
+      JSON.stringify({
+        type: 'RS256',
+        key: publicKey,
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test('reads claims from default Hasura namespace', async () => {
+    // Default namespace: https://hasura.io/jwt/claims
+    const payload = {
+      'https://hasura.io/jwt/claims': {
+        'x-hasura-allowed-roles': ['admin', 'user'],
+        'x-hasura-default-role': 'admin',
+        'x-hasura-user-id': 'user-123',
+      },
+      username: 'user-123',
+    };
+    const token = signToken(payload);
+
+    const result = await decodeJwt(`Bearer ${token}`);
+
+    expect(result.jwtErrorMessage).toBe('');
+    expect(result.jwtPayload).not.toBeNull();
+    const namespace = result.jwtPayload?.['https://hasura.io/jwt/claims'] as Record<string, unknown>;
+    expect(namespace['x-hasura-user-id']).toBe('user-123');
+    expect(namespace['x-hasura-allowed-roles']).toEqual(['admin', 'user']);
+    expect(namespace['x-hasura-default-role']).toBe('admin');
+  });
+
+  test('reads claims from custom namespace when configured', async () => {
+    // Custom namespace
+    vi.stubEnv('JWT_CLAIMS_NAMESPACE', 'custom/claims');
+    vi.stubEnv('JWT_CLAIMS_USER_ID', 'sub');
+    vi.stubEnv('JWT_CLAIMS_ALLOWED_ROLES', 'roles');
+    vi.stubEnv('JWT_CLAIMS_DEFAULT_ROLE', 'primary_role');
+
+    const payload = {
+      'custom/claims': {
+        sub: 'custom-user-456',
+        roles: ['editor', 'viewer'],
+        primary_role: 'editor',
+      },
+      username: 'custom-user-456',
+    };
+    const token = signToken(payload);
+
+    const result = await decodeJwt(`Bearer ${token}`);
+
+    expect(result.jwtErrorMessage).toBe('');
+    expect(result.jwtPayload).not.toBeNull();
+    const namespace = result.jwtPayload?.['custom/claims'] as Record<string, unknown>;
+    expect(namespace['sub']).toBe('custom-user-456');
+    expect(namespace['roles']).toEqual(['editor', 'viewer']);
+    expect(namespace['primary_role']).toBe('editor');
+  });
+
+  test('supports Keycloak-style claim paths', async () => {
+    // Keycloak typically uses realm_access.roles or resource_access
+    vi.stubEnv('JWT_CLAIMS_NAMESPACE', 'realm_access');
+    vi.stubEnv('JWT_CLAIMS_ALLOWED_ROLES', 'roles');
+
+    const payload = {
+      realm_access: {
+        roles: ['aerie_admin', 'aerie_user'],
+      },
+      preferred_username: 'keycloak-user',
+      username: 'keycloak-user',
+    };
+    const token = signToken(payload);
+
+    const result = await decodeJwt(`Bearer ${token}`);
+
+    expect(result.jwtErrorMessage).toBe('');
+    expect(result.jwtPayload).not.toBeNull();
+    const namespace = result.jwtPayload?.['realm_access'] as Record<string, unknown>;
+    expect(namespace['roles']).toEqual(['aerie_admin', 'aerie_user']);
+  });
+});

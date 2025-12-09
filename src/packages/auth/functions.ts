@@ -211,15 +211,15 @@ export function generateJwt(
   expiry: StringValue = getEnv().JWT_EXPIRATION,
 ): string | null {
   try {
-    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
+    const { HASURA_GRAPHQL_JWT_SECRET, JWT_CLAIMS } = getEnv();
     const { key, type }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
     if (key) {
       const options: jwt.SignOptions = { algorithm: type as Algorithm, expiresIn: expiry };
       const payload: JwtPayload = {
-        'https://hasura.io/jwt/claims': {
-          'x-hasura-allowed-roles': allowedRoles,
-          'x-hasura-default-role': defaultRole,
-          'x-hasura-user-id': username,
+        [JWT_CLAIMS.namespace]: {
+          [JWT_CLAIMS.allowedRoles]: allowedRoles,
+          [JWT_CLAIMS.defaultRole]: defaultRole,
+          [JWT_CLAIMS.userId]: username,
         },
         username,
       };
