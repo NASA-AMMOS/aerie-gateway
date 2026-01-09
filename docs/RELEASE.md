@@ -1,6 +1,6 @@
 # Release
 
-This document contains instructions on how to release the Aerie Gateway.
+This document contains instructions on how to release the PlanDev Gateway.
 
 ## Steps
 
