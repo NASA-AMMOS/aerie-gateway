@@ -10,6 +10,7 @@ import { parseJSONFile } from '../../util/fileParser.js';
 import { convertDateToDoy, getTimeDifference } from '../../util/time.js';
 import { HasuraError } from '../../types/hasura.js';
 import type {
+  ActivitiesJSON,
   ActivityDirective,
   ActivityDirectiveInsertInput,
   ImportPlanPayload,
@@ -23,6 +24,7 @@ import {
   ProfileSegment,
   ProfileSet,
   ProfileSets,
+  uploadActivitiesPayload,
   UploadPlanDatasetJSON,
   UploadPlanDatasetPayload,
 } from '../../types/dataset.js';
@@ -47,6 +49,48 @@ const refreshLimiter = rateLimit({
 });
 
 const timeColumnKey = 'time_utc';
+
+async function remapActivities(activities: ActivitiesJSON, planId: number, tagsMap: Record<string, Tag>) {
+  return activities.map(
+    ({
+      anchored_to_start: anchoredToStart,
+      arguments: activityArguments,
+      metadata,
+      name: activityName,
+      start_offset: startOffset,
+      tags,
+      type,
+    }) => {
+      const activityDirectiveInsertInput: ActivityDirectiveInsertInput = {
+        anchor_id: null,
+        anchored_to_start: anchoredToStart,
+        arguments: activityArguments,
+        metadata,
+        name: activityName,
+        plan_id: planId,
+        start_offset: startOffset,
+        tags: {
+          data:
+            tags?.map(({ tag: { name } }) => ({
+              tag_id: tagsMap[name].id,
+            })) ?? [],
+        },
+        type,
+      };
+
+      return activityDirectiveInsertInput;
+    },
+  );
+}
+
+async function remapAnchors(activities: ActivitiesJSON, activityRemap: Record<number, number>, planId: number) {
+  return activities
+    .filter(({ anchor_id: anchorId }) => anchorId !== null)
+    .map(({ anchor_id: anchorId, id }) => ({
+      _set: { anchor_id: activityRemap[anchorId as number] },
+      where: { id: { _eq: activityRemap[id] }, plan_id: { _eq: planId } },
+    }));
+}
 
 async function importPlan(req: Request, res: Response) {
   const authorizationHeader = req.get('authorization');
@@ -350,6 +394,94 @@ function profileHasSegments(profileSets: ProfileSets): boolean {
 
 function getSegmentByteSize(segment: ProfileSegment): number {
   return Buffer.byteLength(JSON.stringify(segment));
+}
+
+async function uploadActivities(req: Request, res: Response) {
+  const authorizationHeader = req.get('authorization');
+
+  const {
+    headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
+  } = req;
+
+  const { body, file } = req;
+  const { plan_id: planIdString } = body as uploadActivitiesPayload;
+
+  logger.info(`POST /uploadActivities: Uploading activities`);
+
+  const headers: HeadersInit = {
+    Authorization: authorizationHeader ?? '',
+    'Content-Type': 'application/json',
+    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+  }
+
+  try {
+    const { activities: activitiesJSON }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);  // Activites upload is a subset of plan import
+    const activityRemap: Record<number, number> = {};
+
+    const activities = await remapActivities(activitiesJSON, parseInt(planIdString), {});
+
+    const createdActivitiesResponse = await fetch(GQL_API_URL, {
+      body: JSON.stringify({
+        query: gql.CREATE_ACTIVITY_DIRECTIVES,
+        variables: {
+          activityDirectivesInsertInput: activities,
+        },
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    const createdActivityDirectivesData = (await createdActivitiesResponse.json()) as {
+      data: {
+        insert_activity_directive: {
+          returning: ActivityDirective[];
+        };
+      };
+    } | null;
+
+    if (createdActivityDirectivesData) {
+      const {
+        data: {
+          insert_activity_directive: { returning: createdActivityDirectives },
+        },
+      } = createdActivityDirectivesData;
+
+      if (createdActivityDirectives.length === activities.length) {
+        createdActivityDirectives.forEach((createdActivityDirective, index) => {
+          const { id } = activitiesJSON[index];
+
+          activityRemap[id] = createdActivityDirective.id;
+        });
+      } else {
+        throw new Error('Activity insertion failed.');
+      }
+    }
+    // remap all the anchor ids to the newly created activity directives
+    logger.info(`POST /uploadActivities: Re-assigning anchors`);
+
+    const activityDirectivesSetInput = remapAnchors(activitiesJSON, activityRemap, parseInt(planIdString));
+
+    await fetch(GQL_API_URL, {
+      body: JSON.stringify({
+        query: gql.UPDATE_ACTIVITY_DIRECTIVES,
+        variables: {
+          updates: activityDirectivesSetInput,
+        },
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    logger.info(`POST /uploadActivities: Uploaded activities`);
+
+    res.json(activities);
+  } catch (error) {
+    logger.error(`POST /uploadActivities: Error occurred during activity upload`);
+    logger.error(error);
+    res.status(500);
+    res.send((error as Error).message);
+  }
 }
 
 async function uploadDataset(req: Request, res: Response) {
@@ -714,4 +846,44 @@ export default (app: Express) => {
    *       - Hasura
    */
   app.post('/uploadDataset', upload.single('external_dataset'), refreshLimiter, auth, uploadDataset);
+
+  /**
+   * @swagger
+   * /uploadActivities:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     consumes:
+   *       - multipart/form-data
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *      - in: header
+   *        name: x-hasura-role
+   *        schema:
+   *          type: string
+   *          required: false
+   *     requestBody:
+   *       content:
+   *         multipart/form-data:
+   *          schema:
+   *            type: object
+   *            properties:
+   *              plan_id:
+   *                type: long
+   *              activity_file:
+   *                format: binary
+   *                type: string
+   *     responses:
+   *       200:
+   *         description: ImportResponse
+   *       403:
+   *         description: Unauthorized error
+   *       401:
+   *         description: Unauthenticated error
+   *     summary: Upload a JSON of activities to a plan
+   *     tags:
+   *       - Hasura
+   */
+    app.post('/uploadActivities', upload.single('activity_file'), refreshLimiter, auth, uploadActivities);
 };
