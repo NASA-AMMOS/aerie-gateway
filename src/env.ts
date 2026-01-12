@@ -2,8 +2,11 @@ import type { Algorithm } from 'jsonwebtoken';
 import { GroupRoleMapping } from './types/auth';
 
 export type Env = {
+  ACTION_SERVER_URL: string;
   ALLOWED_ROLES: string[];
   ALLOWED_ROLES_NO_AUTH: string[];
+  AERIE_DB_HOST: string;
+  AERIE_DB_PORT: string;
   AUTH_GROUP_ROLE_MAPPINGS: GroupRoleMapping;
   AUTH_SSO_TOKEN_NAME: string[];
   AUTH_TYPE: string;
@@ -11,6 +14,8 @@ export type Env = {
   AUTH_URL: string;
   DEFAULT_ROLE: string[];
   DEFAULT_ROLE_NO_AUTH: string;
+  GATEWAY_DB_PASSWORD: string;
+  GATEWAY_DB_USER: string;
   GQL_API_URL: string;
   GQL_API_WS_URL: string;
   HASURA_API_URL: string;
@@ -19,17 +24,18 @@ export type Env = {
   JWT_EXPIRATION: string;
   LOG_FILE: string;
   LOG_LEVEL: string;
+  MERLIN_SERVER_URL: string;
   PORT: string;
-  AERIE_DB_HOST: string;
-  AERIE_DB_PORT: string;
-  GATEWAY_DB_USER: string;
-  GATEWAY_DB_PASSWORD: string;
   RATE_LIMITER_FILES_MAX: number;
   RATE_LIMITER_LOGIN_MAX: number;
+  SCHEDULER_SERVER_URL: string;
+  SEQUENCING_SERVER_URL: string;
   VERSION: string;
+  WORKSPACE_SERVER_URL: string;
 };
 
 export const defaultEnv: Env = {
+  ACTION_SERVER_URL: 'http://localhost:27186',
   AERIE_DB_HOST: 'localhost',
   AERIE_DB_PORT: '5432',
   ALLOWED_ROLES: ['user', 'viewer'],
@@ -51,10 +57,14 @@ export const defaultEnv: Env = {
   JWT_EXPIRATION: '36h',
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
+  MERLIN_SERVER_URL: 'http://localhost:27183',
   PORT: '9000',
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
+  SCHEDULER_SERVER_URL: 'http://localhost:27185',
+  SEQUENCING_SERVER_URL: 'http://localhost:27184',
   VERSION: '3.8.1',
+  WORKSPACE_SERVER_URL: 'http://localhost:28000',
 };
 
 /**
@@ -106,33 +116,39 @@ function parseNumber(value: string | undefined, defaultValue: number): number {
 export function getEnv(): Env {
   const { env } = process;
 
+  const ACTION_SERVER_URL = env['ACTION_SERVER_URL'] ?? defaultEnv.ACTION_SERVER_URL;
+  const AERIE_DB_HOST = env['AERIE_DB_HOST'] ?? defaultEnv.AERIE_DB_HOST;
+  const AERIE_DB_PORT = env['AERIE_DB_PORT'] ?? defaultEnv.AERIE_DB_PORT;
   const ALLOWED_ROLES = parseArray(env['ALLOWED_ROLES'], defaultEnv.ALLOWED_ROLES);
   const ALLOWED_ROLES_NO_AUTH = parseArray(env['ALLOWED_ROLES_NO_AUTH'], defaultEnv.ALLOWED_ROLES_NO_AUTH);
-  const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
-  const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
-  const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
   const AUTH_GROUP_ROLE_MAPPINGS = parseGroupRoleMappings(env['AUTH_GROUP_ROLE_MAPPINGS']);
   const AUTH_SSO_TOKEN_NAME = parseArray(env['AUTH_SSO_TOKEN_NAME'], defaultEnv.AUTH_SSO_TOKEN_NAME);
+  const AUTH_TYPE = env['AUTH_TYPE'] ?? defaultEnv.AUTH_TYPE;
+  const AUTH_UI_URL = env['AUTH_UI_URL'] ?? defaultEnv.AUTH_UI_URL;
+  const AUTH_URL = env['AUTH_URL'] ?? defaultEnv.AUTH_URL;
   const DEFAULT_ROLE = parseArray(env['DEFAULT_ROLE'], defaultEnv.DEFAULT_ROLE);
   const DEFAULT_ROLE_NO_AUTH = env['DEFAULT_ROLE_NO_AUTH'] ?? defaultEnv.DEFAULT_ROLE_NO_AUTH;
+  const GATEWAY_DB_PASSWORD = env['GATEWAY_DB_PASSWORD'] ?? defaultEnv.GATEWAY_DB_PASSWORD;
+  const GATEWAY_DB_USER = env['GATEWAY_DB_USER'] ?? defaultEnv.GATEWAY_DB_USER;
   const GQL_API_URL = env['GQL_API_URL'] ?? defaultEnv.GQL_API_URL;
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
-  const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
   const HASURA_API_URL = env['HASURA_API_URL'] ?? defaultEnv.HASURA_API_URL;
+  const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
   const JWT_ALGORITHMS = parseArray(env['JWT_ALGORITHMS'], defaultEnv.JWT_ALGORITHMS);
   const JWT_EXPIRATION = env['JWT_EXPIRATION'] ?? defaultEnv.JWT_EXPIRATION;
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
+  const MERLIN_SERVER_URL = env['MERLIN_SERVER_URL'] ?? defaultEnv.MERLIN_SERVER_URL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
-  const AERIE_DB_HOST = env['AERIE_DB_HOST'] ?? defaultEnv.AERIE_DB_HOST;
-  const AERIE_DB_PORT = env['AERIE_DB_PORT'] ?? defaultEnv.AERIE_DB_PORT;
-  const GATEWAY_DB_USER = env['GATEWAY_DB_USER'] ?? defaultEnv.GATEWAY_DB_USER;
-  const GATEWAY_DB_PASSWORD = env['GATEWAY_DB_PASSWORD'] ?? defaultEnv.GATEWAY_DB_PASSWORD;
   const RATE_LIMITER_FILES_MAX = parseNumber(env['RATE_LIMITER_FILES_MAX'], defaultEnv.RATE_LIMITER_FILES_MAX);
   const RATE_LIMITER_LOGIN_MAX = parseNumber(env['RATE_LIMITER_LOGIN_MAX'], defaultEnv.RATE_LIMITER_LOGIN_MAX);
+  const SCHEDULER_SERVER_URL = env['SCHEDULER_SERVER_URL'] ?? defaultEnv.SCHEDULER_SERVER_URL;
+  const SEQUENCING_SERVER_URL = env['SEQUENCING_SERVER_URL'] ?? defaultEnv.SEQUENCING_SERVER_URL;
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
+  const WORKSPACE_SERVER_URL = env['WORKSPACE_SERVER_URL'] ?? defaultEnv.WORKSPACE_SERVER_URL;
 
   return {
+    ACTION_SERVER_URL,
     AERIE_DB_HOST,
     AERIE_DB_PORT,
     ALLOWED_ROLES,
@@ -154,9 +170,13 @@ export function getEnv(): Env {
     JWT_EXPIRATION,
     LOG_FILE,
     LOG_LEVEL,
+    MERLIN_SERVER_URL,
     PORT,
     RATE_LIMITER_FILES_MAX,
     RATE_LIMITER_LOGIN_MAX,
+    SCHEDULER_SERVER_URL,
+    SEQUENCING_SERVER_URL,
     VERSION,
+    WORKSPACE_SERVER_URL,
   };
 }
