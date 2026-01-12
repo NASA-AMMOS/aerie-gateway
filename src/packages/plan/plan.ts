@@ -246,36 +246,7 @@ async function importPlan(req: Request, res: Response) {
         );
 
         const activityRemap: Record<number, number> = {};
-        const activityDirectivesInsertInput = activities.map(
-          ({
-            anchored_to_start: anchoredToStart,
-            arguments: activityArguments,
-            metadata,
-            name: activityName,
-            start_offset: startOffset,
-            tags,
-            type,
-          }) => {
-            const activityDirectiveInsertInput: ActivityDirectiveInsertInput = {
-              anchor_id: null,
-              anchored_to_start: anchoredToStart,
-              arguments: activityArguments,
-              metadata,
-              name: activityName,
-              plan_id: (createdPlan as PlanSchema).id,
-              start_offset: startOffset,
-              tags: {
-                data:
-                  tags?.map(({ tag: { name } }) => ({
-                    tag_id: tagsMap[name].id,
-                  })) ?? [],
-              },
-              type,
-            };
-
-            return activityDirectiveInsertInput;
-          },
-        );
+        const activityDirectivesInsertInput = remapActivities(activities, (createdPlan as PlanSchema).id, tagsMap);
 
         const createdActivitiesResponse = await fetch(GQL_API_URL, {
           body: JSON.stringify({
@@ -475,7 +446,7 @@ async function uploadActivities(req: Request, res: Response) {
 
     logger.info(`POST /uploadActivities: Uploaded activities`);
 
-    res.json(activities);
+    res.json(activities.length);
   } catch (error) {
     logger.error(`POST /uploadActivities: Error occurred during activity upload`);
     logger.error(error);
