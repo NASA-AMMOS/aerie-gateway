@@ -2,12 +2,26 @@
 
 # aerie-gateway
 
-The API gateway for [Aerie](https://github.com/NASA-AMMOS/aerie).
+The API gateway for [PlanDev](https://github.com/NASA-AMMOS/aerie).
+
+## Aerie -> PlanDev Rebrand
+
+This product was **formerly known as Aerie and is now named PlanDev**. While we've updated most documentation and external references, some legacy mentions of the old product name may remain as we complete the transition.
+
+What to know:
+
+- The planning product, including modeling, simulation, scheduling and constraint-checking, is now named PlanDev
+- The sequencing product, including the sequence editor, workspaces, and actions, is now named SeqDev
+- All features and functionality remain the same
+- Currently, repository names, package names and other internal code references will retain their existing names, and deployment/migration procedures have not changed
+- In a future release, our repository and/or package names may change. If so, this will be communicated to users via release notes and normal communication channels
+
+For the latest documentation, visit: [PlanDev Documentation](https://nasa-ammos.github.io/plandev-docs/)
 
 ## Need Help?
 
-- Join us on the [NASA-AMMOS Slack](https://join.slack.com/t/nasa-ammos/shared_invite/zt-1mlgmk5c2-MgqVSyKzVRUWrXy87FNqPw) (#aerie-users)
-- Contact aerie-support@googlegroups.com
+- Join us on the [NASA-AMMOS Slack](https://join.slack.com/t/nasa-ammos/shared_invite/zt-1mlgmk5c2-MgqVSyKzVRUWrXy87FNqPw) (#plandev-users)
+- Contact plandev-support@googlegroups.com
 
 ## Develop
 
@@ -23,7 +37,7 @@ npm run dev
 
 This will watch for code changes and rebuild and restart the gateway server automatically.
 
-If you are running Aerie Gateway within a container (i.e. the docker-compose from the main Aerie repo), run the following before starting the container:
+If you are running PlanDev Gateway within a container (i.e. the docker-compose from the main PlanDev repo), run the following before starting the container:
 
 ```sh
 npm install
