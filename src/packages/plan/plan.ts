@@ -202,7 +202,9 @@ async function importPlan(req: Request, res: Response) {
   };
 
   let createdPlan: PlanSchema | null = null;
-  const createdTags: Tag[] = [];
+
+  let createdTags: Tag[] = [];
+  let tagsMap: Record<string, Tag>;
 
   try {
     const { activities, simulation_arguments }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);
@@ -250,7 +252,9 @@ async function importPlan(req: Request, res: Response) {
         // insert all the imported activities into the plan
         logger.info(`POST /importPlan: Importing activities: ${name}`);
 
-        const { createdTags, tagsMap } = await createTags(activities, headers as Record<string, string>);
+        const tagData = await createTags(activities, headers as Record<string, string>);
+        createdTags = tagData.createdTags;
+        tagsMap = tagData.tagsMap;
 
         const activityRemap: Record<number, number> = {};
         const activityDirectivesInsertInput = await remapActivities(activities, (createdPlan as PlanSchema).id, tagsMap);
@@ -388,12 +392,17 @@ async function uploadActivities(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   }
 
-  const createdTags: Tag[] = [];
+  let createdTags: Tag[] = [];
+  let tagsMap: Record<string, Tag>;
 
   try {
     const { activities: activitiesJSON }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);  // Activites upload is a subset of plan import
 
-    const { createdTags, tagsMap } = await createTags(activitiesJSON, headers as Record<string, string>);
+    // const { createdTags: createdTags, tagsMap } = await createTags(activitiesJSON, headers as Record<string, string>);
+    const tagData = await createTags(activitiesJSON, headers as Record<string, string>);
+    createdTags = tagData.createdTags;
+    tagsMap = tagData.tagsMap;
+
     const activityRemap: Record<number, number> = {};
 
     const activities = await remapActivities(activitiesJSON, parseInt(planIdString), tagsMap);
