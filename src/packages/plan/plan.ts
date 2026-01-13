@@ -50,6 +50,96 @@ const refreshLimiter = rateLimit({
 
 const timeColumnKey = 'time_utc';
 
+async function createTags(activities: ActivitiesJSON, headers: Record<string, string>): Promise<{ createdTags: Tag[], tagsMap: Record<string, Tag> }> {
+  let createdTags: Tag[] = [];
+  const tagsResponse = await fetch(GQL_API_URL, {
+    body: JSON.stringify({
+      query: gql.GET_TAGS,
+    }),
+    headers,
+    method: 'POST',
+  });
+
+  const tagsResponseJSON = (await tagsResponse.json()) as {
+    data: {
+      tags: Tag[];
+    };
+  };
+
+  let tagsMap: Record<string, Tag> = {};
+  if (tagsResponseJSON != null && tagsResponseJSON.data != null) {
+    const {
+      data: { tags },
+    } = tagsResponseJSON;
+    tagsMap = tags.reduce((prevTagsMap: Record<string, Tag>, tag) => {
+      return {
+        ...prevTagsMap,
+        [tag.name]: tag,
+      };
+    }, {});
+  }
+
+  // derive a map of uniquely named tags from the list of activities that doesn't already exist in the database
+  const activityTags = activities.reduce(
+    (prevActivitiesTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tags }) => {
+      const currentTagsMap =
+        tags?.reduce(
+          (prevTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tag: { name: tagName, color } }) => {
+            // If the tag doesn't exist already, add it
+            if (tagsMap[tagName] === undefined) {
+              return {
+                ...prevTagsMap,
+                [tagName]: {
+                  color,
+                  name: tagName,
+                },
+              };
+            }
+            return prevTagsMap;
+          },
+          {},
+        ) ?? {};
+
+      return {
+        ...prevActivitiesTagsMap,
+        ...currentTagsMap,
+      };
+    },
+    {},
+  );
+
+  const createdTagsResponse = await fetch(GQL_API_URL, {
+    body: JSON.stringify({
+      query: gql.CREATE_TAGS,
+      variables: { tags: Object.values(activityTags) },
+    }),
+    headers,
+    method: 'POST',
+  });
+
+  const { data } = (await createdTagsResponse.json()) as {
+    data: {
+      insert_tags: { returning: Tag[] };
+    };
+  };
+
+  if (data && data.insert_tags && data.insert_tags.returning.length) {
+    // track the newly created tags for cleanup if an error occurs during plan import
+    createdTags = data.insert_tags.returning;
+  }
+
+  // add the newly created tags to the `tagsMap`
+  tagsMap = createdTags.reduce(
+    (prevTagsMap: Record<string, Tag>, tag) => ({
+      ...prevTagsMap,
+      [tag.name]: tag,
+    }),
+    tagsMap,
+  );
+
+  return { createdTags, tagsMap };
+}
+
 async function remapActivities(activities: ActivitiesJSON, planId: number, tagsMap: Record<string, Tag>) {
   return activities.map(
     ({
@@ -112,7 +202,7 @@ async function importPlan(req: Request, res: Response) {
   };
 
   let createdPlan: PlanSchema | null = null;
-  let createdTags: Tag[] = [];
+  const createdTags: Tag[] = [];
 
   try {
     const { activities, simulation_arguments }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);
@@ -160,93 +250,10 @@ async function importPlan(req: Request, res: Response) {
         // insert all the imported activities into the plan
         logger.info(`POST /importPlan: Importing activities: ${name}`);
 
-        const tagsResponse = await fetch(GQL_API_URL, {
-          body: JSON.stringify({
-            query: gql.GET_TAGS,
-          }),
-          headers,
-          method: 'POST',
-        });
-
-        const tagsResponseJSON = (await tagsResponse.json()) as {
-          data: {
-            tags: Tag[];
-          };
-        };
-
-        let tagsMap: Record<string, Tag> = {};
-        if (tagsResponseJSON != null && tagsResponseJSON.data != null) {
-          const {
-            data: { tags },
-          } = tagsResponseJSON;
-          tagsMap = tags.reduce((prevTagsMap: Record<string, Tag>, tag) => {
-            return {
-              ...prevTagsMap,
-              [tag.name]: tag,
-            };
-          }, {});
-        }
-
-        // derive a map of uniquely named tags from the list of activities that doesn't already exist in the database
-        const activityTags = activities.reduce(
-          (prevActivitiesTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tags }) => {
-            const currentTagsMap =
-              tags?.reduce(
-                (prevTagsMap: Record<string, Pick<Tag, 'color' | 'name'>>, { tag: { name: tagName, color } }) => {
-                  // If the tag doesn't exist already, add it
-                  if (tagsMap[tagName] === undefined) {
-                    return {
-                      ...prevTagsMap,
-                      [tagName]: {
-                        color,
-                        name: tagName,
-                      },
-                    };
-                  }
-                  return prevTagsMap;
-                },
-                {},
-              ) ?? {};
-
-            return {
-              ...prevActivitiesTagsMap,
-              ...currentTagsMap,
-            };
-          },
-          {},
-        );
-
-        const createdTagsResponse = await fetch(GQL_API_URL, {
-          body: JSON.stringify({
-            query: gql.CREATE_TAGS,
-            variables: { tags: Object.values(activityTags) },
-          }),
-          headers,
-          method: 'POST',
-        });
-
-        const { data } = (await createdTagsResponse.json()) as {
-          data: {
-            insert_tags: { returning: Tag[] };
-          };
-        };
-
-        if (data && data.insert_tags && data.insert_tags.returning.length) {
-          // track the newly created tags for cleanup if an error occurs during plan import
-          createdTags = data.insert_tags.returning;
-        }
-
-        // add the newly created tags to the `tagsMap`
-        tagsMap = createdTags.reduce(
-          (prevTagsMap: Record<string, Tag>, tag) => ({
-            ...prevTagsMap,
-            [tag.name]: tag,
-          }),
-          tagsMap,
-        );
+        const { createdTags, tagsMap } = await createTags(activities, headers as Record<string, string>);
 
         const activityRemap: Record<number, number> = {};
-        const activityDirectivesInsertInput = remapActivities(activities, (createdPlan as PlanSchema).id, tagsMap);
+        const activityDirectivesInsertInput = await remapActivities(activities, (createdPlan as PlanSchema).id, tagsMap);
 
         const createdActivitiesResponse = await fetch(GQL_API_URL, {
           body: JSON.stringify({
@@ -288,12 +295,7 @@ async function importPlan(req: Request, res: Response) {
         // remap all the anchor ids to the newly created activity directives
         logger.info(`POST /importPlan: Re-assigning anchors: ${name}`);
 
-        const activityDirectivesSetInput = activities
-          .filter(({ anchor_id: anchorId }) => anchorId !== null)
-          .map(({ anchor_id: anchorId, id }) => ({
-            _set: { anchor_id: activityRemap[anchorId as number] },
-            where: { id: { _eq: activityRemap[id] }, plan_id: { _eq: (createdPlan as PlanSchema).id } },
-          }));
+        const activityDirectivesSetInput = await remapAnchors(activities, activityRemap, (createdPlan as PlanSchema).id);
 
         await fetch(GQL_API_URL, {
           body: JSON.stringify({
@@ -386,11 +388,15 @@ async function uploadActivities(req: Request, res: Response) {
     'x-hasura-user-id': userHeader ? `${userHeader}` : '',
   }
 
+  const createdTags: Tag[] = [];
+
   try {
     const { activities: activitiesJSON }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);  // Activites upload is a subset of plan import
+
+    const { createdTags, tagsMap } = await createTags(activitiesJSON, headers as Record<string, string>);
     const activityRemap: Record<number, number> = {};
 
-    const activities = await remapActivities(activitiesJSON, parseInt(planIdString), {});
+    const activities = await remapActivities(activitiesJSON, parseInt(planIdString), tagsMap);
 
     const createdActivitiesResponse = await fetch(GQL_API_URL, {
       body: JSON.stringify({
@@ -431,7 +437,7 @@ async function uploadActivities(req: Request, res: Response) {
     // remap all the anchor ids to the newly created activity directives
     logger.info(`POST /uploadActivities: Re-assigning anchors`);
 
-    const activityDirectivesSetInput = remapAnchors(activitiesJSON, activityRemap, parseInt(planIdString));
+    const activityDirectivesSetInput = await remapAnchors(activitiesJSON, activityRemap, parseInt(planIdString));
 
     await fetch(GQL_API_URL, {
       body: JSON.stringify({
@@ -448,6 +454,14 @@ async function uploadActivities(req: Request, res: Response) {
 
     res.json(activities.length);
   } catch (error) {
+    // TODO: Handle cleanup on fail, need to delete tags if they were created
+    if (createdTags !== undefined && createdTags.length) {
+      await fetch(GQL_API_URL, {
+        body: JSON.stringify({ query: gql.DELETE_TAGS, variables: { tagIds: createdTags.map(({ id }) => id) } }),
+        headers,
+        method: 'POST',
+      });
+    }
     logger.error(`POST /uploadActivities: Error occurred during activity upload`);
     logger.error(error);
     res.status(500);
