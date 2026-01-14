@@ -45,7 +45,7 @@ export default (app: Express) => {
    *             schema:
    *                properties:
    *                  gateway_version:
-   *                    description: The current version of the Aerie Gateway.
+   *                    description: The current version of the PlanDev Gateway.
    *                    type: string
    *     summary: Get the current version of the Gateway and Database Schema
    *     tags:

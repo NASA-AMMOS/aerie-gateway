@@ -18,7 +18,7 @@ const options: swaggerJsDoc.Options = {
       },
     },
     info: {
-      title: 'Aerie Gateway',
+      title: 'PlanDev Gateway',
       version: VERSION,
     },
     openapi: '3.0.0',
@@ -46,7 +46,7 @@ export default async (app: Express) => {
     swagger.serve,
     swagger.setup(spec, {
       customCss: '.swagger-ui .topbar { display: none }',
-      customSiteTitle: 'Aerie Gateway',
+      customSiteTitle: 'PlanDev Gateway',
     }),
   );
 };
