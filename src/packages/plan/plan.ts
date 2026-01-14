@@ -398,7 +398,6 @@ async function uploadActivities(req: Request, res: Response) {
   try {
     const { activities: activitiesJSON }: PlanTransfer = await parseJSONFile<PlanTransfer>(file);  // Activites upload is a subset of plan import
 
-    // const { createdTags: createdTags, tagsMap } = await createTags(activitiesJSON, headers as Record<string, string>);
     const tagData = await createTags(activitiesJSON, headers as Record<string, string>);
     createdTags = tagData.createdTags;
     tagsMap = tagData.tagsMap;
