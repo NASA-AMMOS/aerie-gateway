@@ -78,8 +78,8 @@ export type ActivityDirectiveInsertInput = {
 export type ActivityDirectiveSetInput = Pick<ActivityDirectiveInsertInput, 'anchor_id'>;
 
 export type ActivitiesJSON = Pick<
-ActivityDirective,
-'anchor_id' | 'anchored_to_start' | 'arguments' | 'id' | 'metadata' | 'name' | 'start_offset' | 'tags' | 'type'
+  ActivityDirective,
+  'anchor_id' | 'anchored_to_start' | 'arguments' | 'id' | 'metadata' | 'name' | 'start_offset' | 'tags' | 'type'
 >[];
 
 export type PlanTransfer = Pick<PlanSchema, 'id' | 'duration' | 'model_id' | 'name' | 'start_time'> & {
