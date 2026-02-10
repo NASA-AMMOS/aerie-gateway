@@ -24,7 +24,7 @@ import {
   ProfileSegment,
   ProfileSet,
   ProfileSets,
-  uploadActivitiesPayload,
+  UploadActivitiesPayload,
   UploadPlanDatasetJSON,
   UploadPlanDatasetPayload,
 } from '../../types/dataset.js';
@@ -393,7 +393,7 @@ async function uploadActivities(req: Request, res: Response) {
   } = req;
 
   const { body, file } = req;
-  const { plan_id: planIdString } = body as uploadActivitiesPayload;
+  const { plan_id: planIdString } = body as UploadActivitiesPayload;
 
   logger.info(`POST /uploadActivities: Uploading activities`);
 
