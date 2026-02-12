@@ -54,7 +54,7 @@ async function createActivities(
   activities: ActivityDirectiveInsertInput[],
   activitiesJSON: ActivitiesJSON,
   planId: number,
-  headers: Record<string, string>
+  headers: Record<string, string>,
 ): Promise<number> {
   const activityRemap: Record<number, number> = {};
 
