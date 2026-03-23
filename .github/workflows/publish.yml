@@ -59,7 +59,8 @@ jobs:
           load: true
           tags: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
       - name: Scan Docker image
-        uses: aquasecurity/trivy-action@master
+        # pinned to commit for v0.35.0 https://github.com/aquasecurity/trivy-action/releases/tag/v0.35.0
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
           image-ref: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
           format: 'table'
