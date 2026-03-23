@@ -20,3 +20,7 @@ export type UploadPlanDatasetJSON = {
   datasetStart: string;
   profileSet: ProfileSets;
 };
+
+export type UploadActivitiesPayload = {
+  plan_id: string;
+};
