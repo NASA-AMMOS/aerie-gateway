@@ -1,5 +1,5 @@
 {
-  "name": "aerie-gateway",
+  "name": "plandev-gateway",
   "description": "The API gateway for PlanDev.",
   "version": "4.1.1",
   "type": "module",
@@ -7,7 +7,7 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/NASA-AMMOS/aerie-gateway.git"
+    "url": "https://github.com/NASA-AMMOS/plandev-gateway.git"
   },
   "engines": {
     "node": ">=20.0.0",
