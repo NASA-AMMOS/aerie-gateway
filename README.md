@@ -1,8 +1,8 @@
-![GitHub package.json version](https://img.shields.io/github/package-json/v/NASA-AMMOS/aerie-gateway?color=brightgreen)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/NASA-AMMOS/plandev-gateway?color=brightgreen)
 
-# aerie-gateway
+# plandev-gateway
 
-The API gateway for [PlanDev](https://github.com/NASA-AMMOS/aerie).
+The API gateway for [PlanDev](https://github.com/NASA-AMMOS/plandev).
 
 ## Aerie -> PlanDev Rebrand
 
