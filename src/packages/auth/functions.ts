@@ -291,6 +291,29 @@ export async function session(authorizationHeader: string | undefined): Promise<
   const { jwtErrorMessage, jwtPayload } = await decodeJwt(authorizationHeader);
 
   if (jwtPayload) {
+    // Lazy-upsert the user's permissions row on first sight.
+    //
+    // For gateway-issued JWTs (JWT/SSO modes), login() already provisioned the row,
+    // so the SELECT inside getUserRoles is a no-op for existing users. For
+    // Keycloak-issued OIDC tokens this is the *only* place provisioning happens —
+    // the UI's user-scoped JWT lacks Hasura insert permission on permissions.users.
+    //
+    // Failure here must not block session validation (token is still valid even if
+    // the DB write hiccups); log and continue.
+    try {
+      const { JWT_CLAIMS } = getEnv();
+      const namespace = (jwtPayload as Record<string, unknown>)[JWT_CLAIMS.namespace] as
+        | Record<string, unknown>
+        | undefined;
+      const username = namespace?.[JWT_CLAIMS.userId];
+      const default_role = namespace?.[JWT_CLAIMS.defaultRole];
+      const allowed_roles = namespace?.[JWT_CLAIMS.allowedRoles];
+      if (typeof username === 'string' && typeof default_role === 'string' && Array.isArray(allowed_roles)) {
+        await getUserRoles(username, default_role, allowed_roles as string[]);
+      }
+    } catch (err) {
+      console.error('User provisioning during session validation failed:', err);
+    }
     return { message: 'Token is valid', success: true };
   } else {
     return { message: jwtErrorMessage, success: false };
