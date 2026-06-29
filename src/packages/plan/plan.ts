@@ -707,6 +707,58 @@ async function uploadDataset(req: Request, res: Response) {
   }
 }
 
+async function uploadSimulationDataset(req: Request, res: Response) {
+  const authorizationHeader = req.get('authorization');
+
+  const {
+    headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
+  } = req;
+
+  const { body, file } = req;
+  const { plan_id: planIdString } = body as { plan_id: string };
+
+  const headers: HeadersInit = {
+    Authorization: authorizationHeader ?? '',
+    'Content-Type': 'application/json',
+    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+  };
+
+  try {
+    const planId: number = parseInt(planIdString);
+    const simulationResults = await parseJSONFile<object>(file);
+
+    logger.info(`POST /uploadSimulationDataset: Uploading simulation dataset for plan ${planId}`);
+
+    const response = await fetch(GQL_API_URL, {
+      body: JSON.stringify({
+        query: gql.UPLOAD_SIMULATION_DATASET,
+        variables: { planId, simulationResults },
+      }),
+      headers,
+      method: 'POST',
+    });
+
+    type UploadResponse = { data: { uploadSimulationDataset: { simulationDatasetId: number } | null } };
+    const jsonResponse = (await response.json()) as UploadResponse | HasuraError;
+
+    if ((jsonResponse as UploadResponse).data?.uploadSimulationDataset != null) {
+      const { simulationDatasetId } = (jsonResponse as UploadResponse).data.uploadSimulationDataset!;
+      logger.info(`POST /uploadSimulationDataset: Created simulation dataset ID=${simulationDatasetId}`);
+      res.json(simulationDatasetId);
+    } else if ((jsonResponse as HasuraError).errors) {
+      throw new Error(JSON.stringify((jsonResponse as HasuraError).errors));
+    } else {
+      throw new Error('Simulation dataset upload unsuccessful.');
+    }
+  } catch (error) {
+    logger.error(`POST /uploadSimulationDataset: Error occurred during simulation dataset upload`);
+    logger.error(error);
+    res.status(500);
+    res.send((error as Error).message);
+  }
+}
+
 export default (app: Express) => {
   /**
    * @swagger
@@ -799,6 +851,36 @@ export default (app: Express) => {
    *       - Hasura
    */
   app.post('/uploadDataset', upload.single('external_dataset'), refreshLimiter, auth, uploadDataset);
+
+  /**
+   * @swagger
+   * /uploadSimulationDataset:
+   *   post:
+   *     security:
+   *       - bearerAuth: []
+   *     consumes:
+   *       - multipart/form-data
+   *     produces:
+   *       - application/json
+   *     requestBody:
+   *       content:
+   *         multipart/form-data:
+   *          schema:
+   *            type: object
+   *            properties:
+   *              plan_id:
+   *                type: integer
+   *              simulation_results_file:
+   *                format: binary
+   *                type: string
+   *     responses:
+   *       200:
+   *         description: The ID of the created simulation dataset
+   *     summary: Upload a simulation results JSON file to a plan
+   *     tags:
+   *       - Hasura
+   */
+  app.post('/uploadSimulationDataset', upload.single('simulation_results_file'), refreshLimiter, auth, uploadSimulationDataset);
 
   /**
    * @swagger
