@@ -1,4 +1,3 @@
-import type { Algorithm } from 'jsonwebtoken';
 import { GroupRoleMapping } from './types/auth';
 import { StringValue } from 'ms';
 
@@ -28,7 +27,6 @@ export type Env = {
   GQL_API_WS_URL: string;
   HASURA_API_URL: string;
   HASURA_GRAPHQL_JWT_SECRET: string;
-  JWT_ALGORITHMS: Algorithm[];
   JWT_CLAIMS: JwtClaimsConfig;
   JWT_EXPIRATION: StringValue;
   LOG_FILE: string;
@@ -68,7 +66,6 @@ export const defaultEnv: Env = {
   GQL_API_WS_URL: 'ws://localhost:8080/v1/graphql',
   HASURA_API_URL: 'http://hasura:8080',
   HASURA_GRAPHQL_JWT_SECRET: '',
-  JWT_ALGORITHMS: ['RS256'],
   JWT_CLAIMS: defaultJwtClaims,
   JWT_EXPIRATION: '36h' as StringValue,
   LOG_FILE: 'console',
@@ -141,7 +138,6 @@ export function getEnv(): Env {
   const GQL_API_WS_URL = env['GQL_API_WS_URL'] ?? defaultEnv.GQL_API_WS_URL;
   const HASURA_GRAPHQL_JWT_SECRET = env['HASURA_GRAPHQL_JWT_SECRET'] ?? defaultEnv.HASURA_GRAPHQL_JWT_SECRET;
   const HASURA_API_URL = env['HASURA_API_URL'] ?? defaultEnv.HASURA_API_URL;
-  const JWT_ALGORITHMS = parseArray(env['JWT_ALGORITHMS'], defaultEnv.JWT_ALGORITHMS);
   const JWT_CLAIMS: JwtClaimsConfig = {
     namespace: env['JWT_CLAIMS_NAMESPACE'] ?? defaultJwtClaims.namespace,
     userId: env['JWT_CLAIMS_USER_ID'] ?? defaultJwtClaims.userId,
@@ -178,7 +174,6 @@ export function getEnv(): Env {
     GQL_API_WS_URL,
     HASURA_API_URL,
     HASURA_GRAPHQL_JWT_SECRET,
-    JWT_ALGORITHMS,
     JWT_CLAIMS,
     JWT_EXPIRATION,
     LOG_FILE,

@@ -389,3 +389,46 @@ describe('configurable JWT claim paths', () => {
     expect(namespace['roles']).toEqual(['aerie_admin', 'aerie_user']);
   });
 });
+
+describe('decodeJwt binds the accepted algorithm to the secret type', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test('verifies an HS256 token for an HS256 secret with no JWT_ALGORITHMS set (regression guard)', async () => {
+    // The regular (non-OIDC) test/CI phase sets no JWT_ALGORITHMS. The accepted algorithm must
+    // come from the secret's `type`, not the process-wide default (RS256) — otherwise the HS256
+    // tokens generateJwt mints get rejected (the failure that broke the HS256 e2e phase).
+    const hmacSecret = 'super-secret-key-that-is-long-enough-for-hs256';
+    vi.stubEnv('HASURA_GRAPHQL_JWT_SECRET', JSON.stringify({ type: 'HS256', key: hmacSecret }));
+
+    const token = jwt.sign(createPayload(), hmacSecret, { algorithm: 'HS256', expiresIn: '1h' });
+    const result = await decodeJwt(`Bearer ${token}`);
+
+    expect(result.jwtErrorMessage).toBe('');
+    expect(result.jwtPayload?.username).toBe('test-user');
+  });
+
+  test('verifies an RS256 token for an RS256 secret with no JWT_ALGORITHMS set', async () => {
+    vi.stubEnv('HASURA_GRAPHQL_JWT_SECRET', JSON.stringify({ type: 'RS256', key: publicKey }));
+
+    const result = await decodeJwt(`Bearer ${signToken(createPayload())}`);
+
+    expect(result.jwtErrorMessage).toBe('');
+    expect(result.jwtPayload).not.toBeNull();
+  });
+
+  test('rejects an HS256 token forged with the RSA public key on an RS256 secret, even if JWT_ALGORITHMS lists HS256', async () => {
+    // Classic RS256->HS256 confusion: the RSA public key is public, so an attacker can sign an
+    // HS256 token using it as the HMAC secret. Binding the accepted algorithm to the secret's
+    // declared type (RS256) rejects it regardless of a permissive/misconfigured JWT_ALGORITHMS.
+    vi.stubEnv('JWT_ALGORITHMS', JSON.stringify(['RS256', 'HS256'])); // deliberately permissive — must be ignored
+    vi.stubEnv('HASURA_GRAPHQL_JWT_SECRET', JSON.stringify({ type: 'RS256', key: publicKey }));
+
+    const forged = jwt.sign(createPayload(), publicKey, { algorithm: 'HS256', expiresIn: '1h' });
+    const result = await decodeJwt(`Bearer ${forged}`);
+
+    expect(result.jwtPayload).toBeNull();
+    expect(result.jwtErrorMessage).not.toBe('');
+  });
+});

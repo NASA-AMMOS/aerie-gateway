@@ -121,10 +121,16 @@ function enforcePEMFormatting(publicKey: string): string {
 export async function decodeJwt(authorizationHeader: string | undefined): Promise<JwtDecode> {
   try {
     const token = authorizationHeaderToToken(authorizationHeader);
-    const { HASURA_GRAPHQL_JWT_SECRET, JWT_ALGORITHMS } = getEnv();
+    const { HASURA_GRAPHQL_JWT_SECRET } = getEnv();
     const { type, key, jwk_url, issuer, audience }: JwtSecret = JSON.parse(HASURA_GRAPHQL_JWT_SECRET);
 
-    const options: jwt.VerifyOptions = { algorithms: JWT_ALGORITHMS };
+    // Bind the accepted algorithm to the secret's declared `type` (the same value generateJwt signs
+    // with), rather than a global JWT_ALGORITHMS default. This keeps HS256 and RS256/JWKS
+    // deployments self-configuring from their own secret — no reliance on a process-wide default
+    // that can only be correct for one mode — and, critically, prevents an RS256->HS256
+    // algorithm-confusion forgery: a JWKS/RS256 verifier never accepts an HS256 token signed with
+    // the (public) RSA key. `alg: none` is excluded for the same reason.
+    const options: jwt.VerifyOptions = { algorithms: [type as Algorithm] };
 
     // Add issuer/audience validation if configured (used with JWKS/OIDC)
     if (issuer) {
