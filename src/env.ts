@@ -24,6 +24,7 @@ export type Env = {
   AERIE_DB_PORT: string;
   GATEWAY_DB_USER: string;
   GATEWAY_DB_PASSWORD: string;
+  AERIE_MERLIN_URL: string;
   RATE_LIMITER_FILES_MAX: number;
   RATE_LIMITER_LOGIN_MAX: number;
   VERSION: string;
@@ -41,6 +42,7 @@ export const defaultEnv: Env = {
   AUTH_URL: 'https://atb-ocio-12b.jpl.nasa.gov:8443/cam-api',
   DEFAULT_ROLE: ['user'],
   DEFAULT_ROLE_NO_AUTH: 'aerie_admin',
+  AERIE_MERLIN_URL: 'http://localhost:27183',
   GATEWAY_DB_PASSWORD: '',
   GATEWAY_DB_USER: '',
   GQL_API_URL: 'http://localhost:8080/v1/graphql',
@@ -128,6 +130,7 @@ export function getEnv(): Env {
   const AERIE_DB_PORT = env['AERIE_DB_PORT'] ?? defaultEnv.AERIE_DB_PORT;
   const GATEWAY_DB_USER = env['GATEWAY_DB_USER'] ?? defaultEnv.GATEWAY_DB_USER;
   const GATEWAY_DB_PASSWORD = env['GATEWAY_DB_PASSWORD'] ?? defaultEnv.GATEWAY_DB_PASSWORD;
+  const AERIE_MERLIN_URL = env['AERIE_MERLIN_URL'] ?? defaultEnv.AERIE_MERLIN_URL;
   const RATE_LIMITER_FILES_MAX = parseNumber(env['RATE_LIMITER_FILES_MAX'], defaultEnv.RATE_LIMITER_FILES_MAX);
   const RATE_LIMITER_LOGIN_MAX = parseNumber(env['RATE_LIMITER_LOGIN_MAX'], defaultEnv.RATE_LIMITER_LOGIN_MAX);
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
@@ -135,6 +138,7 @@ export function getEnv(): Env {
   return {
     AERIE_DB_HOST,
     AERIE_DB_PORT,
+    AERIE_MERLIN_URL,
     ALLOWED_ROLES,
     ALLOWED_ROLES_NO_AUTH,
     AUTH_GROUP_ROLE_MAPPINGS,

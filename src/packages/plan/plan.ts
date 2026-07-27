@@ -34,7 +34,7 @@ import { getEnv } from '../../env.js';
 
 const upload = multer();
 const logger = getLogger('packages/plan/plan');
-const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
+const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL, AERIE_MERLIN_URL } = getEnv();
 
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
 
@@ -759,6 +759,76 @@ async function uploadSimulationDataset(req: Request, res: Response) {
   }
 }
 
+async function downloadSimulationDataset(req: Request, res: Response) {
+  const authorizationHeader = req.get('authorization');
+
+  const {
+    headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
+  } = req;
+
+  const { plan_id: planIdString, simulation_dataset_id: datasetIdString } = req.query as {
+    plan_id: string;
+    simulation_dataset_id: string;
+  };
+
+  try {
+    const planId = parseInt(planIdString);
+    const simulationDatasetId = parseInt(datasetIdString);
+
+    if (isNaN(planId) || isNaN(simulationDatasetId)) {
+      res.status(400).send('plan_id and simulation_dataset_id query parameters are required and must be integers');
+      return;
+    }
+
+    logger.info(
+      `GET /downloadSimulationDataset: Downloading simulation dataset ${simulationDatasetId} for plan ${planId}`,
+    );
+
+    const response = await fetch(`${AERIE_MERLIN_URL}/downloadSimulationDataset`, {
+      body: JSON.stringify({
+        action: { name: 'downloadSimulationDataset' },
+        input: { planId, simulationDatasetId },
+        session_variables: {
+          'x-hasura-role': roleHeader ? `${roleHeader}` : 'aerie_admin',
+          'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+        },
+        request_query: '',
+      }),
+      headers: {
+        Authorization: authorizationHeader ?? '',
+        'Content-Type': 'application/json',
+        'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+        'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+      },
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`GET /downloadSimulationDataset: merlin-server returned ${response.status}: ${errorText}`);
+      res.status(response.status).send(errorText);
+      return;
+    }
+
+    const simulationResults = await response.text();
+
+    logger.info(
+      `GET /downloadSimulationDataset: Successfully retrieved simulation dataset ${simulationDatasetId}`,
+    );
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="simulation_dataset_${simulationDatasetId}.json"`,
+    );
+    res.status(200).send(simulationResults);
+  } catch (error) {
+    logger.error(`GET /downloadSimulationDataset: Error occurred during simulation dataset download`);
+    logger.error(error);
+    res.status(500).send((error as Error).message);
+  }
+}
+
 export default (app: Express) => {
   /**
    * @swagger
@@ -881,6 +951,45 @@ export default (app: Express) => {
    *       - Hasura
    */
   app.post('/uploadSimulationDataset', upload.single('simulation_results_file'), refreshLimiter, auth, uploadSimulationDataset);
+
+  /**
+   * @swagger
+   * /downloadSimulationDataset:
+   *   get:
+   *     security:
+   *       - bearerAuth: []
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *      - in: header
+   *        name: x-hasura-role
+   *        schema:
+   *          type: string
+   *          required: false
+   *      - in: query
+   *        name: plan_id
+   *        schema:
+   *          type: integer
+   *        required: true
+   *      - in: query
+   *        name: simulation_dataset_id
+   *        schema:
+   *          type: integer
+   *        required: true
+   *     responses:
+   *       200:
+   *         description: The simulation results JSON file
+   *       400:
+   *         description: Missing or invalid query parameters
+   *       403:
+   *         description: Unauthorized error
+   *       401:
+   *         description: Unauthenticated error
+   *     summary: Download a simulation dataset as a JSON file
+   *     tags:
+   *       - Hasura
+   */
+  app.get('/downloadSimulationDataset', refreshLimiter, auth, downloadSimulationDataset);
 
   /**
    * @swagger
