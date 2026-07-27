@@ -34,7 +34,7 @@ import { getEnv } from '../../env.js';
 
 const upload = multer();
 const logger = getLogger('packages/plan/plan');
-const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL, AERIE_MERLIN_URL } = getEnv();
+const { RATE_LIMITER_LOGIN_MAX, HASURA_API_URL } = getEnv();
 
 const GQL_API_URL = `${HASURA_API_URL}/v1/graphql`;
 
@@ -771,6 +771,13 @@ async function downloadSimulationDataset(req: Request, res: Response) {
     simulation_dataset_id: string;
   };
 
+  const headers: HeadersInit = {
+    Authorization: authorizationHeader ?? '',
+    'Content-Type': 'application/json',
+    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+  };
+
   try {
     const planId = parseInt(planIdString);
     const simulationDatasetId = parseInt(datasetIdString);
@@ -784,44 +791,35 @@ async function downloadSimulationDataset(req: Request, res: Response) {
       `GET /downloadSimulationDataset: Downloading simulation dataset ${simulationDatasetId} for plan ${planId}`,
     );
 
-    const response = await fetch(`${AERIE_MERLIN_URL}/downloadSimulationDataset`, {
+    const response = await fetch(GQL_API_URL, {
       body: JSON.stringify({
-        action: { name: 'downloadSimulationDataset' },
-        input: { planId, simulationDatasetId },
-        session_variables: {
-          'x-hasura-role': roleHeader ? `${roleHeader}` : 'aerie_admin',
-          'x-hasura-user-id': userHeader ? `${userHeader}` : '',
-        },
-        request_query: '',
+        query: gql.DOWNLOAD_SIMULATION_DATASET,
+        variables: { planId, simulationDatasetId },
       }),
-      headers: {
-        Authorization: authorizationHeader ?? '',
-        'Content-Type': 'application/json',
-        'x-hasura-role': roleHeader ? `${roleHeader}` : '',
-        'x-hasura-user-id': userHeader ? `${userHeader}` : '',
-      },
+      headers,
       method: 'POST',
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error(`GET /downloadSimulationDataset: merlin-server returned ${response.status}: ${errorText}`);
-      res.status(response.status).send(errorText);
-      return;
+    type DownloadResponse = { data: { downloadSimulationDataset: { simulationResults: object } | null } };
+    const jsonResponse = (await response.json()) as DownloadResponse | HasuraError;
+
+    if ((jsonResponse as DownloadResponse).data?.downloadSimulationDataset != null) {
+      const { simulationResults } = (jsonResponse as DownloadResponse).data.downloadSimulationDataset!;
+      logger.info(
+        `GET /downloadSimulationDataset: Successfully retrieved simulation dataset ${simulationDatasetId}`,
+      );
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="simulation_dataset_${simulationDatasetId}.json"`,
+      );
+      res.status(200).send(JSON.stringify(simulationResults));
+    } else if ((jsonResponse as HasuraError).errors) {
+      throw new Error(JSON.stringify((jsonResponse as HasuraError).errors));
+    } else {
+      throw new Error('Simulation dataset download unsuccessful.');
     }
-
-    const simulationResults = await response.text();
-
-    logger.info(
-      `GET /downloadSimulationDataset: Successfully retrieved simulation dataset ${simulationDatasetId}`,
-    );
-
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="simulation_dataset_${simulationDatasetId}.json"`,
-    );
-    res.status(200).send(simulationResults);
   } catch (error) {
     logger.error(`GET /downloadSimulationDataset: Error occurred during simulation dataset download`);
     logger.error(error);

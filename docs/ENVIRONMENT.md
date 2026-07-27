@@ -26,7 +26,6 @@ This document provides detailed information about environment variables for the 
 | `AERIE_DB_PORT`             | Port of the PlanDev Posgres Database.                                                                   | `number` | 5432                                           |
 | `GATEWAY_DB_USER`           | Username of the Gateway DB User.                                                                      | `string` |                                                |
 | `GATEWAY_DB_PASSWORD`       | Password of the Gateway DB User.                                                                      | `string` |                                                |
-| `AERIE_MERLIN_URL`          | URL of the Aerie Merlin server (used for direct merlin-server calls, e.g. simulation dataset download). | `string` | http://localhost:27183                          |
 | `RATE_LIMITER_FILES_MAX`    | Max requests allowed every 15 minutes to file endpoints                                               | `number` | 1000                                           |
 | `RATE_LIMITER_LOGIN_MAX`    | Max requests allowed every 15 minutes to login endpoints                                              | `number` | 1000                                           |
 

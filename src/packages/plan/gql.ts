@@ -124,6 +124,13 @@ export default {
       }
     }
   `,
+  DOWNLOAD_SIMULATION_DATASET: `#graphql
+    query DownloadSimulationDataset($planId: Int!, $simulationDatasetId: Int!) {
+      downloadSimulationDataset(planId: $planId, simulationDatasetId: $simulationDatasetId) {
+        simulationResults
+      }
+    }
+  `,
   UPDATE_SIMULATION: `#graphql
     mutation InitialSimulationUpdate($plan_id: Int!, $simulation: simulation_set_input!) {
       update_simulation(where: {plan_id: {_eq: $plan_id}}, _set: $simulation) {
