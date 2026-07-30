@@ -51,6 +51,17 @@ const refreshLimiter = rateLimit({
 
 const timeColumnKey = 'time_utc';
 
+function buildHeaders(req: Request): HeadersInit {
+  const authorizationHeader = req.get('authorization');
+  const { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader } = req.headers;
+  return {
+    Authorization: authorizationHeader ?? '',
+    'Content-Type': 'application/json',
+    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
+    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
+  };
+}
+
 async function createActivities(
   activities: ActivityDirectiveInsertInput[],
   activitiesJSON: ActivitiesJSON,
@@ -709,21 +720,9 @@ async function uploadDataset(req: Request, res: Response) {
 }
 
 async function uploadSimulationDataset(req: Request, res: Response) {
-  const authorizationHeader = req.get('authorization');
-
-  const {
-    headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
-  } = req;
-
   const { body, file } = req;
   const { plan_id: planIdString } = body as { plan_id: string };
-
-  const headers: HeadersInit = {
-    Authorization: authorizationHeader ?? '',
-    'Content-Type': 'application/json',
-    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
-    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
-  };
+  const headers = buildHeaders(req);
 
   try {
     const planId: number = parseInt(planIdString);
@@ -761,23 +760,11 @@ async function uploadSimulationDataset(req: Request, res: Response) {
 }
 
 async function downloadSimulationDataset(req: Request, res: Response) {
-  const authorizationHeader = req.get('authorization');
-
-  const {
-    headers: { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader },
-  } = req;
-
   const { plan_id: planIdString, simulation_dataset_id: datasetIdString } = req.query as {
     plan_id: string;
     simulation_dataset_id: string;
   };
-
-  const headers: HeadersInit = {
-    Authorization: authorizationHeader ?? '',
-    'Content-Type': 'application/json',
-    'x-hasura-role': roleHeader ? `${roleHeader}` : '',
-    'x-hasura-user-id': userHeader ? `${userHeader}` : '',
-  };
+  const headers = buildHeaders(req);
 
   try {
     const planId = parseInt(planIdString);
