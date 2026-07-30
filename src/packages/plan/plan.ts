@@ -9,6 +9,7 @@ import { auth } from '../auth/middleware.js';
 import { parseJSONFile } from '../../util/fileParser.js';
 import { convertDateToDoy, getTimeDifference } from '../../util/time.js';
 import { HasuraError } from '../../types/hasura.js';
+import { BadRequestError, isServerError } from '../../types/errors.js';
 import type {
   ActivitiesJSON,
   ActivityDirective,
@@ -754,8 +755,8 @@ async function uploadSimulationDataset(req: Request, res: Response) {
   } catch (error) {
     logger.error(`POST /uploadSimulationDataset: Error occurred during simulation dataset upload`);
     logger.error(error);
-    res.status(500);
-    res.send((error as Error).message);
+    const status = isServerError(error) ? error.statusCode : 500;
+    res.status(status).send((error as Error).message);
   }
 }
 
@@ -771,8 +772,7 @@ async function downloadSimulationDataset(req: Request, res: Response) {
     const simulationDatasetId = parseInt(datasetIdString);
 
     if (isNaN(planId) || isNaN(simulationDatasetId)) {
-      res.status(400).send('plan_id and simulation_dataset_id query parameters are required and must be integers');
-      return;
+      throw new BadRequestError('plan_id and simulation_dataset_id query parameters are required and must be integers');
     }
 
     logger.info(
@@ -811,7 +811,8 @@ async function downloadSimulationDataset(req: Request, res: Response) {
   } catch (error) {
     logger.error(`GET /downloadSimulationDataset: Error occurred during simulation dataset download`);
     logger.error(error);
-    res.status(500).send((error as Error).message);
+    const status = isServerError(error) ? error.statusCode : 500;
+    res.status(status).send((error as Error).message);
   }
 }
 
