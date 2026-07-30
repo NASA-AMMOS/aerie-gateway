@@ -727,6 +727,9 @@ async function uploadSimulationDataset(req: Request, res: Response) {
 
   try {
     const planId: number = parseInt(planIdString);
+    if (isNaN(planId)) {
+      throw new BadRequestError('plan_id is required and must be an integer');
+    }
     const simulationResults = await parseJSONFile<SimulationDatasetJSON>(file);
 
     logger.info(`POST /uploadSimulationDataset: Uploading simulation dataset for plan ${planId}`);
