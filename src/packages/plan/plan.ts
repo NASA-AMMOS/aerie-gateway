@@ -52,7 +52,7 @@ const refreshLimiter = rateLimit({
 
 const timeColumnKey = 'time_utc';
 
-function buildHeaders(req: Request): HeadersInit {
+function buildHeaders(req: Request): Record<string, string> {
   const authorizationHeader = req.get('authorization');
   const { 'x-hasura-role': roleHeader, 'x-hasura-user-id': userHeader } = req.headers;
   return {
