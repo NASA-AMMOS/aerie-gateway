@@ -24,6 +24,7 @@ import {
   ProfileSegment,
   ProfileSet,
   ProfileSets,
+  SimulationDatasetJSON,
   UploadActivitiesPayload,
   UploadPlanDatasetJSON,
   UploadPlanDatasetPayload,
@@ -726,7 +727,7 @@ async function uploadSimulationDataset(req: Request, res: Response) {
 
   try {
     const planId: number = parseInt(planIdString);
-    const simulationResults = await parseJSONFile<object>(file);
+    const simulationResults = await parseJSONFile<SimulationDatasetJSON>(file);
 
     logger.info(`POST /uploadSimulationDataset: Uploading simulation dataset for plan ${planId}`);
 
