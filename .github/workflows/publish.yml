@@ -10,7 +10,7 @@ on:
   pull_request:
     types:
       # publish images for PRs labeled "publish" whenever changed/labeled
-      [ opened, reopened, synchronize, labeled ]
+      [opened, reopened, synchronize, labeled]
   workflow_dispatch:
 
 env:
@@ -51,19 +51,18 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # hardcoded to aerie-gateway since image names are not updating to plandev yet
-          images: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway
+          images: ${{ env.REGISTRY }}/nasa-ammos/plandev-gateway
       - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           load: true
-          tags: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/nasa-ammos/plandev-gateway:${{ github.sha }}
       - name: Scan Docker image
         # pinned to commit for v0.35.0 https://github.com/aquasecurity/trivy-action/releases/tag/v0.35.0
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
-          image-ref: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/nasa-ammos/plandev-gateway:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
