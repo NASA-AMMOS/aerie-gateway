@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   initSwaggerRoutes(app);
 
   app.listen(PORT, () => {
-    logger.info(`🚀 AERIE-GATEWAY listening on ${PORT}`);
+    logger.info(`🚀 PLANDEV-GATEWAY listening on ${PORT}`);
   });
 }
 

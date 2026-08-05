@@ -260,7 +260,7 @@ export function getDefaultRoleForAllowedRoles(allowedRoles: string[]): string {
 export function mapGroupsToRoles(groupList: string[]): UserRoles {
   const { DEFAULT_ROLE, ALLOWED_ROLES } = getEnv();
 
-  // use auth group -> aerie role mappings if set
+  // use auth group -> plandev role mappings if set
   if (authGroupMappingsExist()) {
     const mappedGroupMembership = getGroupsWithMappings(groupList);
     const allowed_roles = getAllAllowedRolesForAuthGroups(mappedGroupMembership);
@@ -291,7 +291,7 @@ export function getGroupsWithMappings(authGroups: string[]): string[] {
 export function getAllAllowedRolesForAuthGroups(groups: string[]): string[] {
   const { AUTH_GROUP_ROLE_MAPPINGS } = getEnv();
   const allAllowedRoles = groups
-    .map(g => AUTH_GROUP_ROLE_MAPPINGS[g]) // map auth group to aerie roles
+    .map(g => AUTH_GROUP_ROLE_MAPPINGS[g]) // map auth group to plandev roles
     .reduce((acc, elem) => acc.concat(elem), []); // concat all allowed roles for all member groups
   return [...new Set(allAllowedRoles)]; // deduplicate
 }
