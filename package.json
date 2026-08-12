@@ -63,5 +63,15 @@
     "prettier": "^3.0.0",
     "typescript": "^5.1.6",
     "vitest": "^1.4.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "fsevents@2.3.3": true
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "onFail": "warn"
+    }
   }
 }
