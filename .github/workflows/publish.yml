@@ -10,7 +10,7 @@ on:
   pull_request:
     types:
       # publish images for PRs labeled "publish" whenever changed/labeled
-      [ opened, reopened, synchronize, labeled ]
+      [opened, reopened, synchronize, labeled]
   workflow_dispatch:
 
 env:
@@ -25,51 +25,67 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup node
-        uses: actions/setup-node@v4
+      - name: Check out repository
+        # general policy: pin `uses` dependencies to commit hashes to avoid tag-poisoning attacks
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          node-version-file: '.nvmrc'
-          cache: npm
+          # throw away GH token after this step so future steps can't use it
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          # don't use NPM cache when installing, to avoid possibility of cache-poisoning attacks during publish
+          package-manager-cache: false
+
       - name: Install Dev Dependencies and Build
         run: |
-          npm install
+          npm install --ignore-scripts
+          npm rebuild --strict-allow-scripts
           npm run build
+
       - name: Install Production Dependencies
         run: |
           rm -rf node_modules
           npm install --only=production
+
       - name: Login to the Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # 4.6.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # 4.2.0
+
       - name: Extract Metadata (tags and labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # 6.2.0
         with:
-          # hardcoded to aerie-gateway since image names are not updating to plandev yet
-          images: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway
+          images: ${{ env.REGISTRY }}/nasa-ammos/plandev-gateway
+
       - name: Build Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # 7.3.0
         with:
           context: .
           load: true
-          tags: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/nasa-ammos/plandev-gateway:${{ github.sha }}
+
       - name: Scan Docker image
         # pinned to commit for v0.35.0 https://github.com/aquasecurity/trivy-action/releases/tag/v0.35.0
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         with:
-          image-ref: ${{ env.REGISTRY }}/nasa-ammos/aerie-gateway:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/nasa-ammos/plandev-gateway:${{ github.sha }}
           format: 'table'
           exit-code: '1'
           ignore-unfixed: true
           severity: 'CRITICAL'
+
       - name: Push Docker Image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # 7.3.0
         with:
           context: .
           push: true
