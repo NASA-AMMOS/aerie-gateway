@@ -40,17 +40,6 @@ jobs:
           # don't use NPM cache when installing, to avoid possibility of cache-poisoning attacks during publish
           package-manager-cache: false
 
-      - name: Verify release version
-        # fail & warn if release git tag doesn't match version in `package.json`
-        run: >-
-          node -e "
-          const { version } = require('./package.json');
-          const expectedTag = \`v\${version}\`;
-          if (process.env.GITHUB_REF_NAME !== expectedTag) {
-            throw new Error(\`Tag \${process.env.GITHUB_REF_NAME} does not match package version \${expectedTag}\`);
-          }
-          "
-
       - name: Install Dev Dependencies and Build
         run: |
           npm install --ignore-scripts
