@@ -28,12 +28,14 @@ COPY --chown=node:node static ./static
 RUN rm -rf /usr/local/lib/node_modules/npm \
     && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
-# Prep the writable file store mount point (owned by the app user so it has write perms)
+# Prep the writable file store mount point (owned by the app user so it has write permissions)
 RUN mkdir -p /app/files \
     && chown node:node /app/files
 
+# define health check for container: /health route will return 200 if healthy
 HEALTHCHECK --interval=2s --timeout=2s --start-period=2s --retries=15 \
   CMD /bin/sh -c 'curl -sf http://localhost:$PORT/health || exit 1'
 
+# run app as node user
 USER node
 CMD ["node", "dist/main.js"]
