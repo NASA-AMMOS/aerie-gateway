@@ -18,7 +18,8 @@ RUN apk add --no-cache curl
 ENV NODE_ENV=production
 WORKDIR /app
 
-# copy in all files needed to run the app (build + deps + static folder)
+# copy in all files needed to run the app
+COPY --from=gateway-node-builder --chown=node:node /app/package.json ./package.json
 COPY --from=gateway-node-builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=gateway-node-builder --chown=node:node /app/dist ./dist
 COPY --chown=node:node static ./static
