@@ -32,25 +32,6 @@ jobs:
           # throw away GH token after this step so future steps can't use it
           persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version-file: .nvmrc
-          registry-url: https://registry.npmjs.org
-          # don't use NPM cache when installing, to avoid possibility of cache-poisoning attacks during publish
-          package-manager-cache: false
-
-      - name: Install Dev Dependencies and Build
-        run: |
-          npm install --ignore-scripts
-          npm rebuild --strict-allow-scripts
-          npm run build
-
-      - name: Install Production Dependencies
-        run: |
-          rm -rf node_modules
-          npm install --only=production
-
       - name: Login to the Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # 4.6.0
         with:
