@@ -1,0 +1,4 @@
+.env
+.git
+.cache/trivy
+node_modules
