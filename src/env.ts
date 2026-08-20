@@ -20,8 +20,9 @@ export type Env = {
   LOG_FILE: string;
   LOG_LEVEL: string;
   PORT: string;
-  AERIE_DB_HOST: string;
-  AERIE_DB_PORT: string;
+  PLANDEV_DB: string;
+  PLANDEV_DB_HOST: string;
+  PLANDEV_DB_PORT: string;
   GATEWAY_DB_USER: string;
   GATEWAY_DB_PASSWORD: string;
   RATE_LIMITER_FILES_MAX: number;
@@ -30,8 +31,9 @@ export type Env = {
 };
 
 export const defaultEnv: Env = {
-  AERIE_DB_HOST: 'localhost',
-  AERIE_DB_PORT: '5432',
+  PLANDEV_DB: 'plandev',
+  PLANDEV_DB_HOST: 'localhost',
+  PLANDEV_DB_PORT: '5432',
   ALLOWED_ROLES: ['user', 'viewer'],
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
   AUTH_GROUP_ROLE_MAPPINGS: {},
@@ -124,8 +126,9 @@ export function getEnv(): Env {
   const LOG_FILE = env['LOG_FILE'] ?? defaultEnv.LOG_FILE;
   const LOG_LEVEL = env['LOG_LEVEL'] ?? defaultEnv.LOG_LEVEL;
   const PORT = env['PORT'] ?? defaultEnv.PORT;
-  const AERIE_DB_HOST = env['AERIE_DB_HOST'] ?? defaultEnv.AERIE_DB_HOST;
-  const AERIE_DB_PORT = env['AERIE_DB_PORT'] ?? defaultEnv.AERIE_DB_PORT;
+  const PLANDEV_DB = env['PLANDEV_DB'] ?? defaultEnv.PLANDEV_DB;
+  const PLANDEV_DB_HOST = env['PLANDEV_DB_HOST'] ?? env['AERIE_DB_HOST'] ?? defaultEnv.PLANDEV_DB_HOST;
+  const PLANDEV_DB_PORT = env['PLANDEV_DB_PORT'] ?? env['AERIE_DB_PORT'] ?? defaultEnv.PLANDEV_DB_PORT;
   const GATEWAY_DB_USER = env['GATEWAY_DB_USER'] ?? defaultEnv.GATEWAY_DB_USER;
   const GATEWAY_DB_PASSWORD = env['GATEWAY_DB_PASSWORD'] ?? defaultEnv.GATEWAY_DB_PASSWORD;
   const RATE_LIMITER_FILES_MAX = parseNumber(env['RATE_LIMITER_FILES_MAX'], defaultEnv.RATE_LIMITER_FILES_MAX);
@@ -133,8 +136,9 @@ export function getEnv(): Env {
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {
-    AERIE_DB_HOST,
-    AERIE_DB_PORT,
+    PLANDEV_DB,
+    PLANDEV_DB_HOST,
+    PLANDEV_DB_PORT,
     ALLOWED_ROLES,
     ALLOWED_ROLES_NO_AUTH,
     AUTH_GROUP_ROLE_MAPPINGS,

@@ -3,7 +3,7 @@
 This document provides detailed information about environment variables for the gateway.
 
 | Name                        | Description                                                                                           | Type     | Default                                        |
-| --------------------------- |-------------------------------------------------------------------------------------------------------| -------- | ---------------------------------------------- |
+|-----------------------------|-------------------------------------------------------------------------------------------------------| -------- |------------------------------------------------|
 | `ALLOWED_ROLES`             | Allowed roles when authentication is enabled.                                                         | `array`  | ["user", "viewer"]                             |
 | `ALLOWED_ROLES_NO_AUTH`     | Allowed roles when authentication is disabled.                                                        | `array`  | ["aerie_admin", "user", "viewer"]              |
 | `AUTH_GROUP_ROLE_MAPPINGS`  | JSON object that maps auth provider groups to PlanDev roles. See [SSO authentication docs][SSO authn] | `JSON`   | {}                                             |
@@ -22,8 +22,9 @@ This document provides detailed information about environment variables for the 
 | `LOG_FILE`                  | Either an output filepath to log to, or 'console'.                                                    | `string` | console                                        |
 | `LOG_LEVEL`                 | Logging level for filtering logs.                                                                     | `string` | warn                                           |
 | `PORT`                      | Port the Gateway server listens on.                                                                   | `number` | 9000                                           |
-| `AERIE_DB_HOST`             | Hostname of the PlanDev Posgres Database.                                                               | `string` | localhost                                      |
-| `AERIE_DB_PORT`             | Port of the PlanDev Posgres Database.                                                                   | `number` | 5432                                           |
+| `PLANDEV_DB`                | Name of the PlanDev Posgres Database.                                                                 | `string` | plandev                                        |
+| `PLANDEV_DB_HOST`           | Hostname of the PlanDev Posgres Database.                                                             | `string` | localhost                                      |
+| `PLANDEV_DB_PORT`           | Port of the PlanDev Posgres Database.                                                                 | `number` | 5432                                           |
 | `GATEWAY_DB_USER`           | Username of the Gateway DB User.                                                                      | `string` |                                                |
 | `GATEWAY_DB_PASSWORD`       | Password of the Gateway DB User.                                                                      | `string` |                                                |
 | `RATE_LIMITER_FILES_MAX`    | Max requests allowed every 15 minutes to file endpoints                                               | `number` | 1000                                           |

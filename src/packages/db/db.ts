@@ -5,7 +5,7 @@ import getLogger from '../../logger.js';
 
 const { Pool: DbPool } = pg;
 
-const { AERIE_DB_HOST: host, AERIE_DB_PORT: port, GATEWAY_DB_USER: user, GATEWAY_DB_PASSWORD: password } = getEnv();
+const { PLANDEV_DB: database, PLANDEV_DB_HOST: host, PLANDEV_DB_PORT: port, GATEWAY_DB_USER: user, GATEWAY_DB_PASSWORD: password } = getEnv();
 
 const logger = getLogger('packages/db/db');
 
@@ -19,7 +19,7 @@ export class DbMerlin {
   static async init(): Promise<void> {
     try {
       const config: PoolConfig = {
-        database: 'aerie',
+        database,
         host,
         password,
         port: parseInt(port, 10),
