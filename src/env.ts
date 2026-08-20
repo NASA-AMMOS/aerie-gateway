@@ -31,9 +31,6 @@ export type Env = {
 };
 
 export const defaultEnv: Env = {
-  PLANDEV_DB: 'plandev',
-  PLANDEV_DB_HOST: 'localhost',
-  PLANDEV_DB_PORT: '5432',
   ALLOWED_ROLES: ['user', 'viewer'],
   ALLOWED_ROLES_NO_AUTH: ['aerie_admin', 'user', 'viewer'],
   AUTH_GROUP_ROLE_MAPPINGS: {},
@@ -53,6 +50,9 @@ export const defaultEnv: Env = {
   JWT_EXPIRATION: '36h',
   LOG_FILE: 'console',
   LOG_LEVEL: 'info',
+  PLANDEV_DB: 'plandev',
+  PLANDEV_DB_HOST: 'localhost',
+  PLANDEV_DB_PORT: '5432',
   PORT: '9000',
   RATE_LIMITER_FILES_MAX: 1000,
   RATE_LIMITER_LOGIN_MAX: 1000,
@@ -136,9 +136,6 @@ export function getEnv(): Env {
   const VERSION = env['npm_package_version'] ?? defaultEnv.VERSION;
 
   return {
-    PLANDEV_DB,
-    PLANDEV_DB_HOST,
-    PLANDEV_DB_PORT,
     ALLOWED_ROLES,
     ALLOWED_ROLES_NO_AUTH,
     AUTH_GROUP_ROLE_MAPPINGS,
@@ -158,6 +155,9 @@ export function getEnv(): Env {
     JWT_EXPIRATION,
     LOG_FILE,
     LOG_LEVEL,
+    PLANDEV_DB,
+    PLANDEV_DB_HOST,
+    PLANDEV_DB_PORT,
     PORT,
     RATE_LIMITER_FILES_MAX,
     RATE_LIMITER_LOGIN_MAX,
