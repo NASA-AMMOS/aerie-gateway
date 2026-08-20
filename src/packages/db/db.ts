@@ -5,7 +5,13 @@ import getLogger from '../../logger.js';
 
 const { Pool: DbPool } = pg;
 
-const { PLANDEV_DB: database, PLANDEV_DB_HOST: host, PLANDEV_DB_PORT: port, GATEWAY_DB_USER: user, GATEWAY_DB_PASSWORD: password } = getEnv();
+const {
+  PLANDEV_DB: database,
+  PLANDEV_DB_HOST: host,
+  PLANDEV_DB_PORT: port,
+  GATEWAY_DB_USER: user,
+  GATEWAY_DB_PASSWORD: password,
+} = getEnv();
 
 const logger = getLogger('packages/db/db');
 
