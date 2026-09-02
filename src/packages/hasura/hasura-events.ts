@@ -76,7 +76,7 @@ export default (app: Express) => {
         args: {
           name: `refresh${name}`,
           payload: { id: missionModelId },
-          source: 'Aerie',
+          source: 'PlanDev',
         },
         type: 'pg_invoke_event_trigger',
       });
